@@ -1,0 +1,195 @@
+Number of Processors (Auto, 1, 2, 3, ..., n threads) cbirdq=40 normal=20
+40
+
+Maximum Memory (1G,2G,..., 256G)  G=gigabytes
+230G
+
+
+
+----------Settings for Trimming----------------------------------------------------
+
+Trimming (yes,no)
+no
+
+TRIM_LENGTH_ASSEMBLY
+146
+
+SEED_ASSEMBLY (applies to trim for assembly and mapping)
+2
+
+PALIMDROME_ASSEMBLY (applies to trim for assembly and mapping)
+30
+
+SIMPLE_ASSEMBLY (applies to trim for assembly and mapping)
+10
+
+windowSize_ASSEMBLY (applies to trim for assembly and mapping)
+20
+
+windowQuality_ASSEMBLY (applies to trim for assembly and mapping)
+10
+
+TRAILING_ASSEMBLY
+10
+
+TRIM_LENGTH_MAPPING
+75
+
+LEADING_MAPPING
+15
+
+TRAILING_MAPPING
+15
+
+
+----------Settings for FixStacks---------------------------------------------------
+
+FixStacks (yes,no)   Demultiplexing with stacks introduces anomolies.  This removes them.  
+no
+
+
+
+----------Settings for de novo assembling the reference genome--------------------
+
+Assembly? (yes or no)
+no
+
+Type_of_Assembly (PE, SE, OL, RPE)
+PE
+
+Clustering_Similarity% (0-1)
+0.9
+
+HPC, Get graphs for cutoffs, then stop? (yes or no)
+no
+
+Manually set cutoffs? (yes or no)  If yes is selected then dDocent will prompt you to enter cutoff values.  
+no
+
+Cutoff1
+25
+
+Cutoff2
+10
+
+
+
+----------Settings for mapping the reads------------------------------------------
+Make sure the cutoffs above match your reference!
+
+Mapping_Reads? (yes or no)
+no
+
+Mapping_Match_Value (integer) bwa mem -A
+1
+
+Mapping_MisMatch_Value (integer) bwa mem -B
+6
+
+Mapping_GapOpen_Penalty (integer) bwa mem -O
+10
+
+Mapping_Minimum_Alignment_Score (integer) bwa mem -T
+50
+
+Mapping_Clipping_Penalty (integer,integer) bwa mem -L
+30,5
+
+
+
+----------Settings for filtering mapping alignments (BAM FILTERING)---------------
+
+Filter_Mapped_Read_Alignments? (yes or no)
+no
+
+Mapping_Min_Quality (integer)    samtools view -q
+20
+
+Remove_unmapped_reads? (yes,no)   samtools view -F 4
+no
+
+Remove_read_pair_if_one_is_unmapped? (yes,no)    samtools view -F 8
+yes
+
+Remove_secondary_alignments? (yes,no)     samtools view -F 256
+yes
+
+Remove_reads_not_passing_platform_vendor_filters (yes,no)     samtools view -F 512
+no
+
+Remove_PCR_or_optical_duplicates? (yes,no)     samtools view -F 1024
+no
+
+Remove_supplementary_alignments? (yes,no)     samtools view -F 2048
+no
+
+Keep_only_properly_aligned_read_pairs? (yes,no)     samtools view -f 2   Set to no if OL mode 
+yes
+
+Custom_samtools_view_F_bit_value? (integer)     samtools view -F, performed separately from the above
+0
+
+Custom_samtools_view_f_bit_value? (integer)     samtools view -f, performed separately from the above
+0
+
+Remove_reads_with_excessive_soft_clipping? (no, integer by 10s)     minimum number of soft clipped bases in a read that is unacceptable
+20
+
+Remove_reads_with_alignment_score_below  (integer by 10s)    Not currently fuctional
+50
+
+Remove_reads_orphaned_by_filters? (yes,no)
+yes
+
+----------Settings for variant calling--------------------------------------------
+
+Calling_SNPs?
+yes
+
+Is the data pooled? (yes or no) If yes, a pool of individuals is assumed to be the statistical unit of observation
+no
+
+If the data is pooled, will you provide a copy number variation (cnv) *.bed file with the ploidy of each pool? (no for filename.bed)      freebayes -J or freebayes -K , if yes, then you have to put a file with the specified name in the the genotyping directory with the following format: popmap_column_1 ploidy
+no
+
+If no cnv file is provided, then what is the ploidy of the samples (integer) -p ? 
+2
+
+Use_Best_N_Alleles (integer) freebayes -n , reduce the number of alleles considered to n, zero means all, set to 2 or more if you run out of memory
+0
+
+Minimum_Mapping_Quality (integer) freebayes -m
+30
+
+Minimum_Base_Quality (integer) freebayes -q
+20
+
+Haplotype_Length (-1, 3, or integer) freebayes -E   If -1, then clumping/mnps/etc is disabled.  Can be set up to half the read length, or more.
+-1
+
+Min_Repeat_Entropy (0, 1, or integer) freebayes --min-repeat-entropy
+0
+
+Min_Coverage (integer) freebayes --min-coverage      Require at least this coverage to process a site
+10
+
+Min_Alternate_Fraction (0.2, decimal) freebayes -F  If your individuals are barcoded, then use 0.2. If your data is pooled, then set based upon ~ 1/(numIndivids * ploidy) and average depth of coverage
+0.375
+
+Min_Alternate_Count (integer) freebayes -C    Require at least this count of observations supporting an alternate allele within a single individual in order to evaluate the position.  default: 2
+10
+
+Min_Alternate_Total (integer) freebayes -G    Require at least this count of observations supporting an alternate allele within the total population in order to use the allele in analysis.  default: 1
+20
+
+Read_Max_Mismatch_Fraction (decimal 0-1) freebayes -z    Exclude reads with more than N [0,1] fraction of mismatches
+0.33
+
+20	freebayes -Q --mismatch-base-quality-threshold	Count mismatches toward --read-mismatch-limit if the base quality of the mismatch is >= Q.  default: 10
+30	freebayes -U --read-mismatch-limit				Exclude reads with more than N mismatches where each mismatch has base quality >= mismatch-base-quality-threshold. default: ~unbounded
+
+----------Misc settings-----------------------------------------------------------
+
+Email
+tamucc.edu
+

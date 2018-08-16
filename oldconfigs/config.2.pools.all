@@ -1,0 +1,157 @@
+Number of Processors (Auto, 1, 2, 3, ..., n threads) cbirdq=40 normal=20
+40
+
+Maximum Memory (1G,2G,..., 256G)  G=gigabytes
+230G
+
+
+
+----------Settings for Trimming----------------------------------------------------
+
+Trimming? (yes or no)
+no
+
+Keep fragments that are >= N nucleotides for assembly of ref genome (integer) trimmomatic MINLEN TRIM_LENGTH_ASSEMBLY 
+146
+
+Allow N nucleotide mismatches in removing adapters (integer) trimmomatic ILLUMINACLIP <seed mismatches> SEED_ASSEMBLY (applies to trim for assembly and mapping) 
+2
+
+See trimmomatic manual (integer) trimmomatic ILLUMINACLIP palindromeClipThreshold  PALIMDROME_ASSEMBLY (applies to trim for assembly and mapping)
+30
+
+Minimum number of matching nucleotides to trim adapter (integer) trimmomatic ILLUMINACLIP <simpleClipThreshold>  SIMPLE_ASSEMBLY (applies to trim for assembly and mapping)
+10
+
+Sliding window size for quality trimming (integer) trimmomatic SLIDINGWINDOW <windowSize> windowSize_ASSEMBLY (applies to trim for assembly and mapping)
+20
+
+Minimum average quality in window (integer) trimmomatic SLIDINGWINDOW <windowQuality> windowQuality_ASSEMBLY (applies to trim for assembly and mapping)
+10
+
+Minimum quality to keep a base for assembly (integer) trimmomatic TRAILING <quality> TRAILING_ASSEMBLY
+10
+
+Keep fragments that are >= N bp for mapping to the ref genome (integer) trimmomatic MINLEN TRIM_LENGTH_MAPPING
+75
+
+Minimum quality to keep a base for mapping (integer) trimmomatic LEADING LEADING_MAPPING
+15
+
+Minimum quality to keep a base for mapping (integer) trimmomatic TRAILING TRAILING_MAPPING
+15
+
+
+----------Settings for FixStacks---------------------------------------------------
+
+FixStacks (yes,no)   Demultiplexing with stacks introduces anomolies.  This removes them.  
+no
+
+
+
+----------Settings for de novo assembling the reference genome--------------------
+
+Assembly? (yes or no)
+no
+
+Type_of_Assembly (PE, SE, OL, RPE)  see dDocent manual
+PE
+
+Clustering_Similarity% (0-1) cd-hit
+0.9
+
+HPC, Get graphs for cutoffs, then stop? (yes or no) see cbird's dDocent manual
+no
+
+Manually set cutoffs? (yes or no)  If yes is selected then dDocent will prompt you to enter cutoff values.  
+no
+
+Cutoff1
+3
+
+Cutoff2
+3
+
+
+
+----------Settings for mapping the reads------------------------------------------
+Make sure the cutoffs above match your reference!
+
+Mapping_Reads? (yes or no)
+no
+
+Mapping_Match_Value (integer) bwa mem -A
+1
+
+Mapping_MisMatch_Value (integer) bwa mem -B
+6
+
+Mapping_GapOpen_Penalty (integer) bwa mem -O
+10
+
+Mapping_Minimum_Alignment_Score (integer) bwa mem -T
+50
+
+Mapping_Clipping_Penalty (integer,integer) bwa mem -L
+30,5
+
+Mapping_Min_Quality (integer)    samtools view -q
+10
+
+Filter_BAM_Files (integer)    samtools view -F      0 means keep everything
+2316
+
+
+
+----------Settings for variant calling--------------------------------------------
+Make sure the cutoffs above match your reference!
+
+Calling_SNPs?
+no
+
+Is the data pooled? (yes or no) If yes, a pool of individuals is assumed to be the statistical unit of observation
+no
+
+If the data is pooled, will you provide a copy number variation (cnv) *.bed file with the ploidy of each pool? (no for filename.bed)      freebayes -J or freebayes -K , if yes, then you have to put a file with the specified name in the the genotyping directory with the following format: popmap_column_1 ploidy
+no
+
+If no cnv file is provided, then what is the ploidy of the samples (individuals or pools)? (integer) freebayes -p 
+2
+
+Use_Best_N_Alleles (integer) freebayes -n , reduce the number of alleles considered to n, zero means all, set to 2 or more if you run out of memory
+0
+
+Minimum_Mapping_Quality (integer) freebayes -m
+20
+
+Minimum_Base_Quality (integer) freebayes -q
+20
+
+Haplotype_Length (-1, 3, or integer) freebayes -E   If -1, then clumping/mnps/etc is disabled.  Can be set up to half the read length, or more.
+-1
+
+Min_Repeat_Entropy (0, 1, or integer) freebayes --min-repeat-entropy
+0
+
+Min_Coverage (integer) freebayes --min-coverage      Require at least this coverage to process a site
+10
+
+Min_Alternate_Fraction (0.2, decimal) freebayes -F  If your individuals are barcoded, then use 0.2. If your data is pooled, then set based upon ~ 1/(numIndivids * ploidy) and average depth of coverage
+0.025
+
+Min_Alternate_Count (integer) freebayes -C    Require at least this count of observations supporting an alternate allele within a single individual in order to evaluate the position.  default: 2
+1
+
+Min_Alternate_Total (integer) freebayes -G    Require at least this count of observations supporting an alternate allele within the total population in order to use the allele in analysis.  default: 1
+5
+
+Read_Max_Mismatch_Fraction (decimal 0-1) freebayes -z    Exclude reads with more than N [0,1] fraction of mismatches
+0.2
+
+
+
+----------Misc settings-----------------------------------------------------------
+
+Email
+tamucc.edu
+

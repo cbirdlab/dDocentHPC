@@ -1,0 +1,50 @@
+Number of Processors (Auto, 1, 2, 3, ..., n threads) cbirdq=40 normal=20
+40
+
+Maximum Memory (1G,2G,..., 256G)  G=gigabytes
+230G
+
+Trimming (yes,no)
+no
+
+FixStacks (yes,no)   Demultiplexing with stacks introduces anomolies.  This removes them.  
+no
+
+Assembly? (yes,no)
+yes
+
+Type_of_Assembly (PE, SE, OL, RPE)
+PE
+
+Clustering_Similarity%
+0.9
+
+Mapping_Reads?
+no
+
+Mapping_Match_Value
+1
+
+Mapping_MisMatch_Value
+3
+
+Mapping_GapOpen_Penalty
+5
+
+Calling_SNPs?
+no
+
+Email
+cbird@tamucc.edu
+
+HPC, Get graphs for cutoffs, then stop? (yes,no)
+yes
+
+Manually set cutoffs? (yes,no)  If yes is selected then dDocent will prompt you to enter cutoff values.  
+no
+
+Cutoff1
+3
+
+Cutoff2
+3
