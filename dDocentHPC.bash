@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-
-##########dDocent 2.24##########
-# v7.0 Jason updated v6.6individuals
-# v7.1 RMH updated v7.0; passed all new variables in config file to the function; reordered them to match config file to preserve my sanity
-
+VERSION=4
 #This script serves as an interactive bash wrapper to QC, assemble, map, and call SNPs from double digest RAD (SE or PE), ezRAD (SE or PE) data, or SE RAD data.
 #It requires that your raw data are split up by tagged individual and follow the naming convention of:
 
@@ -11,7 +7,7 @@
 
 #Prints out title and contact info
 echo
-echo -e "\n* dDocent 2.2.16 HPCv3.1 HACKED by cbird@tamucc.edu * \n"
+echo -e "\n* dDocentHPC v$VERSION Forked by cbird@tamucc.edu * \n"
 #echo -e "Contact jpuritz@gmail.com with any problems \n\n "
 
 
@@ -147,18 +143,15 @@ if [ -n "$1" ]; then
 	FREEBAYES_U=$(grep 'freebayes -U --read-mismatch-limit' $CONFIG | awk '{print $1;}')
 	MAIL=$(grep -A1 Email $CONFIG | tail -1)
 
-
 else
 	#GetInfo 
-	echo ""; echo `date` " Aborting dDocent 4 HPC"
+	echo ""; echo `date` " Aborting dDocentHPC"
 	exit
 fi
 
-
-
-
-
-###Code to check for the required software for dDocent
+####################################################################################################
+###Function to check for the required software for dDocent
+####################################################################################################
 
 CheckDependencies(){
 	echo ""; echo " Running CheckDependencies Function..."
@@ -292,9 +285,6 @@ echo ""; echo `date` "Checking for all required dDocent software..."
 DEP=(freebayes mawk bwa samtools vcftools rainbow gnuplot gawk seqtk cd-hit-est bamToBed bedtools coverageBed parallel vcfcombine bamtools pearRM)
 CheckDependencies $DEP "FALSE" "dDocentHPC will continue to run with limited functionality"
 
-
-
-	
 if ! awk --version | fgrep -v GNU &>/dev/null; then
 	 awk=gawk
 else
@@ -303,12 +293,8 @@ fi
 
 
 #This code checks for individual fastq files follow the correct naming convention and are gziped
-TEST=$(ls *.r1.fq 2> /dev/null | wc -l )
-#echo TEST=$TEST
-#TEST2=$(ls ref.*.fq 2> /dev/null | wc -l )
-#echo TEST2=$TEST2
-#TEST=$(($TEST - $TEST2))
-#echo TEST-TEST2=$TEST
+TEST=$(ls *.fq 2> /dev/null | wc -l )
+
 if [ "$TEST" -gt 0 ]; then
 	echo -e "\ndDocent is now configured to work on compressed sequence files.  Please run gzip to compress your files."
 	echo "This is as simple as 'gzip *.fq'"
@@ -316,8 +302,6 @@ if [ "$TEST" -gt 0 ]; then
 	echo $TEST
 	exit 1
 fi
-
-
 
 ###############################################################################################
 #Wrapper for main program functions.  This allows the entire file to be read first before execution
@@ -446,6 +430,8 @@ main(){
 	MAIL=${44}
 	BEDTOOLSFLAG=${51}
 
+	CUTOFFS=$CUTOFF.$CUTOFF2
+	
 	#$$$$$$$$$$$$$$$$$$$$$CEB$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 	#Count number of individuals in current directory
 
@@ -482,20 +468,21 @@ main(){
 	elif [ "$FILTERMAP" == "yes" ]; then
 		echo "";echo "  F1 R1 Genotyping file extensions selected"
 		F="R1"
-		Fwild="*.R1.fq.gz"
-		Fsed=".R1.fq.gz"
+		Fwild="*-RAW.bam"
+		Fsed=".${CUTOFFS}-RAW.bam"
 		R="R2"
 		Rwild="*.R2.fq.gz"
 		Rsed=".R2.fq.gz"
 	elif [ "$SNP" == "yes" ]; then
 		echo "";echo "  F1 R1 Genotyping file extensions selected"
 		F="R1"
-		Fwild="*.R1.fq.gz"
-		Fsed=".R1.fq.gz"
+		Fwild="*-RG.bam"
+		Fsed=".${CUTOFFS}-RG.bam"
 		R="R2"
 		Rwild="*.R2.fq.gz"
 		Rsed=".R2.fq.gz"
-	else
+
+		else
 		echo "";echo "  Couldn't decide which file extensions were selected"
 		F="r1"
 		Fwild="*.r1.fq.gz"
@@ -504,39 +491,27 @@ main(){
 		Rwild="*.r2.fq.gz"
 		Rsed=".r2.fq.gz"
 	fi
-	#echo "";echo `date` " End extensions selected" $R
-	#$$$$$$$$$$$$$$$$$$$$$$$$$$$CEB$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 	NumInd=$(ls $Fwild | wc -l)
 	NumInd=$(($NumInd - 0))
 
-	#echo "";echo " $NumInd libraries counted"
-
 	#Create list of sample names
 	if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
-		ls $Fwild > namelist.$CUTOFF.$CUTOFF2
-		sed -i'' -e "s/$Fsed//g" namelist.$CUTOFF.$CUTOFF2
+		ls $Fwild > namelist.$CUTOFFS
+		sed -i'' -e "s/$Fsed//g" namelist.$CUTOFFS
 	else
 		echo "";echo " The namelist file already exists and was not recreated. "
 		echo "  If you experience errors, you should delete the namelist file."
 	fi
-	if [ ! -s "namelistfr.$CUTOFF.$CUTOFF2" ];then
-		#echo $Fwild
-		ls $Fwild > namelistfr.$CUTOFF.$CUTOFF2
-		ls $Rwild >> namelistfr.$CUTOFF.$CUTOFF2
-		sed -i'' -e "s/\.fq\.gz//g" namelistfr.$CUTOFF.$CUTOFF2
-	else
-		echo "";echo " The namelistfr file already exists and was not recreated."
-		echo "  If you experience errors, you should delete the namelistfr file."
-	fi
+
 	#Create an array of sample names
-	#NUMNAMES=$(mawk '/_/' namelist.$CUTOFF.$CUTOFF2 | wc -l)
-	NUMNAMES=$(grep -c '^' namelist.$CUTOFF.$CUTOFF2)
+	#NUMNAMES=$(mawk '/_/' namelist.$CUTOFFS | wc -l)
+	NUMNAMES=$(grep -c '^' namelist.$CUTOFFS)
 
 	if [ "$NUMNAMES" -eq "$NumInd" ]; then
-		NAMES=( `cat "namelist.$CUTOFF.$CUTOFF2" `)
+		NAMES=( `cat "namelist.$CUTOFFS" `)
 		echo " ";echo " The samples being processed are:"
-		cat namelist.$CUTOFF.$CUTOFF2 | parallel --no-notice "echo '  '{}"
+		cat namelist.$CUTOFFS | parallel --no-notice "echo '  '{}"
 		echo ""
 	else
 		echo ""; echo " "`date` " ERROR: NUMNAMES=$NUMNAMES NUMIND=$NumInd"
@@ -549,98 +524,57 @@ main(){
 	#Sets a start time variable
 	STARTTIME=$(date)
 
-	#ceb_I'm adding an if statement so that this only runs if the user wants it to
-	if [ "$FixStacks" == "yes" ]; then
-		echo "";echo " "`date` " Fixing Stacks anomalies"
-
-		#STACKS adds a strange _1 or _2 character to the end of processed reads, this looks for checks for errant characters and replaces them.
-		#This functionality is now parallelized and will run if only SE sequences are used.
-
-		STACKS=$(cat namelist.$CUTOFF.$CUTOFF2| parallel -j $NUMProc --no-notice "zcat {}$Fsed | head -1" | mawk '!/\/1/' | wc -l)
-		FB1=$(( $NUMProc / 2 ))
-		if [ $STACKS -gt 0 ]; then
-			echo "  Removing the _1 character and replacing with /1 in the name of every sequence"
-			cat namelist.$CUTOFF.$CUTOFF2 | parallel -j $FB1 --no-notice "zcat {}.$F.fq.gz | sed -e 's:_1$:/1:g' > {}.$F.fq"
-			rm $Fwild
-			cat namelist.$CUTOFF.$CUTOFF2 | parallel -j $FB1 --no-notice "gzip {}.$F.fq"
-		fi
-
-		if [ -f "${NAMES[@]:(-1)}"$Rsed ]; then
-			
-			STACKS=$(cat namelist.$CUTOFF.$CUTOFF2| parallel -j $NUMProc --no-notice "zcat {}$Rsed | head -1" | mawk '!/\/2/' | wc -l)
-
-			if [ $STACKS -gt 0 ]; then
-				echo "  Removing the _2 character and replacing with /2 in the name of every sequence"
-				cat namelist.$CUTOFF.$CUTOFF2 | parallel -j $FB1 --no-notice "zcat {}.$R.fq.gz | sed -e 's:_2$:/2:g' > {}.$R.fq"
-				rm $Rwild
-				cat namelist.$CUTOFF.$CUTOFF2 | parallel -j $FB1 --no-notice "gzip {}.$R.fq"
-			fi
-		fi
-	fi
-
 	##Section of logic statements that dictates the order and function of processing the pipeline
-
-	if [[ "$TRIM" == "yes" && "$ASSEMBLY" == "yes" ]]; then
-		echo " ";echo " "`date` "Trimming reads and simultaneously assembling reference sequences" 
-					
-			#$$$$$$$$$$$$ceb$$$$$$$$$$$$
-		#I made two functions for trimming, TrimReads trims for Mapping, TrimReadsRef trims for reference assembly.  I have modified below
+	
+	if [ "$FixStacks" == "yes" ]; then
+		FIXSTACKS
+	fi
+	
+	if [ "$TRIM" == "yes" ]; then
+		echo " ";echo " "`date` "Trimming reads " 
 		TrimReadsRef & 2> trimref.log
 		TrimReads & 2> trim.log
-			Assemble
-			#setupRainbow 2> rainbow.log
-			wait
 	fi
 
-	if [[ "$TRIM" == "yes" && "$ASSEMBLY" != "yes" ]]; then
-
-		TrimReadsRef 2> trimref.log
-		TrimReads 2> trim.log
-	fi                
-					
-	if [[ "$TRIM" != "yes" && "$ASSEMBLY" == "yes" ]]; then                
-			Assemble
-			#setupRainbow 2> rainbow.log
+	if [ "$ASSEMBLY" == "yes" ]; then
+		Assemble
 	fi
 
-	#Checks to see if reads will be mapped.
-	if [ "$MAP" != "no" ]; then
+	if [ "$MAP" == "yes" ]; then
 		MAP2REF $CUTOFF.$CUTOFF2 $NUMProc $CONFIG $ATYPE $Rsed NAMES
 	fi
 
-
-	##Filtering BAM Files Prior to Genotyping/SNP Calling     made by CEB July 2018
-	if [ "$FILTERMAP" != "no" ]; then
-		FILTERBAM $CUTOFF.$CUTOFF2 $NUMProc $CONFIG $ATYPE
+	if [ "$FILTERMAP" == "yes" ]; then
+		FILTERBAM $CUTOFFS $NUMProc $CONFIG $ATYPE
 	fi
 	
-
-	##GENOTYPING
-	if [ "$SNP" != "no" ]; then
-		GENOTYPE $CUTOFF.$CUTOFF2 $NUMProc $CONFIG
+	if [ "$SNP" == "yes" ]; then
+		GENOTYPE $CUTOFFS $NUMProc $CONFIG
 	fi
 
 	##Checking for possible errors
 
 	if [ "$MAP" != "no" ]; then
-	ERROR1=$(mawk '/developer/' bwa* | wc -l 2>/dev/null) 
+		ERROR1=$(mawk '/developer/' bwa* | wc -l 2>/dev/null) 
 	fi
-	ERROR2=$(mawk '/error/' *.bam.log | wc -l 2>/dev/null)
-	ERRORS=$(($ERROR1 + $ERROR2))
+	#CEB this was causing an error, there's no bam.log created
+	#	ERROR2=$(mawk '/error/' *.bam.log | wc -l 2>/dev/null)
+	#ERRORS=$(($ERROR1 + $ERROR2))
 
 	#Move various log files to own directory
 	if [ ! -d "logfiles" ]; then
-	mkdir logfiles
+		mkdir logfiles
 	fi
 	mv *.log log ./logfiles 2> /dev/null
 
 	#Sending a completion email
 
-	if [ $ERRORS -gt 0 ]; then
-			echo -e "dDocent has finished with errors in" `pwd` "\n\ndDocent started" $STARTTIME "\n\ndDocent finished" `date` "\n\nPlease check log files\n\n" `mawk '/After filtering, kept .* out of a possible/' ./logfiles/Final.log` "\n\ndDocent 2.24 \nThe 'd' is silent, hillbilly." | mailx -s "dDocent has finished with ERRORS!" $MAIL
-	else
-			echo -e "dDocent has finished with an analysis in" `pwd` "\n\ndDocent started" $STARTTIME "\n\ndDocent finished" `date` "\n\n" `mawk '/After filtering, kept .* out of a possible/' ./logfiles/Final.log` "\n\ndDocent 2.24 \nIt is pronounced Dee-Docent, professor." | mailx -s "dDocent has finished" $MAIL
-	fi
+	#CEB this was causing error: mawk: cannot open ./logfiles/Final.log (No such file or directory)
+	#if [ $ERRORS -gt 0 ]; then
+	#			echo -e "dDocent has finished with errors in" `pwd` "\n\ndDocent started" $STARTTIME "\n\ndDocent finished" `date` "\n\nPlease check log files\n\n" `mawk '/After filtering, kept .* out of a possible/' ./logfiles/Final.log` "\n\ndDocent 2.24 \nThe 'd' is silent, hillbilly." | mailx -s "dDocent has finished with ERRORS!" $MAIL
+	#else
+	#		echo -e "dDocent has finished with an analysis in" `pwd` "\n\ndDocent started" $STARTTIME "\n\ndDocent finished" `date` "\n\n" `mawk '/After filtering, kept .* out of a possible/' ./logfiles/Final.log` "\n\ndDocent 2.24 \nIt is pronounced Dee-Docent, professor." | mailx -s "dDocent has finished" $MAIL
+	#fi
 
 
 	#Creates (or appends to) a dDcoent run file recording variables
@@ -736,6 +670,8 @@ main(){
 	echo $MAIL >> dDocent.runs
 
 }
+
+
 ###############################################################################################
 
 
@@ -744,6 +680,40 @@ main(){
 
 ###############################################################################################
 
+
+
+
+##############################################################################################
+#Function for correcting stacks file errors (antiquated?)
+###############################################################################################
+
+FIXSTACKS () {
+	echo "";echo " "`date` " Fixing Stacks anomalies"
+
+	#STACKS adds a strange _1 or _2 character to the end of processed reads, this looks for checks for errant characters and replaces them.
+	#This functionality is now parallelized and will run if only SE sequences are used.
+
+	STACKS=$(cat namelist.$CUTOFFS| parallel -j $NUMProc --no-notice "zcat {}$Fsed | head -1" | mawk '!/\/1/' | wc -l)
+	FB1=$(( $NUMProc / 2 ))
+	if [ $STACKS -gt 0 ]; then
+		echo "  Removing the _1 character and replacing with /1 in the name of every sequence"
+		cat namelist.$CUTOFFS | parallel -j $FB1 --no-notice "zcat {}.$F.fq.gz | sed -e 's:_1$:/1:g' > {}.$F.fq"
+		rm $Fwild
+		cat namelist.$CUTOFFS | parallel -j $FB1 --no-notice "gzip {}.$F.fq"
+	fi
+
+	if [ -f "${NAMES[@]:(-1)}"$Rsed ]; then
+		
+		STACKS=$(cat namelist.$CUTOFFS| parallel -j $NUMProc --no-notice "zcat {}$Rsed | head -1" | mawk '!/\/2/' | wc -l)
+
+		if [ $STACKS -gt 0 ]; then
+			echo "  Removing the _2 character and replacing with /2 in the name of every sequence"
+			cat namelist.$CUTOFFS | parallel -j $FB1 --no-notice "zcat {}.$R.fq.gz | sed -e 's:_2$:/2:g' > {}.$R.fq"
+			rm $Rwild
+			cat namelist.$CUTOFFS | parallel -j $FB1 --no-notice "gzip {}.$R.fq"
+		fi
+	fi
+}
 
 
 
@@ -833,7 +803,14 @@ Assemble(){
 	SED2='s/ /	/g'
 	FRL=$(zcat ${NAMES[0]}.r1.fq.gz | mawk '{ print length() | "sort -rn" }' | head -1)
 
-		
+	if [ ! -s "namelistfr.$CUTOFFS" ];then
+		ls $Fwild > namelistfr.$CUTOFFS
+		ls $Rwild >> namelistfr.$CUTOFFS
+		sed -i'' -e "s/\.fq\.gz//g" namelistfr.$CUTOFFS
+	else
+		echo "";echo " The namelistfr file already exists and was not recreated."
+		echo "  If you experience errors, you should delete the namelistfr file."
+	fi
 
 	#$$$$$$$$$$$CEB$$$$$$$$$$$$$$$$
 	#this block of code will either align or concatenate r1 & r2 seqs and create a file of unique sequences 
@@ -1451,26 +1428,56 @@ function GENOTYPE(){
 	FREEBAYES_Q=$(grep 'freebayes -Q --mismatch-base-quality-threshold' $CONFIG | awk '{print $1;}')
 	FREEBAYES_U=$(grep 'freebayes -U --read-mismatch-limit' $CONFIG | awk '{print $1;}')
 
+	echo POOLS=$POOLS
+	echo POOL_PLOIDY_FILE=$POOL_PLOIDY_FILE
+	echo PLOIDY=$PLOIDY
+	echo BEST_N_ALLELES=$BEST_N_ALLELES
+	echo MIN_MAPPING_QUAL $MIN_MAPPING_QUAL
+	echo MIN_BASE_QUAL $MIN_BASE_QUAL
+	echo HAPLOTYPE_LENGTH $HAPLOTYPE_LENGTH
+	echo MIN_REPEAT_ENTROPY $MIN_REPEAT_ENTROPY
+	echo MIN_COVERAGE $MIN_COVERAGE
+	echo MIN_ALT_FRACTION $MIN_ALT_FRACTION
+	echo MIN_ALT_COUNT $MIN_ALT_COUNT
+	echo MIN_ALT_TOTAL $MIN_ALT_TOTAL
+	echo READ_MAX_MISMATCH_FRACTION $READ_MAX_MISMATCH_FRACTION
+	echo FREEBAYES_Q $FREEBAYES_Q
+	echo FREEBAYES_U $FREEBAYES_U
+
+
 	
 	echo ""; echo " "`date` " Preparing files for genotyping..."
+	
+	#evaluate input bam files and process them appropriately
 	RGBAM=$(ls *$CUTOFFS-RG.bam | wc -l)
-	if [ RGBAM == 0 ]; then
-		echo "";echo "  "`date` " ERROR: Genotyping terminated.  Either rename the *.bam files to the suffix -RG.bam or filter the mapped reads in the bam files before genotyping"
-	else
-		ls *.$CUTOFFS-RG.bam >bamlist.$CUTOFFS.list
+	if [ ! -f split.1.$CUTOFFS.bam ]; then
+		if [ $RGBAM == 0 ]; then
+			RAWBAM=$(ls *${CUTOFFS}*.bam | wc -l)
+			if [ $RAWBAM == 0 ]; then
+						echo "";echo "  "`date` " ERROR: Genotyping terminated.  No BAM files found."
+						exit
+			else
+				echo "";echo "  "`date` "BAM files detected without -RG.bam extension.  Making -RG.bam files..."
+				ls *${CUTOFFS}*.bam | sed 's/\.bam//g' parallel --no-notice -j $NUMProc "cp {}.bam {}-RG.bam"
+			fi
+		else
+			echo "";echo "  "`date` "Filtered BAM files detected with -RG.bam."
+		fi
 		
-		#Check to make sure interval files have been created
-		if [[ ! -f "cat.$CUTOFFS-RRG.bam" || -f "map.$CUTOFFS.bed" ]]; then
-			echo "  "`date` " Recreating intervals 1"
-			CreateIntervals 
+		#determine if individual bam files need to be assembled in to a large bam file
+		if [ ! -f "cat.$CUTOFFS-RRG.bam" ]; then
+			echo "";echo "  "`date` "-RRG.bam file not detected, the individual bam files will be merged"
+			echo "  "`date` " samtools merge"
+			ls *.$CUTOFFS-RG.bam > bamlist.$CUTOFFS.list
+			samtools merge -@$NUMProc -b bamlist.$CUTOFF.$CUTOFF2.list -f cat.$CUTOFF.$CUTOFF2-RRG.bam &>/dev/null
+			echo "  "`date` " samtools index"
+			samtools index cat.$CUTOFF.$CUTOFF2-RRG.bam 
+			wait
 		fi
-		if [ ! -f "mapped.$CUTOFFS.bed" ]; then
-			echo "  "`date` " Recreating intervals again..."
-			bamToBed -i cat.$CUTOFFS-RRG.bam > map.$CUTOFFS.bed
-			bedtools merge -i map.$CUTOFFS.bed > mapped.$CUTOFFS.bed
-			#rm map.$CUTOFFS.bed
+		if [ "cat.${CUTOFFS}-RRG.bam" -nt mapped.$CUTOFFS.bed ]; then
+			if [ ! -f cat.$CUTOFF.$CUTOFF2-RRG.bam.bai ]; then samtools index cat.$CUTOFF.$CUTOFF2-RRG.bam; fi
+			bamToBed -i cat.$CUTOFF.$CUTOFF2-RRG.bam | bedtools merge > mapped.$CUTOFF.$CUTOFF2.bed
 		fi
-
 		#This code estimates the coverage of reference intervals and removes intervals in 0.01% of depth
 		#This allows genotyping to be more effecient and eliminates extreme copy number loci from the data
 		echo "  "`date` " Estimating coverage of ref intervals & remove extreme copy number loci..."
@@ -1481,7 +1488,6 @@ function GENOTYPE(){
 				bedtools coverage -b cat.$CUTOFFS-RRG.bam -a mapped.$CUTOFFS.bed -counts -sorted > cov.$CUTOFFS.stats
 			fi			
 		fi
-		
 		if head -1 reference.$CUTOFFS.fasta | grep -e 'dDocent' reference.$CUTOFFS.fasta 1>/dev/null; then
 			DP=$(mawk '{print $4}' cov.$CUTOFFS.stats | sort -rn | perl -e '$d=.001;@l=<>;print $l[int($d*@l)]')
 			CC=$( mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | mawk '{len=$3-$2;lc=len*$4;tl=tl+lc} END {OFMT = "%.0f";print tl/"'$NUMProc'"}')
@@ -1498,13 +1504,7 @@ function GENOTYPE(){
 			else {i=i+1; x="mapped."i"."x1".bed"; print $1"\t"$2"\t"$3 > x; cov=0}
 		}' 
 
-		if [ ! -s popmap.$CUTOFFS ]; then
-			echo "  "`date` " Creating popmap..."
-			cut -f1 -d "_" namelist.$CUTOFFS > p.$CUTOFFS
-			paste namelist.$CUTOFFS p.$CUTOFFS > popmap.$CUTOFFS
-			rm p.$CUTOFFS
-			cat popmap.$CUTOFFS
-		fi
+
 			
 		split_bam(){
 			if [ ! -s split.$1.bam ]; then samtools view -@ 1 -b -1 -L mapped.$1.bed -o split.$1.bam cat.$2-RRG.bam; fi
@@ -1513,44 +1513,81 @@ function GENOTYPE(){
 		export -f split_bam	
 		echo "  "`date` " Splitting BAM File"
 		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "split_bam {} $CUTOFFS"
-		
-		if [ "$POOLS" == "no" ]; then
-			echo; echo " "`date` " Genotyping individuals of ploidy $PLOIDY using freebayes..."			
-			ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -V -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $MIN_ALT_COUNT -G $MIN_ALT_TOTAL -z $READ_MAX_MISMATCH_FRACTION -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS "
-		elif [ "$POOL_PLOIDY_FILE" == "no" ]; then
-			echo; echo " "`date` "Running freebayes on pools of cumulative ploidy ${PLOIDY}..."
-			ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -w -a -V -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $MIN_ALT_COUNT -G $MIN_ALT_TOTAL -z $READ_MAX_MISMATCH_FRACTION -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS "
-		elif [ "$POOL_PLOIDY_FILE" != "no" ]; then
-			echo; echo " "`date` "Running freebayes on pools with the following cnv file: ${POOL_PLOIDY_FILE}..."
-			ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -w -a -V -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $MIN_ALT_COUNT -G $MIN_ALT_TOTAL -z $READ_MAX_MISMATCH_FRACTION -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS --cnv-map $POOL_PLOIDY_FILE " 
+	else
+		echo "";echo "  "`date` "Split BAM files detected and they will be genotyped."
+		#This code estimates the coverage of reference intervals and removes intervals in 0.01% of depth
+		#This allows genotyping to be more effecient and eliminates extreme copy number loci from the data
+		echo "  "`date` " Estimating coverage of ref intervals & remove extreme copy number loci..."
+		if [ "cat.${CUTOFFS}-RRG.bam" -nt "cov.$CUTOFFS.stats" ]; then
+			if [ "$BEDTOOLSFLAG" == "OLD" ]; then
+				coverageBed -abam cat.$CUTOFFS-RRG.bam -b mapped.$CUTOFFS.bed -counts > cov.$CUTOFFS.stats
+			else
+				bedtools coverage -b cat.$CUTOFFS-RRG.bam -a mapped.$CUTOFFS.bed -counts -sorted > cov.$CUTOFFS.stats
+			fi			
+		fi
+		if head -1 reference.$CUTOFFS.fasta | grep -e 'dDocent' reference.$CUTOFFS.fasta 1>/dev/null; then
+			DP=$(mawk '{print $4}' cov.$CUTOFFS.stats | sort -rn | perl -e '$d=.001;@l=<>;print $l[int($d*@l)]')
+			CC=$( mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | mawk '{len=$3-$2;lc=len*$4;tl=tl+lc} END {OFMT = "%.0f";print tl/"'$NUMProc'"}')
+		else
+			DP=$(mawk '{print $4}' cov.$CUTOFFS.stats | sort -rn | perl -e '$d=.00005;@l=<>;print $l[int($d*@l)]')
+			CC=$( mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | mawk '{len=$3-$2;lc=len*$4;tl=tl+lc} END {OFMT = "%.0f";print tl/"'$NUMProc'"}')
 		fi
 
-		echo ""; echo "  "`date` "Cleaning up files..."
-		#rm split.*.$CUTOFFS.bam*
-		rm mapped.*.$CUTOFFS.bed 
-
-		mv raw.1.$CUTOFFS.vcf raw.01.$CUTOFFS.vcf
-		mv raw.2.$CUTOFFS.vcf raw.02.$CUTOFFS.vcf
-		mv raw.3.$CUTOFFS.vcf raw.03.$CUTOFFS.vcf
-		mv raw.4.$CUTOFFS.vcf raw.04.$CUTOFFS.vcf
-		mv raw.5.$CUTOFFS.vcf raw.05.$CUTOFFS.vcf
-		mv raw.6.$CUTOFFS.vcf raw.06.$CUTOFFS.vcf
-		mv raw.7.$CUTOFFS.vcf raw.07.$CUTOFFS.vcf
-		mv raw.8.$CUTOFFS.vcf raw.08.$CUTOFFS.vcf
-		mv raw.9.$CUTOFFS.vcf raw.09.$CUTOFFS.vcf
-
-		echo ""; echo " "`date` "Assembling final VCF file..."
-		vcfcombine raw.*.$CUTOFFS.vcf | sed -e 's/	\.\:/	\.\/\.\:/g' > TotalRawSNPs.$CUTOFFS.vcf
-		bgzip -@ $NUMProc -c TotalRawSNPs.$CUTOFFS.vcf > TotalRawSNPs.$CUTOFFS.vcf.gz
-		tabix -p vcf TotalRawSNPs.$CUTOFFS.vcf.gz
-
-		if [ ! -d "raw.$CUTOFFS.vcf" ]; then
-			mkdir raw.$CUTOFFS.vcf
-		fi
-
-		mv raw.*.$CUTOFFS.vcf ./raw.$CUTOFFS.vcf
-
+		echo "  "`date` " Making the bed files..."
+		mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | sort -V -k1,1 -k2,2 | mawk -v x1="$CUTOFFS" -v cutoff=$CC 'BEGIN{i=1} 
+		{
+			len=$3-$2;lc=len*$4;cov = cov + lc
+			if ( cov < cutoff) {x="mapped."i"."x1".bed";print $1"\t"$2"\t"$3 > x}
+			else {i=i+1; x="mapped."i"."x1".bed"; print $1"\t"$2"\t"$3 > x; cov=0}
+		}' 
 	fi
+
+	if [ ! -s popmap.$CUTOFFS ]; then
+		echo "  "`date` " Creating popmap..."
+		cut -f1 -d "_" namelist.$CUTOFFS > p.$CUTOFFS
+		paste namelist.$CUTOFFS p.$CUTOFFS > popmap.$CUTOFFS
+		rm p.$CUTOFFS
+		cat popmap.$CUTOFFS
+	fi
+
+	
+	if [ "$POOLS" == "no" ]; then
+		echo; echo " "`date` " Genotyping individuals of ploidy $PLOIDY using freebayes..."			
+		#ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -V -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $MIN_ALT_COUNT -G $MIN_ALT_TOTAL -z $READ_MAX_MISMATCH_FRACTION -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS "
+		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $MIN_ALT_COUNT -G $MIN_ALT_TOTAL -z $READ_MAX_MISMATCH_FRACTION -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS "
+	elif [ "$POOL_PLOIDY_FILE" == "no" ]; then
+		echo; echo " "`date` "Running freebayes on pools of cumulative ploidy ${PLOIDY}..."
+		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -w -a -V -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $MIN_ALT_COUNT -G $MIN_ALT_TOTAL -z $READ_MAX_MISMATCH_FRACTION -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS "
+	elif [ "$POOL_PLOIDY_FILE" != "no" ]; then
+		echo; echo " "`date` "Running freebayes on pools with the following cnv file: ${POOL_PLOIDY_FILE}..."
+		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -w -a -V -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $MIN_ALT_COUNT -G $MIN_ALT_TOTAL -z $READ_MAX_MISMATCH_FRACTION -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS --cnv-map $POOL_PLOIDY_FILE " 
+	fi
+
+	echo ""; echo "  "`date` "Cleaning up files..."
+	#rm split.*.$CUTOFFS.bam*
+	#rm mapped.*.$CUTOFFS.bed 
+
+	mv raw.1.$CUTOFFS.vcf raw.01.$CUTOFFS.vcf
+	mv raw.2.$CUTOFFS.vcf raw.02.$CUTOFFS.vcf
+	mv raw.3.$CUTOFFS.vcf raw.03.$CUTOFFS.vcf
+	mv raw.4.$CUTOFFS.vcf raw.04.$CUTOFFS.vcf
+	mv raw.5.$CUTOFFS.vcf raw.05.$CUTOFFS.vcf
+	mv raw.6.$CUTOFFS.vcf raw.06.$CUTOFFS.vcf
+	mv raw.7.$CUTOFFS.vcf raw.07.$CUTOFFS.vcf
+	mv raw.8.$CUTOFFS.vcf raw.08.$CUTOFFS.vcf
+	mv raw.9.$CUTOFFS.vcf raw.09.$CUTOFFS.vcf
+
+	echo ""; echo " "`date` "Assembling final VCF file..."
+	vcfcombine raw.*.$CUTOFFS.vcf | sed -e 's/	\.\:/	\.\/\.\:/g' > TotalRawSNPs.$CUTOFFS.vcf
+	bgzip -@ $NUMProc -c TotalRawSNPs.$CUTOFFS.vcf > TotalRawSNPs.$CUTOFFS.vcf.gz
+	tabix -p vcf TotalRawSNPs.$CUTOFFS.vcf.gz
+
+	if [ ! -d "raw.$CUTOFFS.vcf" ]; then
+		mkdir raw.$CUTOFFS.vcf
+	fi
+
+	mv raw.*.$CUTOFFS.vcf ./raw.$CUTOFFS.vcf
+
 }
 
 ###############################################################################################
@@ -1585,173 +1622,173 @@ bamToBed -i cat.$CUTOFF.$CUTOFF2-RRG.bam | bedtools merge > mapped.$CUTOFF.$CUTO
 
 
 ###############################################################################################
-#This checks that dDocent has detected the proper number of individuals and exits if incorrect
-GetInfo(){
-echo "$NumInd individuals are detected. Is this correct? Enter yes or no and press [ENTER]"
 
-read Indcorrect
+# GetInfo(){
+	# echo "$NumInd individuals are detected. Is this correct? Enter yes or no and press [ENTER]"
 
-if [ "$Indcorrect" == "no" ]; then
-        echo "Please double check that all fastq files are named Ind01.F.fq.gz and Ind01.R.fq.gz"
-        exit 1
-elif [ "$Indcorrect" == "yes" ]; then
-            echo "Proceeding with $NumInd individuals"
-else
-        echo "Incorrect Input"
-        exit 1
-fi
+	# read Indcorrect
 
-#Tries to get number of processors, if not asks user
-NUMProc=( `grep -c ^processor /proc/cpuinfo 2> /dev/null` ) 
-NUMProc=$(($NUMProc + 0)) 
+	# if [ "$Indcorrect" == "no" ]; then
+			# echo "Please double check that all fastq files are named Ind01.F.fq.gz and Ind01.R.fq.gz"
+			# exit 1
+	# elif [ "$Indcorrect" == "yes" ]; then
+				# echo "Proceeding with $NumInd individuals"
+	# else
+			# echo "Incorrect Input"
+			# exit 1
+	# fi
 
-echo "dDocent detects $NUMProc processors available on this system."
-echo "Please enter the maximum number of processors to use for this analysis."
-        read NUMProc
-        
-if [ $NUMProc -lt 1 ]; then
-        echo "Incorrect. Please enter the number of processing cores on this computer"
-        read NUMProc
-fi                
-if [ $NUMProc -lt 1 ]; then
-        echo "Incorrect input, exiting"
-        exit 1
-fi
+	# #Tries to get number of processors, if not asks user
+	# NUMProc=( `grep -c ^processor /proc/cpuinfo 2> /dev/null` ) 
+	# NUMProc=$(($NUMProc + 0)) 
 
-#Tries to get maximum system memory, if not asks user
-MAXMemory=$(($(grep -Po '(?<=^MemTotal:)\s*[0-9]+' /proc/meminfo | tr -d " ") / 1048576))G
+	# echo "dDocent detects $NUMProc processors available on this system."
+	# echo "Please enter the maximum number of processors to use for this analysis."
+			# read NUMProc
+			
+	# if [ $NUMProc -lt 1 ]; then
+			# echo "Incorrect. Please enter the number of processing cores on this computer"
+			# read NUMProc
+	# fi                
+	# if [ $NUMProc -lt 1 ]; then
+			# echo "Incorrect input, exiting"
+			# exit 1
+	# fi
 
-echo "dDocent detects $MAXMemory maximum memory available on this system."
-echo "Please enter the maximum memory to use for this analysis. The size can be postfixed with 
-K, M, G, T, P, k, m, g, t, or p which would multiply the size with 1024, 1048576, 1073741824, 
-1099511627776, 1125899906842624, 1000, 1000000, 1000000000, 1000000000000, or 1000000000000000 respectively."
-echo "For example, to limit dDocent to ten gigabytes, enter 10G or 10g"
-        read MAXMemory
+	# #Tries to get maximum system memory, if not asks user
+	# MAXMemory=$(($(grep -Po '(?<=^MemTotal:)\s*[0-9]+' /proc/meminfo | tr -d " ") / 1048576))G
 
-while [[ -z $MAXMemory ]];
-	do
-	echo "Incorrect input"
-	echo -e "Please enter the maximum memory to use for this analysis. The size can be postfixed with K, M, G, T, P, k, m, g, t, or p which would multiply the size with 1024, 1048576, 1073741824, 1099511627776, 1125899906842624, 1000, 1000000, 1000000000, 1000000000000, or 1000000000000000 respectively."
-	echo -e "This option does not work with all distributions of Linux.  If runs are hanging at variant calling, enter 0"
-	echo -e "Then press [ENTER]"
-	read MAXMemory
-	done
+	# echo "dDocent detects $MAXMemory maximum memory available on this system."
+	# echo "Please enter the maximum memory to use for this analysis. The size can be postfixed with 
+	# K, M, G, T, P, k, m, g, t, or p which would multiply the size with 1024, 1048576, 1073741824, 
+	# 1099511627776, 1125899906842624, 1000, 1000000, 1000000000, 1000000000000, or 1000000000000000 respectively."
+	# echo "For example, to limit dDocent to ten gigabytes, enter 10G or 10g"
+			# read MAXMemory
 
-#Asks if user wants to trim reads.  This allows this part of the pipeline to be skipped during subsequent analyses
-echo -e "\nDo you want to quality trim your reads?" 
-echo "Type yes or no and press [ENTER]?"
+	# while [[ -z $MAXMemory ]];
+		# do
+		# echo "Incorrect input"
+		# echo -e "Please enter the maximum memory to use for this analysis. The size can be postfixed with K, M, G, T, P, k, m, g, t, or p which would multiply the size with 1024, 1048576, 1073741824, 1099511627776, 1125899906842624, 1000, 1000000, 1000000000, 1000000000000, or 1000000000000000 respectively."
+		# echo -e "This option does not work with all distributions of Linux.  If runs are hanging at variant calling, enter 0"
+		# echo -e "Then press [ENTER]"
+		# read MAXMemory
+		# done
 
-read TRIM
+	# #Asks if user wants to trim reads.  This allows this part of the pipeline to be skipped during subsequent analyses
+	# echo -e "\nDo you want to quality trim your reads?" 
+	# echo "Type yes or no and press [ENTER]?"
 
-#Asks if user wants to perform an assembly.  This allows this part of the pipeline to be skipped during subsequent analyses
+	# read TRIM
 
-echo -e "\nDo you want to perform an assembly?"
-echo "Type yes or no and press [ENTER]?"
+	# #Asks if user wants to perform an assembly.  This allows this part of the pipeline to be skipped during subsequent analyses
 
-read ASSEMBLY
+	# echo -e "\nDo you want to perform an assembly?"
+	# echo "Type yes or no and press [ENTER]?"
 
-if [ "$ASSEMBLY" == "no" ]; then
-        echo -e "\nReference contigs need to be in a file named reference.$CUTOFF.$CUTOFF2.fasta\n"
-        sleep 1
-else
-	echo -e "What type of assembly would you like to perform?  Enter SE for single end, PE for paired-end, RPE for paired-end sequencing for RAD protocols with random shearing, or OL for paired-end sequencing that has substantial overlap."
-	echo -e "Then press [ENTER]"
-	read ATYPE
+	# read ASSEMBLY
 
-	while [[ $ATYPE != "SE" && $ATYPE != "PE" && $ATYPE != "OL" && $ATYPE != "RPE" ]];
-	do
-	echo "Incorrect input"
-	echo -e "What type of assembly would you like to perform?  Enter SE for single end, PE for paired-end, RPE for paired-end sequencing for RAD protocols with random shearing, or OL for paired-end sequencing that has substantial overlap."
-	echo -e "Then press [ENTER]"
-	read ATYPE
-	done
-fi
-#If performing de novo assembly, asks if the user wants to enter a different -c value
-if [ "$ASSEMBLY" == "yes" ]; then
-    echo "Reads will be assembled with Rainbow"
-    echo "CD-HIT will cluster reference sequences by similarity. The -c parameter (% similarity to cluster) may need to be changed for your taxa."
-    echo "Would you like to enter a new c parameter now? Type yes or no and press [ENTER]"
-    read optC
-    if [ "$optC" == "no" ]; then
-            echo "Proceeding with default 0.9 value."
-            simC=0.9
-        elif [ "$optC" == "yes" ]; then
-            echo "Please enter new value for c. Enter in decimal form (For 90%, enter 0.9)"
-            read newC
-            simC=$newC
-        else
-            echo "Incorrect input. Proceeding with the default value."
-            simC=0.9
-        fi
-fi
+	# if [ "$ASSEMBLY" == "no" ]; then
+			# echo -e "\nReference contigs need to be in a file named reference.$CUTOFF.$CUTOFF2.fasta\n"
+			# sleep 1
+	# else
+		# echo -e "What type of assembly would you like to perform?  Enter SE for single end, PE for paired-end, RPE for paired-end sequencing for RAD protocols with random shearing, or OL for paired-end sequencing that has substantial overlap."
+		# echo -e "Then press [ENTER]"
+		# read ATYPE
 
-#Asks if user wants to map reads and change default mapping variables for BWA
-echo "Do you want to map reads?  Type yes or no and press [ENTER]"
-read MAP
-if [ "$MAP" == "no" ]; then
-        echo "Mapping will not be performed"
-        optA=1
-    	optB=4
-    	optO=6
-        else
-                echo "BWA will be used to map reads.  You may need to adjust -A -B and -O parameters for your taxa."
-                echo "Would you like to enter a new parameters now? Type yes or no and press [ENTER]"
-                read optq
+		# while [[ $ATYPE != "SE" && $ATYPE != "PE" && $ATYPE != "OL" && $ATYPE != "RPE" ]];
+		# do
+		# echo "Incorrect input"
+		# echo -e "What type of assembly would you like to perform?  Enter SE for single end, PE for paired-end, RPE for paired-end sequencing for RAD protocols with random shearing, or OL for paired-end sequencing that has substantial overlap."
+		# echo -e "Then press [ENTER]"
+		# read ATYPE
+		# done
+	# fi
+	# #If performing de novo assembly, asks if the user wants to enter a different -c value
+	# if [ "$ASSEMBLY" == "yes" ]; then
+		# echo "Reads will be assembled with Rainbow"
+		# echo "CD-HIT will cluster reference sequences by similarity. The -c parameter (% similarity to cluster) may need to be changed for your taxa."
+		# echo "Would you like to enter a new c parameter now? Type yes or no and press [ENTER]"
+		# read optC
+		# if [ "$optC" == "no" ]; then
+				# echo "Proceeding with default 0.9 value."
+				# simC=0.9
+			# elif [ "$optC" == "yes" ]; then
+				# echo "Please enter new value for c. Enter in decimal form (For 90%, enter 0.9)"
+				# read newC
+				# simC=$newC
+			# else
+				# echo "Incorrect input. Proceeding with the default value."
+				# simC=0.9
+			# fi
+	# fi
 
-        if [ "$optq" == "yes" ]; then
-        echo "Please enter new value for A (match score).  It should be an integer.  Default is 1."
-        read newA
-        optA=$newA
-                echo "Please enter new value for B (mismatch score).  It should be an integer.  Default is 4."
-        read newB
-        optB=$newB
-                echo "Please enter new value for O (gap penalty).  It should be an integer.  Default is 6."
-        read newO
-        optO=$newO
-        else
-                echo "Proceeding with default values for BWA read mapping."
-                optA=1
-                optB=4
-                optO=6
-        fi
-fi
+	# #Asks if user wants to map reads and change default mapping variables for BWA
+	# echo "Do you want to map reads?  Type yes or no and press [ENTER]"
+	# read MAP
+	# if [ "$MAP" == "no" ]; then
+		# echo "Mapping will not be performed"
+		# optA=1
+		# optB=4
+		# optO=6
+	# else
+		# echo "BWA will be used to map reads.  You may need to adjust -A -B and -O parameters for your taxa."
+		# echo "Would you like to enter a new parameters now? Type yes or no and press [ENTER]"
+		# read optq
 
-#Does user wish to call SNPs?
-echo "Do you want to use FreeBayes to call SNPs?  Please type yes or no and press [ENTER]"
-read SNP
+		# if [ "$optq" == "yes" ]; then
+			# echo "Please enter new value for A (match score).  It should be an integer.  Default is 1."
+			# read newA
+			# optA=$newA
+					# echo "Please enter new value for B (mismatch score).  It should be an integer.  Default is 4."
+			# read newB
+			# optB=$newB
+					# echo "Please enter new value for O (gap penalty).  It should be an integer.  Default is 6."
+			# read newO
+			# optO=$newO
+		# else
+			# echo "Proceeding with default values for BWA read mapping."
+			# optA=1
+			# optB=4
+			# optO=6
+		# fi
+	# fi
 
-while [[ $SNP != "yes" && $SNP != "no" ]];
-	do
-	echo "Incorrect input"
-	echo -e "Do you want to use FreeBayes to call SNPs?  Please type yes or no and press [ENTER]"
-	read SNP
-	done
+	# #Does user wish to call SNPs?
+	# echo "Do you want to use FreeBayes to call SNPs?  Please type yes or no and press [ENTER]"
+	# read SNP
 
-#Asks user for email address to notify when analysis is complete
-echo ""
-echo "Please enter your email address.  dDocent will email you when it is finished running."
-echo "Don't worry; dDocent has no financial need to sell your email address to spammers."
-read MAIL
-echo ""
-echo ""
+	# while [[ $SNP != "yes" && $SNP != "no" ]];
+		# do
+		# echo "Incorrect input"
+		# echo -e "Do you want to use FreeBayes to call SNPs?  Please type yes or no and press [ENTER]"
+		# read SNP
+	# done
 
-if [ "$ASSEMBLY" == "no" ]; then
-#Prints instructions on how to move analysis to background and disown process
-echo "At this point, all configuration information has been entered and dDocent may take several hours to run." 
-echo "It is recommended that you move this script to a background operation and disable terminal input and output."
-echo "All data and logfiles will still be recorded."
-echo "To do this:"
-echo "Press control and Z simultaneously"
-echo "Type 'bg' without the quotes and press enter"
-echo "Type 'disown -h' again without the quotes and press enter"
-echo ""
-echo "Now sit back, relax, and wait for your analysis to finish."
-fi
+	# #Asks user for email address to notify when analysis is complete
+	# echo ""
+	# echo "Please enter your email address.  dDocent will email you when it is finished running."
+	# echo "Don't worry; dDocent has no financial need to sell your email address to spammers."
+	# read MAIL
+	# echo ""
+	# echo ""
 
-if [ "$ASSEMBLY" == "yes" ]; then
-echo "dDocent will require input during the assembly stage.  Please wait until prompt says it is safe to move program to the background."
-fi
-}
+	# if [ "$ASSEMBLY" == "no" ]; then
+		# #Prints instructions on how to move analysis to background and disown process
+		# echo "At this point, all configuration information has been entered and dDocent may take several hours to run." 
+		# echo "It is recommended that you move this script to a background operation and disable terminal input and output."
+		# echo "All data and logfiles will still be recorded."
+		# echo "To do this:"
+		# echo "Press control and Z simultaneously"
+		# echo "Type 'bg' without the quotes and press enter"
+		# echo "Type 'disown -h' again without the quotes and press enter"
+		# echo ""
+		# echo "Now sit back, relax, and wait for your analysis to finish."
+	# fi
+
+	# if [ "$ASSEMBLY" == "yes" ]; then
+		# echo "dDocent will require input during the assembly stage.  Please wait until prompt says it is safe to move program to the background."
+	# fi
+# }
 
 
 #Actually starts program
