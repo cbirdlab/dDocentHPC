@@ -1407,7 +1407,7 @@ function FILTERBAM(){
 ###############################################################################################
 
 function GENOTYPE(){
-		
+	echo ""; echo `date` "Genotyping initiated..."	
 	CUTOFFS=$1
 	NUMProc=$2
 	CONFIG=$3
@@ -1422,29 +1422,54 @@ function GENOTYPE(){
 	MIN_REPEAT_ENTROPY=$(grep -A1 '^Min_Repeat_Entropy' $CONFIG | tail -1)
 	MIN_COVERAGE=$(grep -A1 '^Min_Coverage' $CONFIG | tail -1)
 	MIN_ALT_FRACTION=$(grep -A1 '^Min_Alternate_Fraction' $CONFIG | tail -1)
-	MIN_ALT_COUNT=$(grep -A1 '^Min_Alternate_Count' $CONFIG | tail -1)
-	MIN_ALT_TOTAL=$(grep -A1 '^Min_Alternate_Total' $CONFIG | tail -1)
-	READ_MAX_MISMATCH_FRACTION=$(grep -A1 '^Read_Max_Mismatch_Fraction' $CONFIG | tail -1)
+	#MIN_ALT_COUNT=$(grep -A1 '^Min_Alternate_Count' $CONFIG | tail -1)
+	#MIN_ALT_TOTAL=$(grep -A1 '^Min_Alternate_Total' $CONFIG | tail -1)
+	#READ_MAX_MISMATCH_FRACTION=$(grep -A1 '^Read_Max_Mismatch_Fraction' $CONFIG | tail -1)
+
+	FREEBAYES_z=$(grep 'freebayes -z --read-max-mismatch-fraction' $CONFIG | awk '{print $1;}')
+	FREEBAYES_C=$(grep 'freebayes -C --min-alternate-count' $CONFIG | awk '{print $1;}')
+	FREEBAYES_3=$(grep 'freebayes ~3 ~~min-alternate-qsum' $CONFIG | awk '{print $1;}'); FREEBAYES_3=$((FREEBAYES_3 * FREEBAYES_C))
+	FREEBAYES_G=$(grep 'freebayes -G --min-alternate-total' $CONFIG | awk '{print $1;}')
 	FREEBAYES_Q=$(grep 'freebayes -Q --mismatch-base-quality-threshold' $CONFIG | awk '{print $1;}')
 	FREEBAYES_U=$(grep 'freebayes -U --read-mismatch-limit' $CONFIG | awk '{print $1;}')
+	FREEBAYES_DOLLAR=$(grep 'freebayes -\$ --read-snp-limit' $CONFIG | awk '{print $1;}')
+	FREEBAYES_e=$(grep 'freebayes -e --read-indel-limit' $CONFIG | awk '{print $1;}')
 
-	echo POOLS=$POOLS
-	echo POOL_PLOIDY_FILE=$POOL_PLOIDY_FILE
-	echo PLOIDY=$PLOIDY
-	echo BEST_N_ALLELES=$BEST_N_ALLELES
-	echo MIN_MAPPING_QUAL $MIN_MAPPING_QUAL
-	echo MIN_BASE_QUAL $MIN_BASE_QUAL
-	echo HAPLOTYPE_LENGTH $HAPLOTYPE_LENGTH
-	echo MIN_REPEAT_ENTROPY $MIN_REPEAT_ENTROPY
-	echo MIN_COVERAGE $MIN_COVERAGE
-	echo MIN_ALT_FRACTION $MIN_ALT_FRACTION
-	echo MIN_ALT_COUNT $MIN_ALT_COUNT
-	echo MIN_ALT_TOTAL $MIN_ALT_TOTAL
-	echo READ_MAX_MISMATCH_FRACTION $READ_MAX_MISMATCH_FRACTION
-	echo FREEBAYES_Q $FREEBAYES_Q
-	echo FREEBAYES_U $FREEBAYES_U
+	FREEBAYES_w=$(grep 'freebayes -w --hwe-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_w == "no" ]; then FREEBAYES_w=""; else FREEBAYES_w="-w "; fi
+	FREEBAYES_V=$(grep 'freebayes -V --binomial-obs-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_V == "no" ]; then FREEBAYES_V=""; else FREEBAYES_V="-V "; fi
+	FREEBAYES_a=$(grep 'freebayes -a --allele-balance-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_a == "no" ]; then FREEBAYES_a=""; else FREEBAYES_a="-a "; fi
+	FREEBAYES_no_partial_observations=$(grep 'freebayes --no-partial-observations' $CONFIG | awk '{print $1;}'); if [ ${FREEBAYES_no_partial_observations} == "no" ]; then FREEBAYES_no_partial_observations=""; else FREEBAYES_no_partial_observations="--no-partial-observations "; fi
+	
+	
 
+	echo ""; echo "	Settings read in from config file:"
+	echo "		POOLS=$POOLS"
+	echo "		POOL_PLOIDY_FILE=$POOL_PLOIDY_FILE"
+	echo "		PLOIDY=$PLOIDY"
+	echo "		BEST_N_ALLELES=$BEST_N_ALLELES"
+	echo "		MIN_MAPPING_QUAL $MIN_MAPPING_QUAL"
+	echo "		MIN_BASE_QUAL $MIN_BASE_QUAL"
+	echo "		HAPLOTYPE_LENGTH $HAPLOTYPE_LENGTH"
+	echo "		MIN_REPEAT_ENTROPY $MIN_REPEAT_ENTROPY"
+	echo "		MIN_COVERAGE $MIN_COVERAGE"
+	echo "		MIN_ALT_FRACTION $MIN_ALT_FRACTION"
+#	echo "		MIN_ALT_COUNT $MIN_ALT_COUNT"
+#	echo "		MIN_ALT_TOTAL $MIN_ALT_TOTAL"
+#	echo "		READ_MAX_MISMATCH_FRACTION $READ_MAX_MISMATCH_FRACTION"
 
+	echo "		freebayes -z $FREEBAYES_z"
+	echo "		freebayes -C $FREEBAYES_C"
+	echo "		freebayes -G $FREEBAYES_G"
+	echo "		freebayes -3 $FREEBAYES_3"
+	echo "		freebayes -Q $FREEBAYES_Q"
+	echo "		freebayes -U $FREEBAYES_U"
+	echo "		freebayes -\$ $FREEBAYES_DOLLAR"
+	echo "		freebayes -e $FREEBAYES_e"
+
+	echo "		freebayes -w $FREEBAYES_w"
+	echo "		freebayes -V $FREEBAYES_V"
+	echo "		freebayes -a $FREEBAYES_a"
+	echo "		freebayes --no-partial-observations ${FREEBAYES_no_partial_observations}"
 	
 	echo ""; echo " "`date` " Preparing files for genotyping..."
 	
@@ -1553,14 +1578,14 @@ function GENOTYPE(){
 	
 	if [ "$POOLS" == "no" ]; then
 		echo; echo " "`date` " Genotyping individuals of ploidy $PLOIDY using freebayes..."			
-		#ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -V -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $MIN_ALT_COUNT -G $MIN_ALT_TOTAL -z $READ_MAX_MISMATCH_FRACTION -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS "
-		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $MIN_ALT_COUNT -G $MIN_ALT_TOTAL -z $READ_MAX_MISMATCH_FRACTION -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS "
+		#ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -V -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS "
+		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS ${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}"
 	elif [ "$POOL_PLOIDY_FILE" == "no" ]; then
 		echo; echo " "`date` "Running freebayes on pools of cumulative ploidy ${PLOIDY}..."
-		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -w -a -V -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $MIN_ALT_COUNT -G $MIN_ALT_TOTAL -z $READ_MAX_MISMATCH_FRACTION -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS "
+		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS ${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}"
 	elif [ "$POOL_PLOIDY_FILE" != "no" ]; then
 		echo; echo " "`date` "Running freebayes on pools with the following cnv file: ${POOL_PLOIDY_FILE}..."
-		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -w -a -V -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $MIN_ALT_COUNT -G $MIN_ALT_TOTAL -z $READ_MAX_MISMATCH_FRACTION -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS --cnv-map $POOL_PLOIDY_FILE " 
+		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS --cnv-map $POOL_PLOIDY_FILE ${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}" 
 	fi
 
 	echo ""; echo "  "`date` "Cleaning up files..."
