@@ -187,18 +187,18 @@ Read_Max_Mismatch_Fraction (decimal 0-1) freebayes -z    Exclude reads with more
 
 0.33	freebayes -z --read-max-mismatch-fraction	Exclude reads with more than N [0,1] fraction of mismatches where each mismatch has base quality >= mismatch-base-quality-threshold default: 1.0
 
-20	freebayes -C --min-alternate-count				Require at least this count of observations supporting an alternate allele within a single individual in order to evaluate the position.  default: 2
-30	freebayes ~3 ~~min-alternate-qsum				This value is the mean base quality score for alternate reads and will be multiplied by -C to set -3. Description of -3: Require at least this count of observations supporting an alternate allele within a single individual in order to evaluate the position.  default: 2	
-20	freebayes -G --min-alternate-total				Require at least this count of observations supporting an alternate allele within the total population in order to use the allele in analysis.  default: 1
+20	freebayes -C --min-alternate-count		Require at least this count of observations supporting an alternate allele within a single individual in order to evaluate the position.  default: 2
+30	freebayes ~3 ~~min-alternate-qsum		This value is the mean base quality score for alternate reads and will be multiplied by -C to set -3. Description of -3: Require at least this count of observations supporting an alternate allele within a single individual in order to evaluate the position.  default: 2	
+20	freebayes -G --min-alternate-total		Require at least this count of observations supporting an alternate allele within the total population in order to use the allele in analysis.  default: 1
 20	freebayes -Q --mismatch-base-quality-threshold	Count mismatches toward --read-mismatch-limit if the base quality of the mismatch is >= Q.  default: 10
-30	freebayes -U --read-mismatch-limit				Exclude reads with more than N mismatches where each mismatch has base quality >= mismatch-base-quality-threshold. default: ~unbounded
-30	freebayes -$ --read-snp-limit					Exclude reads with more than N base mismatches, ignoring gaps with quality >= mismatch-base-quality-threshold. default: ~unbounded
-20	freebayes -e --read-indel-limit					Exclude reads with more than N separate gaps. default: ~unbounded
+30	freebayes -U --read-mismatch-limit		Exclude reads with more than N mismatches where each mismatch has base quality >= mismatch-base-quality-threshold. default: ~unbounded
+30	freebayes -$ --read-snp-limit			Exclude reads with more than N base mismatches, ignoring gaps with quality >= mismatch-base-quality-threshold. default: ~unbounded
+20	freebayes -e --read-indel-limit			Exclude reads with more than N separate gaps. default: ~unbounded
 
-no	freebayes -w --hwe-priors-off					(no|yes)Disable estimation of the probability of the combination arising under HWE given the allele frequency as estimated by observation frequency.
-no	freebayes -V --binomial-obs-priors-off			(no|yes)Disable incorporation of prior expectations about observations. Uses read placement probability, strand balance probability, and read position (5'-3') probability.
-no	freebayes -a --allele-balance-priors-off		(no|yes)Disable use of aggregate probability of observation balance between alleles as a component of the priors.
-no	freebayes --no-partial-observations				Exclude observations which do not fully span the dynamically-determined detection window.  (default, use all observations, dividing partial support across matching haplotypes when generating haplotypes.)
+no	freebayes -w --hwe-priors-off			(no|yes)Disable estimation of the probability of the combination arising under HWE given the allele frequency as estimated by observation frequency.
+no	freebayes -V --binomial-obs-priors-off		(no|yes)Disable incorporation of prior expectations about observations. Uses read placement probability, strand balance probability, and read position (5'-3') probability.
+no	freebayes -a --allele-balance-priors-off	(no|yes)Disable use of aggregate probability of observation balance between alleles as a component of the priors.
+no	freebayes --no-partial-observations		Exclude observations which do not fully span the dynamically-determined detection window.  (default, use all observations, dividing partial support across matching haplotypes when generating haplotypes.)
 
 ----------Misc settings-----------------------------------------------------------
 
