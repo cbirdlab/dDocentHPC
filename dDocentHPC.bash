@@ -1,32 +1,43 @@
 #!/usr/bin/env bash
-VERSION=4
+VERSION=4.1
 #This script serves as an interactive bash wrapper to QC, assemble, map, and call SNPs from double digest RAD (SE or PE), ezRAD (SE or PE) data, or SE RAD data.
 #It requires that your raw data are split up by tagged individual and follow the naming convention of:
 
 #Pop_Sample1.F.fq and Pop_Sample1.R.fq
 
 #Prints out title and contact info
-echo
-echo -e "\n* dDocentHPC v$VERSION Forked by cbird@tamucc.edu * \n"
+echo; echo -e "\n* dDocentHPC v$VERSION Forked by cbird@tamucc.edu * \n"
 #echo -e "Contact jpuritz@gmail.com with any problems \n\n "
 
 
-#dDocent can now accept a configuration file instead of running interactively
-#Checks if a configuration file is being used, if not asks for user input
-#ceb: I moved the loading of the config file here because i was able to change the config file
-#and run the program faster than it took to load the config settings
+#Determine which functions to run
+#demultiplexFQ trimFQ	mkREF	mkBAM		fltrBAM		mkVCF	fltrVCF
 if [ -n "$1" ]; then
+	#getting functions from command line
+	FUNKTION=$(echo $1)
+	echo; echo "Running dDocentHPC $FUNKTION..."
+else
+	echo ""; echo `date` "ERROR:		dDocentHPC must be run with 2 arguments, "
+	echo "			dDocentHPC.bash [function] [config file]"
+	echo "			functions: trimFQ, mkREF, mkBAM, fltrBAM, mkVCF, fltrVCF"
+	exit
+fi
+
+
+#dDocent can now accept a configuration file instead of running interactively
+if [ -n "$2" ]; then
 	echo " "
 	echo `date` "Files output to: " $(pwd)
 	
 	echo ""; echo `date` "Reading config file... "
 	echo " "
 	#echo "BEGIN*CONFIG*FILE*****************************************************************************************"
-	cat $1
+#	cat $1
+	cat $2
 	#echo "*********END*CONFIG*FILE*******************************************************************************************"
 	
 	echo ""; echo `date` "Reading in variables from config file..."
-	CONFIG=$1
+	CONFIG=$2
 	NUMProc=$(grep -A1 Processor $CONFIG | tail -1)
 	MAXMemory=$(grep -A1 Memory $CONFIG | tail -1)
 	TRIM=$(grep -A1 Trim $CONFIG | tail -1)
@@ -144,10 +155,13 @@ if [ -n "$1" ]; then
 	MAIL=$(grep -A1 Email $CONFIG | tail -1)
 
 else
-	#GetInfo 
-	echo ""; echo `date` " Aborting dDocentHPC"
+	echo ""; echo `date` "ERROR:		dDocentHPC must be run with 2 arguments, "
+	echo "			dDocentHPC.bash [function] [config file]"
+	echo "			functions: trimFQ, mkREF, mkBAM, fltrBAM, mkVCF, fltrVCF"
+	echo "			the default config file is called config.*"
 	exit
 fi
+
 
 ####################################################################################################
 ###Function to check for the required software for dDocent
@@ -312,69 +326,71 @@ main(){
 	######################################
 	#RMH added ALL variables
 	echo "";echo " Loading variable values..."
-	echo "  NUMProc=$1"
-	echo "  MAXMemory=$2"
-	echo "  TRIM=$3"
-	echo "  TRIM_LENGTH_ASSEMBLY=$4"
-	echo "  SEED_ASSEMBLY=$5"
-	echo "  PALIMDROME_ASSEMBLY=$6"
-	echo "  SIMPLE_ASSEMBLY=$7"
-	echo "  windowSize_ASSEMBLY=$8"
-	echo "  windowQuality_ASSEMBLY=$9"
-	echo "  TRAILING_ASSEMBLY=${10}"
-	echo "  TRIM_LENGTH_MAPPING=${11}"
-	echo "  LEADING_MAPPING=${12}"
-	echo "  TRAILING_MAPPING=${13}"
-	echo "  FixStacks=${14}"
-	echo "  ASSEMBLY=${15}"
-	echo "  ATYPE=${16}"
-	echo "  simC=${17}"
-	echo "  HPC=${18}"
-	echo "  MANCUTOFF=${19}"
-	echo "  CUTOFF=${20}"
-	echo "  CUTOFF2=${21}"
-	echo "  MAP=${22}"
-	echo "  optA=${23}"
-	echo "  optB=${24}"
-	echo "  optO=${25}"
-	echo "  MAPPING_MIN_ALIGNMENT_SCORE=${26}"
-	echo "  MAPPING_CLIPPING_PENALTY=${27}"
+	echo "  FUNKTION=	${55}"
+	echo "  NUMProc=	$1"
+	echo "  MAXMemory=	$2"
+	echo "  TRIM=	$3"
+	echo "  TRIM_LENGTH_ASSEMBLY=	$4"
+	echo "  SEED_ASSEMBLY=	$5"
+	echo "  PALIMDROME_ASSEMBLY=	$6"
+	echo "  SIMPLE_ASSEMBLY=	$7"
+	echo "  windowSize_ASSEMBLY=	$8"
+	echo "  windowQuality_ASSEMBLY=	$9"
+	echo "  TRAILING_ASSEMBLY=	${10}"
+	echo "  TRIM_LENGTH_MAPPING=	${11}"
+	echo "  LEADING_MAPPING=	${12}"
+	echo "  TRAILING_MAPPING=	${13}"
+	echo "  FixStacks=	${14}"
+	echo "  ASSEMBLY=	${15}"
+	echo "  ATYPE=	${16}"
+	echo "  simC=	${17}"
+	echo "  HPC=	${18}"
+	echo "  MANCUTOFF=	${19}"
+	echo "  CUTOFF=	${20}"
+	echo "  CUTOFF2=	${21}"
+	echo "  MAP=	${22}"
+	echo "  optA=	${23}"
+	echo "  optB=	${24}"
+	echo "  optO=	${25}"
+	echo "  MAPPING_MIN_ALIGNMENT_SCORE=	${26}"
+	echo "  MAPPING_CLIPPING_PENALTY=	${27}"
 	
-	echo "  FILTERMAP=${45}"
+	echo "  FILTERMAP=	${45}"
 	
-	echo "  MAPPING_MIN_QUALITY=${28}"
+	echo "  MAPPING_MIN_QUALITY=	${28}"
 	
-	echo "  SAMTOOLS_VIEW_f=${46}"
+	echo "  SAMTOOLS_VIEW_f=	${46}"
 	
-	echo "  SAMTOOLS_VIEW_F=${29}"
+	echo "  SAMTOOLS_VIEW_F=	${29}"
 	
-	echo "  SAMTOOLS_VIEW_Fcustom=${47}"
-	echo "  SAMTOOLS_VIEW_fcustom=${48}"
-	echo "  SOFT_CLIP_CUTOFF=${49}"
-	echo "  FILTER_MIN_AS=${52}"
-	echo "  FILTER_ORPHANS=${50}"
+	echo "  SAMTOOLS_VIEW_Fcustom=	${47}"
+	echo "  SAMTOOLS_VIEW_fcustom=	${48}"
+	echo "  SOFT_CLIP_CUTOFF=	${49}"
+	echo "  FILTER_MIN_AS=	${52}"
+	echo "  FILTER_ORPHANS=	${50}"
 	
-	echo "  SNP=${30}"
-	echo "  POOLS=${31}"
-	echo "  POOL_PLOIDY_FILE=${32}"
-	echo "  PLOIDY=${33}"
-	echo "  BEST_N_ALLELES=${34}"
-	echo "  MIN_MAPPING_QUAL=${35}"
-	echo "  MIN_BASE_QUAL=${36}"
-	echo "  HAPLOTYPE_LENGTH=${37}"
-	echo "  MIN_REPEAT_ENTROPY=${38}"
-	echo "  MIN_COVERAGE=${39}"
-	echo "  MIN_ALT_FRACTION=${40}"
-	echo "  MIN_ALT_COUNT=${41}"
-	echo "  MIN_ALT_TOTAL=${42}"
-	echo "  READ_MAX_MISMATCH_FRACTION=${43}"
-	echo "  FREEBAYES_Q=${53}"
-	echo "  FREEBAYES_U=${54}"
-	echo "  MAIL=${44}"
-	echo "  BEDTOOLSFLAG=${51}"
+	echo "  SNP=	${30}"
+	echo "  POOLS=	${31}"
+	echo "  POOL_PLOIDY_FILE=	${32}"
+	echo "  PLOIDY=	${33}"
+	echo "  BEST_N_ALLELES=	${34}"
+	echo "  MIN_MAPPING_QUAL=	${35}"
+	echo "  MIN_BASE_QUAL=	${36}"
+	echo "  HAPLOTYPE_LENuuGTH=	${37}"
+	echo "  MIN_REPEAT_ENTROPY=	${38}"
+	echo "  MIN_COVERAGE=	${39}"
+	echo "  MIN_ALT_FRACTION=	${40}"
+	echo "  MIN_ALT_COUNT=	${41}"
+	echo "  MIN_ALT_TOTAL=	${42}"
+	echo "  READ_MAX_MISMATCH_FRACTION=	${43}"
+	echo "  FREEBAYES_Q=	${53}"
+	echo "  FREEBAYES_U=	${54}"
+	echo "  MAIL=	${44}"
+	echo "  BEDTOOLSFLAG=	${51}"
 	
 	#Load config arguments into variables
 	# RMH added ALL variables
+	FUNKTION=${55}
 	NUMProc=$1
 	MAXMemory=$2
 	TRIM=$3
@@ -441,48 +457,52 @@ main(){
 		echo "  files trimmed for assembly must be *r1.fq.gz *r2.fq.gz"
 		echo "  files trimmed for mapping must be *R1.fq.gz *R2.fq.gz"
 		
-	if [ "$TRIM" == "yes" ]; then
-		echo "";echo "  Trimming file extensions selected"
+#	if [ "$TRIM" == "yes" ]; then
+	if [ "$FUNKTION" == "trimFQ" ]; then
 		F="F"
 		Fwild="*.F.fq.gz"
 		Fsed=".F.fq.gz"
 		R="R"
 		Rwild="*.R.fq.gz"
 		Rsed=".R.fq.gz"
-	elif [ "$ASSEMBLY" == "yes" ]; then
-		echo "";echo "  Assembly file extensions selected"
+		echo "";echo "  extensions selected: $Fwild $Rwild"
+#	elif [ "$ASSEMBLY" == "yes" ]; then
+	elif [ "$FUNKTION" == "mkREF" ]; then
 		F="r1"
 		Fwild="*.r1.fq.gz"
 		Fsed=".r1.fq.gz"
 		R="r2"
 		Rwild="*.r2.fq.gz"
 		Rsed=".r2.fq.gz"
-	elif [ "$MAP" == "yes" ]; then
-		echo "";echo "  Mapping file extensions selected"
+		echo "";echo "  extensions selected: $Fwild $Rwild"
+#	elif [ "$MAP" == "yes" ]; then
+	elif [ "$FUNKTION" == "mkBAM" ]; then
 		F="R1"
 		Fwild="*.R1.fq.gz"
 		Fsed=".R1.fq.gz"
 		R="R2"
 		Rwild="*.R2.fq.gz"
 		Rsed=".R2.fq.gz"
-	elif [ "$FILTERMAP" == "yes" ]; then
-		echo "";echo "  F1 R1 Genotyping file extensions selected"
+		echo "";echo "  extensions selected: $Fwild $Rwild"
+#	elif [ "$FILTERMAP" == "yes" ]; then
+	elif [ "$FUNKTION" == "fltrBAM" ]; then
 		F="R1"
 		Fwild="*-RAW.bam"
 		Fsed=".${CUTOFFS}-RAW.bam"
 		R="R2"
 		Rwild="*.R2.fq.gz"
 		Rsed=".R2.fq.gz"
-	elif [ "$SNP" == "yes" ]; then
-		echo "";echo "  F1 R1 Genotyping file extensions selected"
+		echo "";echo "  extensions selected: $Fwild $Rwild"
+#	elif [ "$SNP" == "yes" ]; then
+	elif [ "$FUNKTION" == "mkVCF" ]; then
 		F="R1"
 		Fwild="*-RG.bam"
 		Fsed=".${CUTOFFS}-RG.bam"
 		R="R2"
 		Rwild="*.R2.fq.gz"
 		Rsed=".R2.fq.gz"
-
-		else
+		echo "";echo "  extensions selected: $Fwild $Rwild"
+	else
 		echo "";echo "  Couldn't decide which file extensions were selected"
 		F="r1"
 		Fwild="*.r1.fq.gz"
@@ -490,6 +510,7 @@ main(){
 		R="r2"
 		Rwild="*.r2.fq.gz"
 		Rsed=".r2.fq.gz"
+		echo "";echo "  extensions selected: $Fwild $Rwild"
 	fi
 
 	NumInd=$(ls $Fwild | wc -l)
@@ -530,31 +551,37 @@ main(){
 		FIXSTACKS
 	fi
 	
-	if [ "$TRIM" == "yes" ]; then
+#	if [ "$TRIM" == "yes" ]; then
+	if [ "$FUNKTION" == "trimFQ" ]; then
 		echo " ";echo " "`date` "Trimming reads " 
-		TrimReadsRef & 2> trimref.log
+		TrimReadsRef #& 2> trimref.log
 		TrimReads & 2> trim.log
 	fi
 
-	if [ "$ASSEMBLY" == "yes" ]; then
+#	elif [ "$ASSEMBLY" == "yes" ]; then
+	if [ "$FUNKTION" == "mkREF" ]; then
 		Assemble
 	fi
 
-	if [ "$MAP" == "yes" ]; then
+#	elif [ "$MAP" == "yes" ]; then
+	if [ "$FUNKTION" == "mkBAM" ]; then
 		MAP2REF $CUTOFF.$CUTOFF2 $NUMProc $CONFIG $ATYPE $Rsed NAMES
 	fi
 
-	if [ "$FILTERMAP" == "yes" ]; then
+#	elif [ "$FILTERMAP" == "yes" ]; then
+	if [ "$FUNKTION" == "fltrBAM" ]; then
 		FILTERBAM $CUTOFFS $NUMProc $CONFIG $ATYPE
 	fi
 	
-	if [ "$SNP" == "yes" ]; then
+#	elif [ "$SNP" == "yes" ]; then
+	if [ "$FUNKTION" == "mkVCF" ]; then
 		GENOTYPE $CUTOFFS $NUMProc $CONFIG
 	fi
 
 	##Checking for possible errors
 
-	if [ "$MAP" != "no" ]; then
+#	if [ "$MAP" != "no" ]; then
+	if [ "$FUNKTION" == "mkBAM" ]; then
 		ERROR1=$(mawk '/developer/' bwa* | wc -l 2>/dev/null) 
 	fi
 	#CEB this was causing an error, there's no bam.log created
@@ -609,7 +636,7 @@ main(){
 	echo "FixStacks" >> dDocent.runs
 	echo $FixStacks >> dDocent.runs
 	echo "Assembly?" >> dDocent.runs
-	echo $ASSEMBLY >> dDocent.runs
+#	echo $ASSEMBLY >> dDocent.runs
 	echo "Type_of_Assembly" >> dDocent.runs
 	echo $ATYPE >> dDocent.runs
 	echo "Clustering_Similarity%" >> dDocent.runs
@@ -623,7 +650,7 @@ main(){
 	echo "CUTOFF2" >> dDocent.runs 
 	echo $CUTOFF2 >> dDocent.runs
 	echo "Mapping_Reads?" >> dDocent.runs
-	echo $MAP >> dDocent.runs
+#	echo $MAP >> dDocent.runs
 	echo "Mapping_Match_Value" >> dDocent.runs
 	echo $optA >> dDocent.runs
 	echo "Mapping_MisMatch_Value" >> dDocent.runs
@@ -639,7 +666,7 @@ main(){
 	echo "SAMTOOLS_VIEW_F" >> dDocent.runs
 	echo $SAMTOOLS_VIEW_F >> dDocent.runs
 	echo "Calling_SNPs?" >> dDocent.runs
-	echo $SNP >> dDocent.runs
+#	echo $SNP >> dDocent.runs
 	echo "POOLS" >> dDocent.runs
 	echo $POOLS >> dDocent.runs
 	echo "POOL_PLOIDY_FILE" >> dDocent.runs
@@ -723,31 +750,47 @@ FIXSTACKS () {
 
 TrimReadsRef () { 
 	echo " "
-	echo "Trimming reads for reference genome"
-		date
-	for i in "${NAMES[@]}";
-		do
-			zcat $i.$F.fq.gz | head -2 | tail -1 >> lengths_ref.txt
-			done	
-			MLen=$(mawk '{ print length() | "sort -rn" }' lengths_ref.txt| head -1)
-			MLen=$(($MLen / 2))
-		TW="MINLEN:$MLen"
+	echo `date` "Trimming reads for reference genome"
+
+	TRIMMOMATIC=$(find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null | head -1)
+	ADAPTERS=$(find ${PATH//:/ } -maxdepth 1 -name TruSeq2-PE.fa 2> /dev/null | head -1)
+	
+	echo "TRIMMOMATIC=	$TRIMMOMATIC"
+	echo "ADAPTERS=	$ADAPTERS"
+	echo "NUMProc=	$NUMProc"
+	echo "SEED_ASSEMBLY=	$SEED_ASSEMBLY"
+	echo "PALIMDROME_ASSEMBLY=	$PALIMDROME_ASSEMBLY"
+	echo "SIMPLE_ASSEMBLY=	$SIMPLE_ASSEMBLY"
+	echo "TRAILING_ASSEMBLY=	$TRAILING_ASSEMBLY"
+	echo "windowSize_ASSEMBLY=	$windowSize_ASSEMBLY"
+	echo "windowQuality_ASSEMBLY=	$windowQuality_ASSEMBLY"
+	echo "TRIM_LENGTH_ASSEMBLY=	$TRIM_LENGTH_ASSEMBLY"
+	echo "F=	$F"
+	echo "R=	$R"
+
+	# for i in "${NAMES[@]}"
+	# do
+		# zcat $i.$F.fq.gz | head -2 | tail -1 >> lengths_ref.$CUTOFF.$CUTOFF2.txt
+	# done
+	
+	# MLen=$(mawk '{ print length() | "sort -rn" }' lengths_ref.$CUTOFF.$CUTOFF2.txt| head -1)
+	# MLen=$(($MLen / 2))
+	# TW="MINLEN:$MLen"
 		
 	for i in "${NAMES[@]}"
 	do
-	#echo "Trimming Sample $i"
-	if [ -f $i.$R.fq.gz ]; then
+		echo "Trimming Sample $i"
+		if [ -f $i.$R.fq.gz ]; then
+			#$$$$$$$ceb$$$$$$$$$$$$$
+			#adjusted settings to retain as many reads as possible
+			java -jar $TRIMMOMATIC PE -threads $NUMProc -phred33 $i.F.fq.gz $i.R.fq.gz $i.r1.fq.gz $i.unpairedF.fq.gz $i.r2.fq.gz $i.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY  &> $i.pe.trim.log
 
-		#$$$$$$$ceb$$$$$$$$$$$$$
-		#adjusted settings to retain as many reads as possible
-		java -jar $TRIMMOMATIC PE -threads $NUMProc -phred33 $i.F.fq.gz $i.R.fq.gz $i._r1.fq.gz $i.unpairedF.fq.gz $i.r2.fq.gz $i.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY  &> $i.pe.trim.log
-
-		#$$$$$$ceb$$$$$
-		#make read1 shorter than read 2 by clipping off first few bp
-		java -jar $TRIMMOMATIC SE -threads $NUMProc -phred33 $i._r1.fq.gz $i.r1.fq.gz HEADCROP:4 &> $i.se.trim.log
-
-	else java -jar $TRIMMOMATIC SE -threads $NUMProc -phred33 $i.F.fq.gz $i.r1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY &> $i.trim.log
-	fi 
+			#$$$$$$ceb$$$$$
+			#make read1 shorter than read 2 by clipping off first few bp
+			#java -jar $TRIMMOMATIC SE -threads $NUMProc -phred33 $i._r1.fq.gz $i.r1.fq.gz HEADCROP:4 &> $i.se.trim.log
+		else 
+			java -jar $TRIMMOMATIC SE -threads $NUMProc -phred33 $i.F.fq.gz $i.r1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY &> $i.trim.log
+		fi 
 	done
 	mkdir unpaired_ref &>/dev/null
 	mv *unpaired*.gz ./unpaired_ref &>/dev/null	
@@ -764,23 +807,27 @@ TrimReadsRef () {
 
 TrimReads () { 
 	echo " "
-	echo "Trimming reads for mapping"
-		date
-	for i in "${NAMES[@]}";
-		do
-			zcat $i.$F.fq.gz | head -2 | tail -1 >> lengths.$CUTOFF.$CUTOFF2.txt
-			done	
-			MLen=$(mawk '{ print length() | "sort -rn" }' lengths.$CUTOFF.$CUTOFF2.txt| head -1)
-			MLen=$(($MLen / 2))
-		TW="MINLEN:$MLen"
-		
+	echo; echo `date` "Trimming reads for mapping"
+
+	TRIMMOMATIC=$(find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null | head -1)
+	ADAPTERS=$(find ${PATH//:/ } -maxdepth 1 -name TruSeq2-PE.fa 2> /dev/null | head -1)
+
+	# for i in "${NAMES[@]}"
+	# do
+		# zcat $i.$F.fq.gz | head -2 | tail -1 >> lengths.$CUTOFF.$CUTOFF2.txt
+	# done	
+		# MLen=$(mawk '{ print length() | "sort -rn" }' lengths.$CUTOFF.$CUTOFF2.txt| head -1)
+		# MLen=$(($MLen / 2))
+	# TW="MINLEN:$MLen"
+	
 	for i in "${NAMES[@]}"
 	do
-	#echo "Trimming Sample $i"
-	if [ -f $i.R.fq.gz ]; then
-	java -jar $TRIMMOMATIC PE -threads $NUMProc -phred33 $i.F.fq.gz $i.R.fq.gz $i.R1.fq.gz $i.unpairedF.fq.gz $i.R2.fq.gz $i.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> $i.trim.log
-	else java -jar $TRIMMOMATIC SE -threads $NUMProc -phred33 $i.F.fq.gz $i.R1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> $i.trim.log
-	fi 
+		echo "Trimming Sample $i"
+		if [ -f $i.R.fq.gz ]; then
+			java -jar $TRIMMOMATIC PE -threads $NUMProc -phred33 $i.F.fq.gz $i.R.fq.gz $i.R1.fq.gz $i.unpairedF.fq.gz $i.R2.fq.gz $i.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> $i.trim.log
+		else 
+			java -jar $TRIMMOMATIC SE -threads $NUMProc -phred33 $i.F.fq.gz $i.R1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> $i.trim.log
+		fi 
 	done
 	mkdir unpaired &>/dev/null
 	mv *unpaired*.gz ./unpaired &>/dev/null	
@@ -1349,7 +1396,7 @@ function FILTERBAM(){
 	FILTER_MIN_AS=$(grep -A1 '^Remove_reads_with_alignment_score_below' $CONFIG | tail -1)
 	FILTER_ORPHANS=$(grep -A1 '^Remove_reads_orphaned_by_filters' $CONFIG | tail -1)
 
-	echo "";echo " "`date` " Filtering raw BAM Files"
+	echo "";echo " "`date` "Filtering raw BAM Files"
 	if [ "$ATYPE" == "PE" ]; then 	#paired end alignments
 		#Filter 1: remove reads based on samtools flags
 			echo "";echo "  "`date` " Applying Filter 1: removing paired reads mapping to different contigs, secondary, and supplementary alignments"
@@ -1469,7 +1516,10 @@ function GENOTYPE(){
 	echo "		freebayes -w $FREEBAYES_w"
 	echo "		freebayes -V $FREEBAYES_V"
 	echo "		freebayes -a $FREEBAYES_a"
-	echo "		freebayes --no-partial-observations ${FREEBAYES_no_partial_observations}"
+	if [ $FREEBAYES_w != "" ]; then echo "		freebayes ${FREEBAYES_w}"; fi
+	if [ $FREEBAYES_V != "" ]; then echo "		freebayes ${FREEBAYES_V}"; fi
+	if [ $FREEBAYES_a != "" ]; then echo "		freebayes ${FREEBAYES_a}"; fi
+	if [ $FREEBAYES_no_partial_observations != "" ]; then echo "		freebayes ${FREEBAYES_no_partial_observations}"; fi
 	
 	echo ""; echo " "`date` " Preparing files for genotyping..."
 	
@@ -1820,7 +1870,7 @@ bamToBed -i cat.$CUTOFF.$CUTOFF2-RRG.bam | bedtools merge > mapped.$CUTOFF.$CUTO
 if [ -n "$1" ]; then
 	#main $1
 	# RMH added ALL variables below; main $NUMProc $MAXMemory $TRIM $FixStacks $ASSEMBLY $ATYPE $simC $MAP $optA $optB $optO $SNP $MAIL $HPC $MANCUTOFF $CUTOFF $CUTOFF2 $TRIM_LENGTH_ASSEMBLY $TRIM_LENGTH_MAPPING $SEED_ASSEMBLY $PALIMDROME_ASSEMBLY $SIMPLE_ASSEMBLY $windowSize_ASSEMBLY $windowQuality_ASSEMBLY
-	main $NUMProc $MAXMemory $TRIM $TRIM_LENGTH_ASSEMBLY $SEED_ASSEMBLY $PALIMDROME_ASSEMBLY $SIMPLE_ASSEMBLY $windowSize_ASSEMBLY $windowQuality_ASSEMBLY $TRAILING_ASSEMBLY $TRIM_LENGTH_MAPPING $LEADING_MAPPING $TRAILING_MAPPING $FixStacks $ASSEMBLY $ATYPE $simC $HPC $MANCUTOFF $CUTOFF $CUTOFF2 $MAP $optA $optB $optO $MAPPING_MIN_ALIGNMENT_SCORE $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SNP $POOLS $POOL_PLOIDY_FILE $PLOIDY $BEST_N_ALLELES $MIN_MAPPING_QUAL $MIN_BASE_QUAL $HAPLOTYPE_LENGTH $MIN_REPEAT_ENTROPY $MIN_COVERAGE $MIN_ALT_FRACTION $MIN_ALT_COUNT $MIN_ALT_TOTAL $READ_MAX_MISMATCH_FRACTION $MAIL $FILTERMAP $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom $SOFT_CLIP_CUTOFF $FILTER_ORPHANS $BEDTOOLSFLAG $FILTER_MIN_AS $FREEBAYES_Q $FREEBAYES_U 
+	main $NUMProc $MAXMemory $TRIM $TRIM_LENGTH_ASSEMBLY $SEED_ASSEMBLY $PALIMDROME_ASSEMBLY $SIMPLE_ASSEMBLY $windowSize_ASSEMBLY $windowQuality_ASSEMBLY $TRAILING_ASSEMBLY $TRIM_LENGTH_MAPPING $LEADING_MAPPING $TRAILING_MAPPING $FixStacks $ASSEMBLY $ATYPE $simC $HPC $MANCUTOFF $CUTOFF $CUTOFF2 $MAP $optA $optB $optO $MAPPING_MIN_ALIGNMENT_SCORE $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SNP $POOLS $POOL_PLOIDY_FILE $PLOIDY $BEST_N_ALLELES $MIN_MAPPING_QUAL $MIN_BASE_QUAL $HAPLOTYPE_LENGTH $MIN_REPEAT_ENTROPY $MIN_COVERAGE $MIN_ALT_FRACTION $MIN_ALT_COUNT $MIN_ALT_TOTAL $READ_MAX_MISMATCH_FRACTION $MAIL $FILTERMAP $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom $SOFT_CLIP_CUTOFF $FILTER_ORPHANS $BEDTOOLSFLAG $FILTER_MIN_AS $FREEBAYES_Q $FREEBAYES_U $FUNKTION
 else
 	#main
 	echo ""; echo `date` " This is the HPC version of dDocent.  A config file must be specified"
