@@ -768,36 +768,18 @@ TrimReadsRef () {
 	echo "F=	$F"
 	echo "R=	$R"
 
-	# for i in "${NAMES[@]}"
-	# do
-		# zcat $i.$F.fq.gz | head -2 | tail -1 >> lengths_ref.$CUTOFF.$CUTOFF2.txt
-	# done
+	if [ ! -d "mkREF" ]; then mkdir mkREF &>/dev/null; fi
+	if [ ! -d "./mkREF/unpaired" ]; then mkdir ./mkREF/unpaired &>/dev/null; fi
 	
-	# MLen=$(mawk '{ print length() | "sort -rn" }' lengths_ref.$CUTOFF.$CUTOFF2.txt| head -1)
-	# MLen=$(($MLen / 2))
-	# TW="MINLEN:$MLen"
-		
-	for i in "${NAMES[@]}"
-	do
-		echo "Trimming Sample $i"
-		if [ -f $i.$R.fq.gz ]; then
-			#$$$$$$$ceb$$$$$$$$$$$$$
-			#adjusted settings to retain as many reads as possible
-			java -jar $TRIMMOMATIC PE -threads $NUMProc -phred33 $i.F.fq.gz $i.R.fq.gz $i.r1.fq.gz $i.unpairedF.fq.gz $i.r2.fq.gz $i.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY  &> $i.pe.trim.log
+	if [ -f "${NAMES[1]}".$R.fq.gz ]; then
+		Proc=$((NUMProc/4))
+		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads 4 -phred33 {}.F.fq.gz {}.R.fq.gz ./mkREF/{}.r1.fq.gz ./mkREF/unpaired/{}.unpairedF.fq.gz ./mkREF/{}.r2.fq.gz ./mkREF/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY  &> ./mkREF/{}.pe.trim.log"
+	else 
+		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkREF/{}.r1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY &> ./mkREF/{}.trim.log"
+	fi
 
-			#$$$$$$ceb$$$$$
-			#make read1 shorter than read 2 by clipping off first few bp
-			#java -jar $TRIMMOMATIC SE -threads $NUMProc -phred33 $i._r1.fq.gz $i.r1.fq.gz HEADCROP:4 &> $i.se.trim.log
-		else 
-			java -jar $TRIMMOMATIC SE -threads $NUMProc -phred33 $i.F.fq.gz $i.r1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY &> $i.trim.log
-		fi 
-	done
-	mkdir unpaired_ref &>/dev/null
-	mv *unpaired*.gz ./unpaired_ref &>/dev/null	
 	#RMH housekeeping
-	rm *_r1.fq.gz
-	mv *r1.fq.gz assembly
-	mv *r2.fq.gz assembly
+#	rm *_r1.fq.gz
 }
 
 
@@ -811,29 +793,16 @@ TrimReads () {
 
 	TRIMMOMATIC=$(find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null | head -1)
 	ADAPTERS=$(find ${PATH//:/ } -maxdepth 1 -name TruSeq2-PE.fa 2> /dev/null | head -1)
-
-	# for i in "${NAMES[@]}"
-	# do
-		# zcat $i.$F.fq.gz | head -2 | tail -1 >> lengths.$CUTOFF.$CUTOFF2.txt
-	# done	
-		# MLen=$(mawk '{ print length() | "sort -rn" }' lengths.$CUTOFF.$CUTOFF2.txt| head -1)
-		# MLen=$(($MLen / 2))
-	# TW="MINLEN:$MLen"
 	
-	for i in "${NAMES[@]}"
-	do
-		echo "Trimming Sample $i"
-		if [ -f $i.R.fq.gz ]; then
-			java -jar $TRIMMOMATIC PE -threads $NUMProc -phred33 $i.F.fq.gz $i.R.fq.gz $i.R1.fq.gz $i.unpairedF.fq.gz $i.R2.fq.gz $i.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> $i.trim.log
-		else 
-			java -jar $TRIMMOMATIC SE -threads $NUMProc -phred33 $i.F.fq.gz $i.R1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> $i.trim.log
-		fi 
-	done
-	mkdir unpaired &>/dev/null
-	mv *unpaired*.gz ./unpaired &>/dev/null	
-	#RMH housekeeping
-	mv *R1.fq.gz mapping
-	mv *R2.fq.gz mapping
+	if [ ! -d "mkBAM" ]; then mkdir mkBAM &>/dev/null; fi
+	if [ ! -d "./mkBAM/unpaired" ]; then mkdir ./mkBAM/unpaired &>/dev/null; fi
+
+	if [ -f "${NAMES[1]}".$R.fq.gz ]; then
+		Proc=$((NUMProc/4))
+		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads 4 -phred33 {}.F.fq.gz {}.R.fq.gz ./mkBAM/{}.R1.fq.gz ./mkBAM/unpaired/{}.unpairedF.fq.gz ./mkBAM/{}.R2.fq.gz ./mkBAM/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> {}.trim.log"
+	else 
+		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkBAM/{}.R1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> {}.trim.log"
+	fi 
 }
 
 
@@ -880,10 +849,10 @@ Assemble(){
 					rename r2.XXX reverse *r2.XXX
 					if [ "$ATYPE" = "RPE" ]; then
 						echo "";echo `date` " RPE assembly"
-						cat namelist.$CUTOFF.$CUTOFF2 | parallel --no-notice -j $NUMProc "paste -d '-' {}.forward {}.reverse | mawk '$AWK3'| sed 's/-/NNNNNNNNNNNNNNNNNNNN/' | sort | uniq -c -w $FRL| sed -e '$SED1' | sed -e '$SED2' > {}.uniq.seqs"
+						cat namelist.$CUTOFF.$CUTOFF2 | parallel --no-notice -j $NUMProc "paste -d '-' {}.forward {}.reverse | mawk '$AWK3'| sed 's/-/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/' | sort | uniq -c -w $FRL| sed -e '$SED1' | sed -e '$SED2' > {}.uniq.seqs"
 					else
 						echo "";echo `date` " PE assembly"
-						cat namelist.$CUTOFF.$CUTOFF2 | parallel --no-notice -j $NUMProc "paste -d '-' {}.forward {}.reverse | mawk '$AWK3'| sed 's/-/NNNNNNNNNNNNNNNNNNNN/' | perl -e '$PERLT' > {}.uniq.seqs"
+						cat namelist.$CUTOFF.$CUTOFF2 | parallel --no-notice -j $NUMProc "paste -d '-' {}.forward {}.reverse | mawk '$AWK3'| sed 's/-/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/' | perl -e '$PERLT' > {}.uniq.seqs"
 					fi
 					rm *.forward
 					rm *.reverse
@@ -896,19 +865,25 @@ Assemble(){
 				if [ "$ATYPE" == "OL" ]; then
 				#If OL assembly, dDocent assumes that the majority of PE reads will overlap, so the software PEAR is used to merge paired reads into single reads
 					echo "";echo `date` " OL assembly"
-					for i in "${NAMES[@]}";
-						do
-						#zcat $i.R.fq.gz | head -2 | tail -1 >> lengths.$CUTOFF.$CUTOFF2.txt
-						zcat $i$Rsed | head -2 | tail -1 >> lengths.$CUTOFF.$CUTOFF2.txt
-					done	
+					# for i in "${NAMES[@]}";
+						# do
+						# #zcat $i.R.fq.gz | head -2 | tail -1 >> lengths.$CUTOFF.$CUTOFF2.txt
+						# zcat $i$Rsed | head -2 | tail -1 >> lengths.$CUTOFF.$CUTOFF2.txt
+					# done	
+					#parallel code ceb aug 2018
+					parallel --no-notice -j $NUMProc "zcat {}$Rsed | head -2 | tail -1 >> lengths.$CUTOFF.$CUTOFF2.txt" ::: "${NAMES[@]}"
+					
 					MaxLen=$(mawk '{ print length() | "sort -rn" }' lengths.$CUTOFF.$CUTOFF2.txt| head -1)
 					LENGTH=$(( $MaxLen / 3))
 					echo "";echo `date` " OL assembly: PEAR "
-					for i in "${NAMES[@]}"
-						do
-						#pearRM -f $i.F.fq.gz -r $i.R.fq.gz -o $i -j $NUMProc -n $LENGTH 
-						pearRM -f $i$Fsed -r $i$Rsed -o $i -j $NUMProc -n $LENGTH -p 0.0001
-					done
+					# for i in "${NAMES[@]}"
+						# do
+						# #pearRM -f $i.F.fq.gz -r $i.R.fq.gz -o $i -j $NUMProc -n $LENGTH 
+						# pearRM -f $i$Fsed -r $i$Rsed -o $i -j $NUMProc -n $LENGTH -p 0.0001
+					# done
+					#parallel code ceb aug 2018; need to check and see how many threads pear can use
+					parallel --no-notice -j "$NUMProc pearRM -f {}$Fsed -r {}$Rsed -o {} -j $NUMProc -n $LENGTH -p 0.0001" ::: "${NAMES[@]}"
+					
 					echo "";echo `date` " OL assembly: create *.uniq.seqs "
 					cat namelist.$CUTOFF.$CUTOFF2 | parallel --no-notice -j $NUMProc "mawk '$AWK1' {}.assembled.fastq | mawk '$AWK2' | perl -e '$PERLT' > {}.uniq.seqs"
 				fi
@@ -1136,12 +1111,12 @@ EOF
 		echo ""
 		echo -n "Reads are first clustered using only the Forward reads using CD-hit instead of rainbow "
 		date
-		sed -e 's/NNNNNNNNNNNNNNNNNNNN/	/g' uniq.$CUTOFF.$CUTOFF2.fasta | cut -f1 > uniq.$CUTOFF.$CUTOFF2.F.fasta
+		sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/	/g' uniq.$CUTOFF.$CUTOFF2.fasta | cut -f1 > uniq.$CUTOFF.$CUTOFF2.F.fasta
 		CDHIT=$(python -c "print max("$simC" - 0.1,0.8)")
 		cd-hit-est -i uniq.$CUTOFF.$CUTOFF2.F.fasta -o xxx.$CUTOFF.$CUTOFF2 -c $CDHIT -T 0 -M 0 -g 1 -d 100 &>cdhit.$CUTOFF.$CUTOFF2.log
 		mawk '{if ($1 ~ /Cl/) clus = clus + 1; else  print $3 "\t" clus}' xxx.$CUTOFF.$CUTOFF2.clstr | sed 's/[>dDococent_Contig_,...]//g' | sort -g -k1 > sort.contig.cluster.ids.$CUTOFF.$CUTOFF2
 		paste sort.contig.cluster.ids.$CUTOFF.$CUTOFF2 totaluniqseq.$CUTOFF.$CUTOFF2 > contig.cluster.totaluniqseq.$CUTOFF.$CUTOFF2
-		sort -k2,2 -g contig.cluster.totaluniqseq.$CUTOFF.$CUTOFF2 | sed -e 's/NNNNNNNNNNNNNNNNNNNN/	/g' > rcluster.$CUTOFF.$CUTOFF2
+		sort -k2,2 -g contig.cluster.totaluniqseq.$CUTOFF.$CUTOFF2 | sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/	/g' > rcluster.$CUTOFF.$CUTOFF2
 		#CD-hit output is converted to rainbow format
 		echo ""
 		echo -n "Running rainbow div "
@@ -1157,7 +1132,7 @@ EOF
 		#This AWK code replaces rainbow's contig selection perl script
 		cat rbasm.$CUTOFF.$CUTOFF2.out <(echo "E") |sed 's/[0-9]*:[0-9]*://g' | mawk ' {
 			if (NR == 1) e=$2;
-			else if ($1 ~/E/ && lenp > len1) {c=c+1; print ">dDocent_Contig_" e "\n" seq2 "NNNNNNNNNNNNNNNNNNNN" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}
+			else if ($1 ~/E/ && lenp > len1) {c=c+1; print ">dDocent_Contig_" e "\n" seq2 "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}
 			else if ($1 ~/E/ && lenp <= len1) {c=c+1; print ">dDocent_Contig_" e "\n" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}
 			else if ($1 ~/C/) clus=$2;
 			else if ($1 ~/L/) len=$2;
@@ -1175,8 +1150,8 @@ EOF
 		echo -n "Check for overlap in paired end reads with Pear"
 		date
 		#The rainbow assembly is checked for overlap between newly assembled Forward and Reverse reads using the software PEAR
-		sed -e 's/NNNNNNNNNNNNNNNNNNNN/	/g' rainbow.$CUTOFF.$CUTOFF2.fasta | cut -f1 | gawk 'BEGIN {RS = ">" ; FS = "\n"} NR > 1 {print "@"$1"\n"$2"\n+""\n"gensub(/./, "I", "g", $2)}' > ref.$CUTOFF.$CUTOFF2.F.fq
-		sed -e 's/NNNNNNNNNNNNNNNNNNNN/	/g' rainbow.$CUTOFF.$CUTOFF2.fasta | cut -f2 | gawk 'BEGIN {RS = ">" ; FS = "\n"} NR > 1 {print "@"$1"\n"$2"\n+""\n"gensub(/./, "I", "g", $2)}' > ref.$CUTOFF.$CUTOFF2.R.fq
+		sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/	/g' rainbow.$CUTOFF.$CUTOFF2.fasta | cut -f1 | gawk 'BEGIN {RS = ">" ; FS = "\n"} NR > 1 {print "@"$1"\n"$2"\n+""\n"gensub(/./, "I", "g", $2)}' > ref.$CUTOFF.$CUTOFF2.F.fq
+		sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/	/g' rainbow.$CUTOFF.$CUTOFF2.fasta | cut -f2 | gawk 'BEGIN {RS = ">" ; FS = "\n"} NR > 1 {print "@"$1"\n"$2"\n+""\n"gensub(/./, "I", "g", $2)}' > ref.$CUTOFF.$CUTOFF2.R.fq
 
 		seqtk seq -r ref.$CUTOFF.$CUTOFF2.R.fq > ref.$CUTOFF.$CUTOFF2.RC.fq
 		mv ref.$CUTOFF.$CUTOFF2.RC.fq ref.$CUTOFF.$CUTOFF2.R.fq
@@ -1197,7 +1172,7 @@ EOF
 		mawk '/>/' overlap.$CUTOFF.$CUTOFF2.fasta > overlap.$CUTOFF.$CUTOFF2.loci.names
 		mawk 'BEGIN{P=1}{if(P==1||P==2){gsub(/^[@]/,">");print}; if(P==4)P=0; P++}' overlap.$CUTOFF.$CUTOFF2.unassembled.forward.fastq > other.$CUTOFF.$CUTOFF2.F
 		mawk 'BEGIN{P=1}{if(P==1||P==2){gsub(/^[@]/,">");print}; if(P==4)P=0; P++}' overlap.$CUTOFF.$CUTOFF2.unassembled.reverse.fastq > other.$CUTOFF.$CUTOFF2.R
-		paste other.$CUTOFF.$CUTOFF2.F other.$CUTOFF.$CUTOFF2.R | mawk '{if ($1 ~ />/) print $1; else print $0}' | sed 's/	/NNNNNNNNNNNNNNNNNNNN/g' > other.$CUTOFF.$CUTOFF2.FR
+		paste other.$CUTOFF.$CUTOFF2.F other.$CUTOFF.$CUTOFF2.R | mawk '{if ($1 ~ />/) print $1; else print $0}' | sed 's/	/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/g' > other.$CUTOFF.$CUTOFF2.FR
 
 		cat other.$CUTOFF.$CUTOFF2.FR overlap.$CUTOFF.$CUTOFF2.fasta > totalover.$CUTOFF.$CUTOFF2.fasta
 
