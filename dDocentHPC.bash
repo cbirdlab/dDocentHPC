@@ -277,8 +277,8 @@ CheckDependencies(){
 				NUMDEP=$(($NUMDEP + 1))
 			fi
 				
-			if find ${PATH//:/ } -maxdepth 1 -name TruSeq2-PE.fa 2> /dev/null | grep -q 'Tru' ; then
-				ADAPTERS=$(find ${PATH//:/ } -maxdepth 1 -name TruSeq2-PE.fa 2> /dev/null | head -1)
+			if find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | grep -q 'Tru' ; then
+				ADAPTERS=$(find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | head -1)
 			else
 				echo " The file listing adapters (included with trimmomatic) is not installed or is not in your" '$PATH'"."
 				NUMDEP=$(($NUMDEP + 1))
@@ -753,7 +753,7 @@ TrimReadsRef () {
 	echo `date` "Trimming reads for reference genome"
 
 	TRIMMOMATIC=$(find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null | head -1)
-	ADAPTERS=$(find ${PATH//:/ } -maxdepth 1 -name TruSeq2-PE.fa 2> /dev/null | head -1)
+	ADAPTERS=$(find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | head -1)
 	
 	echo "TRIMMOMATIC=	$TRIMMOMATIC"
 	echo "ADAPTERS=	$ADAPTERS"
@@ -793,7 +793,7 @@ TrimReads () {
 	echo; echo `date` "Trimming reads for mapping"
 
 	TRIMMOMATIC=$(find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null | head -1)
-	ADAPTERS=$(find ${PATH//:/ } -maxdepth 1 -name TruSeq2-PE.fa 2> /dev/null | head -1)
+	ADAPTERS=$(find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | head -1)
 	
 	if [ ! -d "mkBAM" ]; then mkdir mkBAM &>/dev/null; fi
 	if [ ! -d "./mkBAM/unpaired" ]; then mkdir ./mkBAM/unpaired &>/dev/null; fi
