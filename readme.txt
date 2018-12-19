@@ -8,7 +8,8 @@ processing. The resulting vcf files can be filtered with fltrVCF, a separate scr
 
 dDocentHPC Functions: trimFQ, mkREF, mkBAM, fltrBAM, mkVCF
 
-  trimFQ uses trimmomatic to trim fastq files for de novo reference creation (mkREF) and mapping reads to the reference (mkBAM). several fold speedup over 2.2.12
+  trimFQ uses trimmomatic to trim fastq files for de novo reference creation (mkREF) and mapping reads to the reference (mkBAM).
+		several fold speedup over 2.2.12
 
   mkREF follows description for de novo reference assembly on ddocent.com .  several fold speedup over 2.2.12
 
