@@ -42,7 +42,7 @@ Example SLURM script, running dDocentHPC.bash on a remote HPC:
 	#!/bin/bash
 
 	#SBATCH --job-name=trim_ref
-	#SBATCH --time=48:00:00
+	#SBATCH --time=96:00:00
 	#SBATCH -p normal
 	#SBATCH --nodes=1
 
