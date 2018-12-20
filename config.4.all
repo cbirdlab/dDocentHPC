@@ -6,40 +6,19 @@ Maximum Memory (1G,2G,..., 256G)  G=gigabytes
 
 
 
-----------Settings for Trimming----------------------------------------------------
+----------Settings for Trimming FASTQ Files----------------------
 
-Trimming (yes,no)
-no
-
-TRIM_LENGTH_ASSEMBLY
-146
-
-SEED_ASSEMBLY (applies to trim for assembly and mapping)
-2
-
-PALIMDROME_ASSEMBLY (applies to trim for assembly and mapping)
-30
-
-SIMPLE_ASSEMBLY (applies to trim for assembly and mapping)
-10
-
-windowSize_ASSEMBLY (applies to trim for assembly and mapping)
-20
-
-windowQuality_ASSEMBLY (applies to trim for assembly and mapping)
-10
-
-TRAILING_ASSEMBLY
-10
-
-TRIM_LENGTH_MAPPING
-75
-
-LEADING_MAPPING
-15
-
-TRAILING_MAPPING
-15
+146	trimmomatic MINLEN (integer, mkREF only)						Drop the read if it is below a specified length
+75	trimmomatic MINLEN (integer, mkBAM only)						Drop the read if it is below a specified length
+15	trimmomatic LEADING:<quality> (integer, mkBAM only)				Specifies the minimum quality required to keep a base.
+10	trimmomatic TRAILING:<quality> (integer, mkREF only)			Specifies the minimum quality required to keep a base.
+15	trimmomatic TRAILING:<quality> (integer, mkBAM only)			Specifies the minimum quality required to keep a base.
+2	trimmomatic ILLUMINACLIP:<seed mismatches> (integer)			specifies the maximum mismatch count which will still allow a full match to be performed
+30	trimmomatic ILLUMINACLIP:<palindrome clip thresh> (integer)		specifies how accurate the match between the two 'adapter ligated' reads must be for PE palindrome read alignment
+10	trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)			specifies how accurate the match between any adapter etc. sequence must be against a read.
+20	trimmomatic SLIDINGWINDOW:<windowSize> (integer)				specifies the number of bases to average across
+10	trimmomatic SLIDINGWINDOW:<windowQuality> (integer)				specifies the average quality required.
+0	trimmomatic HEADCROP:<length> (integer)							The number of bases to remove from the start of the read. 0 for ddRAD, 5 for ezRAD
 
 
 ----------Settings for FixStacks---------------------------------------------------
