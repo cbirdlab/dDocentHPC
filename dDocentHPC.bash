@@ -42,17 +42,17 @@ if [ -n "$2" ]; then
 	MAXMemory=$(grep -A1 Memory $CONFIG | tail -1)
 	#TRIM=$(grep -A1 Trim $CONFIG | tail -1)
 	TRIM="RemoveThisVar"
-	TRIM_LENGTH_ASSEMBLY=$(grep -'trimmomatic MINLEN (integer, mkREF only)' $CONFIG | awk '{print $1;}')
-	SEED_ASSEMBLY=$(grep -'trimmomatic ILLUMINACLIP:<seed mismatches> (integer)' $CONFIG | awk '{print $1;}')
-	PALIMDROME_ASSEMBLY=$(grep -'trimmomatic ILLUMINACLIP:<palindrome clip thresh> (integer)' $CONFIG | awk '{print $1;}')
-	SIMPLE_ASSEMBLY=$(grep -'trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)' $CONFIG | awk '{print $1;}')
-	windowSize_ASSEMBLY=$(grep -'trimmomatic SLIDINGWINDOW:<windowSize> (integer)' $CONFIG | awk '{print $1;}')
-	windowQuality_ASSEMBLY=$(grep -'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
-	TRAILING_ASSEMBLY=$(grep -'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
-	TRIM_LENGTH_MAPPING=$(grep -'trimmomatic MINLEN (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
-	LEADING_MAPPING=$(grep -'trimmomatic LEADING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
-	TRAILING_MAPPING=$(grep -'trimmomatic TRAILING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
-	HEADCROP=$(grep -'trimmomatic HEADCROP:<length> (integer)' $CONFIG | awk '{print $1;}')
+	TRIM_LENGTH_ASSEMBLY=$(grep 'trimmomatic MINLEN (integer, mkREF only)' $CONFIG | awk '{print $1;}')
+	SEED_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<seed mismatches> (integer)' $CONFIG | awk '{print $1;}')
+	PALIMDROME_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<palindrome clip thresh> (integer)' $CONFIG | awk '{print $1;}')
+	SIMPLE_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)' $CONFIG | awk '{print $1;}')
+	windowSize_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowSize> (integer)' $CONFIG | awk '{print $1;}')
+	windowQuality_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
+	TRAILING_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
+	TRIM_LENGTH_MAPPING=$(grep 'trimmomatic MINLEN (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
+	LEADING_MAPPING=$(grep 'trimmomatic LEADING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
+	TRAILING_MAPPING=$(grep 'trimmomatic TRAILING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
+	HEADCROP=$(grep 'HEADCROP:<length> (integer, only Read1 for ezRAD)' $CONFIG | awk '{print $1;}')
 	
 	FixStacks=$(grep -A1 FixStacks $CONFIG | tail -1)
 	ASSEMBLY=$(grep -A1 '^Assembly' $CONFIG | tail -1)
@@ -779,13 +779,21 @@ TrimReadsRef () {
 	if [ ! -d "./mkREF/unpaired" ]; then mkdir ./mkREF/unpaired &>/dev/null; fi
 	if [ ! -d "./mkREF/logs" ]; then mkdir ./mkREF/logs &>/dev/null; fi
 	
+
 	if [ -f "${NAMES[1]}".$R.fq.gz ]; then
 		Proc=$((NUMProc/4))
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads 4 -phred33 {}.F.fq.gz {}.R.fq.gz ./mkREF/{}.r1.fq.gz ./mkREF/unpaired/{}.unpairedF.fq.gz ./mkREF/{}.r2.fq.gz ./mkREF/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY HEADCROP:$HEADCROP TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY  &> ./mkREF/logs/{}.trim.log"
 	else 
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkREF/{}.r1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY HEADCROP:$HEADCROP TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY &> ./mkREF/logs/{}.trim.log"
 	fi
-
+	
+	if [[ $HEADCROP != 0 ]]; then
+		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 ./mkREF/{}.r1.fq.gz ./mkREF/{}.r1.fq.gz.ezRAD HEADCROP:$HEADCROP &> ./mkREF/logs/{}.trim.log"
+		mkdir ./mkREF/unheadcropped
+		ls ./mkREF/*r1.fq.gz | parallel --no-notice "mv {} ./mkREF/unheadcropped"
+		rename .fq.gz.ezRAD .fq.gz ./mkREF/*.fq.gz.ezRAD
+	fi
+	
 	#RMH housekeeping
 #	rm *_r1.fq.gz
 }
@@ -812,6 +820,13 @@ TrimReads () {
 	else 
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkBAM/{}.R1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY HEADCROP:$HEADCROP LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
 	fi 
+	
+	if [[ $HEADCROP != 0 ]]; then
+		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 ./mkREF/{}.r1.fq.gz ./mkREF/{}.r1.fq.gz.ezRAD HEADCROP:$HEADCROP &> ./mkREF/logs/{}.trim.log"
+		mkdir ./mkREF/unheadcropped
+		ls ./mkREF/*r1.fq.gz | parallel --no-notice "mv {} ./mkREF/unheadcropped"
+		rename .fq.gz.ezRAD .fq.gz ./mkREF/*.fq.gz.ezRAD
+	fi
 }
 
 

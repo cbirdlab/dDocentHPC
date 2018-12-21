@@ -18,7 +18,7 @@ Maximum Memory (1G,2G,..., 256G)  G=gigabytes
 10	trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)			specifies how accurate the match between any adapter etc. sequence must be against a read.
 20	trimmomatic SLIDINGWINDOW:<windowSize> (integer)				specifies the number of bases to average across
 10	trimmomatic SLIDINGWINDOW:<windowQuality> (integer)				specifies the average quality required.
-0	trimmomatic HEADCROP:<length> (integer)							The number of bases to remove from the start of the read. 0 for ddRAD, 5 for ezRAD
+0	trimmomatic HEADCROP:<length> (integer, only Read1 for ezRAD)	The number of bases to remove from the start of the read. 0 for ddRAD, 5 for ezRAD
 
 
 ----------Settings for FixStacks---------------------------------------------------
