@@ -54,15 +54,15 @@ if [ -n "$2" ]; then
 	TRAILING_MAPPING=$(grep 'trimmomatic TRAILING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
 	HEADCROP=$(grep 'HEADCROP:<length> (integer, only Read1 for ezRAD)' $CONFIG | awk '{print $1;}')
 	
-	FixStacks=$(grep -A1 FixStacks $CONFIG | tail -1)
-	ASSEMBLY=$(grep -A1 '^Assembly' $CONFIG | tail -1)
-	ATYPE=$(grep -A1 Type $CONFIG | tail -1)
-	simC=$(grep -A1 Simi $CONFIG | tail -1)
-	HPC=$(grep -A1 HPC $CONFIG | tail -1)
-	MANCUTOFF=$(grep -A1 Manually $CONFIG | tail -1)
+	FixStacks=$(grep 'FixStacks (yes,no)' $CONFIG | awk '{print $1;}')
+	ASSEMBLY="RemoveThisVar"
+	ATYPE=$(grep 'Type of reads for assembly (PE, SE, OL, RPE)' $CONFIG | awk '{print $1;}')
+	simC=$(grep 'cdhit Clustering_Similarity_Pct (0-1)' $CONFIG | awk '{print $1;}')
+	HPC=$(grep 'Get graphs for cutoffs, then stop? (yes or no)' $CONFIG | awk '{print $1;}')
+	MANCUTOFF=$(grep 'Manually set cutoffs? (yes or no)' $CONFIG | awk '{print $1;}')
 	if [ "$MANCUTOFF" = "no" ]; then
-		CUTOFF=$(grep -A1 ^Cutoff1 $CONFIG | tail -1)
-		CUTOFF2=$(grep -A1 ^Cutoff2 $CONFIG | tail -1)
+		CUTOFF=$(grep 'Cutoff1 (integer)' $CONFIG | awk '{print $1;}')
+		CUTOFF2=$(grep 'Cutoff2 (integer)' $CONFIG | awk '{print $1;}')
 		#echo ""; echo `date` " CUTOFF=" $CUTOFF
 		#echo ""; echo `date` " CUTOFF2=" $CUTOFF2
 	else
@@ -70,23 +70,23 @@ if [ -n "$2" ]; then
 		echo "  Aborting dDocentHPC"
 		exit
 	fi
-	MAP=$(grep -A1 Mapping_Reads $CONFIG | tail -1)
-	optA=$(grep -A1 _Match $CONFIG | tail -1)
-	optB=$(grep -A1 MisMatch $CONFIG | tail -1)
-	optO=$(grep -A1 Gap $CONFIG | tail -1)
-	MAPPING_MIN_ALIGNMENT_SCORE=$(grep -A1 '^Mapping_Minimum_Alignment_Score' $CONFIG | tail -1)
-	MAPPING_CLIPPING_PENALTY=$(grep -A1 '^Mapping_Clipping_Penalty' $CONFIG | tail -1)
+	MAP="RemoveThisVar"
+	optA=$(grep 'bwa mem -A Mapping_Match_Value (integer)' $CONFIG | awk '{print $1;}')
+	optB=$(grep 'bwa mem -B Mapping_MisMatch_Value (integer)' $CONFIG | awk '{print $1;}')
+	optO=$(grep 'Cbwa mem -O Mapping_GapOpen_Penalty (integer)' $CONFIG | awk '{print $1;}')
+	MAPPING_MIN_ALIGNMENT_SCORE=$(grep 'bwa mem -T Mapping_Minimum_Alignment_Score (integer)' $CONFIG | awk '{print $1;}')
+	MAPPING_CLIPPING_PENALTY=$(grep 'bwa mem -L Mapping_Clipping_Penalty (integer,integer)' $CONFIG | awk '{print $1;}')
 	
 	
-	FILTERMAP=$(grep -A1 'Filter_Mapped_Read_Alignments' $CONFIG | tail -1)
-	MAPPING_MIN_QUALITY=$(grep -A1 '^Mapping_Min_Quality' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_F4=$(grep -A1 '^Remove_unmapped_reads' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_F8=$(grep -A1 '^Remove_read_pair_if_one_is_unmapped' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_F256=$(grep -A1 '^Remove_secondary_alignments' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_F512=$(grep -A1 '^Remove_reads_not_passing_platform_vendor_filters' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_F1024=$(grep -A1 '^Remove_PCR_or_optical_duplicates' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_F2048=$(grep -A1 '^Remove_supplementary_alignments' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_f2=$(grep -A1 '^Keep_only_properly_aligned_read_pairs' $CONFIG | tail -1)
+	FILTERMAP="RemoveThisVar"
+	MAPPING_MIN_QUALITY=$(grep 'Mapping_Min_Quality (integer)' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_F4=$(grep 'Remove_unmapped_reads? (yes,no)' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_F8=$(grep 'Remove_read_pair_if_one_is_unmapped? (yes,no)' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_F256=$(grep 'Remove_secondary_alignments? (yes,no)' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_F512=$(grep 'Remove_reads_not_passing_platform_vendor_filters (yes,no)' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_F1024=$(grep 'Remove_PCR_or_optical_duplicates? (yes,no)' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_F2048=$(grep 'Remove_supplementary_alignments? (yes,no)' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_f2=$(grep 'Keep_only_properly_aligned_read_pairs? (yes,no)' $CONFIG | awk '{print $1;}')
 
 	if [ "$SAMTOOLS_VIEW_F4" == "yes" ]; then
 		F4=4
@@ -132,29 +132,34 @@ if [ -n "$2" ]; then
 		SAMTOOLS_VIEW_f=0
 	fi
 	
-	SAMTOOLS_VIEW_Fcustom=$(grep -A1 '^Custom_samtools_view_F_bit_value' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_fcustom=$(grep -A1 '^Custom_samtools_view_f_bit_value' $CONFIG | tail -1)
-	SOFT_CLIP_CUT=$(grep -A1 '^Remove_reads_with_excessive_soft_clipping' $CONFIG | tail -1)
+	SAMTOOLS_VIEW_Fcustom=$(grep 'Custom_samtools_view_F_bit_value? (integer)' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_fcustom=$(grep 'Custom_samtools_view_f_bit_value? (integer)' $CONFIG | awk '{print $1;}')
+	SOFT_CLIP_CUT=$(grep 'Remove_reads_with_excessive_soft_clipping? (no, integers by 10s)' $CONFIG | awk '{print $1;}')
 	SOFT_CLIP_CUTOFF=$((($SOFT_CLIP_CUT+9)/10))
-	FILTER_MIN_AS=$(grep -A1 '^Remove_reads_with_alignment_score_below' $CONFIG | tail -1)
-	FILTER_ORPHANS=$(grep -A1 '^Remove_reads_orphaned_by_filters' $CONFIG | tail -1)
+	FILTER_MIN_AS=$(grep 'Remove_reads_with_alignment_score_below (integers by 10s)' $CONFIG | awk '{print $1;}')
+	FILTER_ORPHANS=$(grep 'Remove_reads_orphaned_by_filters? (yes,no)' $CONFIG | awk '{print $1;}')
 
-	SNP=$(grep -A1 SNP $CONFIG | tail -1)
-	POOLS=$(grep -A1 'Is the data pooled' $CONFIG | tail -1)
-	POOL_PLOIDY_FILE=$(grep -A1 '^If the data is pooled, will you provide a copy number variation' $CONFIG | tail -1)
-	PLOIDY=$(grep -A1 '^If no cnv file is provided, then what is the ploidy of the samples' $CONFIG | tail -1)
-	BEST_N_ALLELES=$(grep -A1 '^Use_Best_N_Alleles' $CONFIG | tail -1)
-	MIN_MAPPING_QUAL=$(grep -A1 '^Minimum_Mapping_Quality' $CONFIG | tail -1)
-	MIN_BASE_QUAL=$(grep -A1 '^Minimum_Base_Quality' $CONFIG | tail -1)
-	HAPLOTYPE_LENGTH=$(grep -A1 '^Haplotype_Length' $CONFIG | tail -1)
-	MIN_REPEAT_ENTROPY=$(grep -A1 '^Min_Repeat_Entropy' $CONFIG | tail -1)
-	MIN_COVERAGE=$(grep -A1 '^Min_Coverage' $CONFIG | tail -1)
-	MIN_ALT_FRACTION=$(grep -A1 '^Min_Alternate_Fraction' $CONFIG | tail -1)
-	MIN_ALT_COUNT=$(grep -A1 '^Min_Alternate_Count' $CONFIG | tail -1)
-	MIN_ALT_TOTAL=$(grep -A1 '^Min_Alternate_Total' $CONFIG | tail -1)
-	READ_MAX_MISMATCH_FRACTION=$(grep -A1 '^Read_Max_Mismatch_Fraction' $CONFIG | tail -1)
+	SNP="remove this var"
+	POOLS=$(grep 'freebayes -J --pooled-discrete (yes or no)' $CONFIG | awk '{print $1;}')
+	POOL_PLOIDY_FILE=$(grep 'freebayes -A --cnv-map (filename.bed or no)' $CONFIG | awk '{print $1;}')
+	PLOIDY=$(grep 'freebayes -p --ploidy (integer)' $CONFIG | awk '{print $1;}')
+	BEST_N_ALLELES=$(grep 'freebayes -n --use-best-n-alleles (integer)' $CONFIG | awk '{print $1;}')
+	MIN_MAPPING_QUAL=$(grep 'freebayes -m --min-mapping-quality (integer)' $CONFIG | awk '{print $1;}')
+	MIN_BASE_QUAL=$(grep 'freebayes -q --min-base-quality (integer)' $CONFIG | awk '{print $1;}')
+	HAPLOTYPE_LENGTH=$(grep 'freebayes -E --haplotype-length (-1, 3, or integer)' $CONFIG | awk '{print $1;}')
+	MIN_REPEAT_ENTROPY=$(grep 'freebayes    --min-repeat-entropy (0, 1, or integer)' $CONFIG | awk '{print $1;}')
+	MIN_COVERAGE=$(grep 'freebayes    --min-coverage (integer)' $CONFIG | awk '{print $1;}')
+	MIN_ALT_FRACTION=$(grep 'freebayes -F --min-alternate-fraction' $CONFIG | awk '{print $1;}')
+	
+	MIN_ALT_COUNT=$(grep 'freebayes -C --min-alternate-count' $CONFIG | awk '{print $1;}')
+	MIN_ALT_TOTAL=$(grep 'freebayes -G --min-alternate-total' $CONFIG | awk '{print $1;}')
+	READ_MAX_MISMATCH_FRACTION=$(grep 'freebayes -z --read-max-mismatch-fraction' $CONFIG | awk '{print $1;}')
 	FREEBAYES_Q=$(grep 'freebayes -Q --mismatch-base-quality-threshold' $CONFIG | awk '{print $1;}')
 	FREEBAYES_U=$(grep 'freebayes -U --read-mismatch-limit' $CONFIG | awk '{print $1;}')
+	
+	
+	
+	
 	MAIL=$(grep -A1 Email $CONFIG | tail -1)
 
 else
@@ -781,7 +786,7 @@ TrimReadsRef () {
 	
 
 	if [ -f "${NAMES[1]}".$R.fq.gz ]; then
-		THREADS=1
+		THREADS=1  #CEB I tried different numbers here and 1 seems to be best
 		Proc=$(($NUMProc/$THREADS))  
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads $THREADS -phred33 {}.F.fq.gz {}.R.fq.gz ./mkREF/{}.r1.fq.gz ./mkREF/unpaired/{}.unpairedF.fq.gz ./mkREF/{}.r2.fq.gz ./mkREF/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY HEADCROP:$HEADCROP TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY  &> ./mkREF/logs/{}.trim.log"
 	else 
@@ -816,7 +821,7 @@ TrimReads () {
 	if [ ! -d "./mkBAM/logs" ]; then mkdir ./mkBAM/logs &>/dev/null; fi
 
 	if [ -f "${NAMES[1]}".$R.fq.gz ]; then
-		THREADS=1
+		THREADS=1     #CEB I tried different numbers here and 1 seems to be best
 		Proc=$(($NUMProc/$THREADS))  
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads $THREADS -phred33 {}.F.fq.gz {}.R.fq.gz ./mkBAM/{}.R1.fq.gz ./mkBAM/unpaired/{}.unpairedF.fq.gz ./mkBAM/{}.R2.fq.gz ./mkBAM/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY HEADCROP:$HEADCROP LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
 	else 
@@ -1459,17 +1464,31 @@ function GENOTYPE(){
 	CUTOFFS=$1
 	NUMProc=$2
 	CONFIG=$3
+
+	POOLS=$(grep 'freebayes -J --pooled-discrete (yes or no)' $CONFIG | awk '{print $1;}')
+	POOL_PLOIDY_FILE=$(grep 'freebayes -A --cnv-map (filename.bed or no)' $CONFIG | awk '{print $1;}')
+	PLOIDY=$(grep 'freebayes -p --ploidy (integer)' $CONFIG | awk '{print $1;}')
+	BEST_N_ALLELES=$(grep 'freebayes -n --use-best-n-alleles (integer)' $CONFIG | awk '{print $1;}')
+	MIN_MAPPING_QUAL=$(grep 'freebayes -m --min-mapping-quality (integer)' $CONFIG | awk '{print $1;}')
+	MIN_BASE_QUAL=$(grep 'freebayes -q --min-base-quality (integer)' $CONFIG | awk '{print $1;}')
+	HAPLOTYPE_LENGTH=$(grep 'freebayes -E --haplotype-length (-1, 3, or integer)' $CONFIG | awk '{print $1;}')
+	MIN_REPEAT_ENTROPY=$(grep 'freebayes    --min-repeat-entropy (0, 1, or integer)' $CONFIG | awk '{print $1;}')
+	MIN_COVERAGE=$(grep 'freebayes    --min-coverage (integer)' $CONFIG | awk '{print $1;}')
+	MIN_ALT_FRACTION=$(grep 'freebayes -F --min-alternate-fraction' $CONFIG | awk '{print $1;}')
+	MIN_ALT_COUNT=$(grep 'freebayes -C --min-alternate-count' $CONFIG | awk '{print $1;}')
+	MIN_ALT_TOTAL=$(grep 'freebayes -G --min-alternate-total' $CONFIG | awk '{print $1;}')
+	READ_MAX_MISMATCH_FRACTION=$(grep 'freebayes -z --read-max-mismatch-fraction' $CONFIG | awk '{print $1;}')
 	
-	POOLS=$(grep -A1 'Is the data pooled' $CONFIG | tail -1)
-	POOL_PLOIDY_FILE=$(grep -A1 '^If the data is pooled, will you provide a copy number variation' $CONFIG | tail -1)
-	PLOIDY=$(grep -A1 '^If no cnv file is provided, then what is the ploidy of the samples' $CONFIG | tail -1)
-	BEST_N_ALLELES=$(grep -A1 '^Use_Best_N_Alleles' $CONFIG | tail -1)
-	MIN_MAPPING_QUAL=$(grep -A1 '^Minimum_Mapping_Quality' $CONFIG | tail -1)
-	MIN_BASE_QUAL=$(grep -A1 '^Minimum_Base_Quality' $CONFIG | tail -1)
-	HAPLOTYPE_LENGTH=$(grep -A1 '^Haplotype_Length' $CONFIG | tail -1)
-	MIN_REPEAT_ENTROPY=$(grep -A1 '^Min_Repeat_Entropy' $CONFIG | tail -1)
-	MIN_COVERAGE=$(grep -A1 '^Min_Coverage' $CONFIG | tail -1)
-	MIN_ALT_FRACTION=$(grep -A1 '^Min_Alternate_Fraction' $CONFIG | tail -1)
+	# POOLS=$(grep -A1 'Is the data pooled' $CONFIG | tail -1)
+	# POOL_PLOIDY_FILE=$(grep -A1 '^If the data is pooled, will you provide a copy number variation' $CONFIG | tail -1)
+	# PLOIDY=$(grep -A1 '^If no cnv file is provided, then what is the ploidy of the samples' $CONFIG | tail -1)
+	# BEST_N_ALLELES=$(grep -A1 '^Use_Best_N_Alleles' $CONFIG | tail -1)
+	# MIN_MAPPING_QUAL=$(grep -A1 '^Minimum_Mapping_Quality' $CONFIG | tail -1)
+	# MIN_BASE_QUAL=$(grep -A1 '^Minimum_Base_Quality' $CONFIG | tail -1)
+	# HAPLOTYPE_LENGTH=$(grep -A1 '^Haplotype_Length' $CONFIG | tail -1)
+	# MIN_REPEAT_ENTROPY=$(grep -A1 '^Min_Repeat_Entropy' $CONFIG | tail -1)
+	# MIN_COVERAGE=$(grep -A1 '^Min_Coverage' $CONFIG | tail -1)
+	# MIN_ALT_FRACTION=$(grep -A1 '^Min_Alternate_Fraction' $CONFIG | tail -1)
 	#MIN_ALT_COUNT=$(grep -A1 '^Min_Alternate_Count' $CONFIG | tail -1)
 	#MIN_ALT_TOTAL=$(grep -A1 '^Min_Alternate_Total' $CONFIG | tail -1)
 	#READ_MAX_MISMATCH_FRACTION=$(grep -A1 '^Read_Max_Mismatch_Fraction' $CONFIG | tail -1)
