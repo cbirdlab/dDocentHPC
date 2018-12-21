@@ -38,8 +38,8 @@ if [ -n "$2" ]; then
 	
 	echo ""; echo `date` "Reading in variables from config file..."
 	CONFIG=$2
-	NUMProc=$(grep -A1 Processor $CONFIG | tail -1)
-	MAXMemory=$(grep -A1 Memory $CONFIG | tail -1)
+	NUMProc=$(grep 'Number of Processors (Auto, 1, 2, 3,' $CONFIG | awk '{print $1;}')
+	MAXMemory=$(grep 'Maximum Memory (1G,2G,' $CONFIG | awk '{print $1;}')
 	#TRIM=$(grep -A1 Trim $CONFIG | tail -1)
 	TRIM="RemoveThisVar"
 	TRIM_LENGTH_ASSEMBLY=$(grep 'trimmomatic MINLEN (integer, mkREF only)' $CONFIG | awk '{print $1;}')
