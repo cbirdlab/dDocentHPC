@@ -781,7 +781,8 @@ TrimReadsRef () {
 	
 
 	if [ -f "${NAMES[1]}".$R.fq.gz ]; then
-		Proc=$((NUMProc/4))
+		THREADS=4
+		Proc=$(($NUMProc/$THREADS))  
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads 4 -phred33 {}.F.fq.gz {}.R.fq.gz ./mkREF/{}.r1.fq.gz ./mkREF/unpaired/{}.unpairedF.fq.gz ./mkREF/{}.r2.fq.gz ./mkREF/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY HEADCROP:$HEADCROP TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY  &> ./mkREF/logs/{}.trim.log"
 	else 
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkREF/{}.r1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY HEADCROP:$HEADCROP TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY &> ./mkREF/logs/{}.trim.log"
@@ -815,7 +816,8 @@ TrimReads () {
 	if [ ! -d "./mkBAM/logs" ]; then mkdir ./mkBAM/logs &>/dev/null; fi
 
 	if [ -f "${NAMES[1]}".$R.fq.gz ]; then
-		Proc=$((NUMProc/4))
+		THREADS=4
+		Proc=$(($NUMProc/$THREADS))  
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads 4 -phred33 {}.F.fq.gz {}.R.fq.gz ./mkBAM/{}.R1.fq.gz ./mkBAM/unpaired/{}.unpairedF.fq.gz ./mkBAM/{}.R2.fq.gz ./mkBAM/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY HEADCROP:$HEADCROP LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
 	else 
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkBAM/{}.R1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY HEADCROP:$HEADCROP LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
