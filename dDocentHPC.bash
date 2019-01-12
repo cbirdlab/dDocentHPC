@@ -77,7 +77,6 @@ if [ -n "$2" ]; then
 	MAPPING_MIN_ALIGNMENT_SCORE=$(grep 'bwa mem -T Mapping_Minimum_Alignment_Score (integer)' $CONFIG | awk '{print $1;}')
 	MAPPING_CLIPPING_PENALTY=$(grep 'bwa mem -L Mapping_Clipping_Penalty (integer,integer)' $CONFIG | awk '{print $1;}')
 	
-	
 	FILTERMAP="RemoveThisVar"
 	MAPPING_MIN_QUALITY=$(grep 'Mapping_Min_Quality (integer)' $CONFIG | awk '{print $1;}')
 	SAMTOOLS_VIEW_F4=$(grep 'Remove_unmapped_reads? (yes,no)' $CONFIG | awk '{print $1;}')
@@ -151,13 +150,20 @@ if [ -n "$2" ]; then
 	MIN_COVERAGE=$(grep 'freebayes    --min-coverage (integer)' $CONFIG | awk '{print $1;}')
 	MIN_ALT_FRACTION=$(grep 'freebayes -F --min-alternate-fraction' $CONFIG | awk '{print $1;}')
 	
-	MIN_ALT_COUNT=$(grep 'freebayes -C --min-alternate-count' $CONFIG | awk '{print $1;}')
-	MIN_ALT_TOTAL=$(grep 'freebayes -G --min-alternate-total' $CONFIG | awk '{print $1;}')
-	READ_MAX_MISMATCH_FRACTION=$(grep 'freebayes -z --read-max-mismatch-fraction' $CONFIG | awk '{print $1;}')
+	FREEBAYES_z=$(grep 'freebayes -z --read-max-mismatch-fraction' $CONFIG | awk '{print $1;}')
+	FREEBAYES_C=$(grep 'freebayes -C --min-alternate-count' $CONFIG | awk '{print $1;}')
+	FREEBAYES_3=$(grep 'freebayes ~3 ~~min-alternate-qsum' $CONFIG | awk '{print $1;}'); FREEBAYES_3=$((FREEBAYES_3 * FREEBAYES_C))
+	FREEBAYES_G=$(grep 'freebayes -G --min-alternate-total' $CONFIG | awk '{print $1;}')
 	FREEBAYES_Q=$(grep 'freebayes -Q --mismatch-base-quality-threshold' $CONFIG | awk '{print $1;}')
 	FREEBAYES_U=$(grep 'freebayes -U --read-mismatch-limit' $CONFIG | awk '{print $1;}')
-	
-	
+	FREEBAYES_DOLLAR=$(grep 'freebayes -\$ --read-snp-limit' $CONFIG | awk '{print $1;}')
+	FREEBAYES_e=$(grep 'freebayes -e --read-indel-limit' $CONFIG | awk '{print $1;}')
+
+	FREEBAYES_w=$(grep 'freebayes -w --hwe-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_w == "no" ]; then FREEBAYES_w=""; else FREEBAYES_w="-w "; fi
+	FREEBAYES_V=$(grep 'freebayes -V --binomial-obs-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_V == "no" ]; then FREEBAYES_V=""; else FREEBAYES_V="-V "; fi
+	FREEBAYES_a=$(grep 'freebayes -a --allele-balance-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_a == "no" ]; then FREEBAYES_a=""; else FREEBAYES_a="-a "; fi
+	FREEBAYES_no_partial_observations=$(grep 'freebayes --no-partial-observations' $CONFIG | awk '{print $1;}'); if [ ${FREEBAYES_no_partial_observations} == "no" ]; then FREEBAYES_no_partial_observations=""; else FREEBAYES_no_partial_observations="--no-partial-observations "; fi
+
 	
 	
 	MAIL=$(grep -A1 Email $CONFIG | tail -1)
@@ -333,128 +339,143 @@ main(){
 	#This code gets input from the user and assigns variables
 	######################################
 	#RMH added ALL variables
-	echo "";echo " Loading variable values..."
-	echo "  FUNKTION=	${55}"
-	echo "  NUMProc=	$1"
-	echo "  MAXMemory=	$2"
-	echo "  TRIM=	$3"
-	echo "  TRIM_LENGTH_ASSEMBLY=	$4"
-	echo "  SEED_ASSEMBLY=	$5"
-	echo "  PALIMDROME_ASSEMBLY=	$6"
-	echo "  SIMPLE_ASSEMBLY=	$7"
-	echo "  windowSize_ASSEMBLY=	$8"
-	echo "  windowQuality_ASSEMBLY=	$9"
-	echo "  TRAILING_ASSEMBLY=	${10}"
-	echo "  TRIM_LENGTH_MAPPING=	${11}"
-	echo "  LEADING_MAPPING=	${12}"
-	echo "  TRAILING_MAPPING=	${13}"
-	echo "  HEADCROP=	${56}"
-	echo "  FixStacks=	${14}"
-	echo "  ASSEMBLY=	${15}"
-	echo "  ATYPE=	${16}"
-	echo "  simC=	${17}"
-	echo "  HPC=	${18}"
-	echo "  MANCUTOFF=	${19}"
-	echo "  CUTOFF=	${20}"
-	echo "  CUTOFF2=	${21}"
-	echo "  MAP=	${22}"
-	echo "  optA=	${23}"
-	echo "  optB=	${24}"
-	echo "  optO=	${25}"
-	echo "  MAPPING_MIN_ALIGNMENT_SCORE=	${26}"
-	echo "  MAPPING_CLIPPING_PENALTY=	${27}"
+	# echo "";echo " Loading variable values..."
+	# echo "  FUNKTION=	${55}"
+	# echo "  NUMProc=	$1"
+	# echo "  MAXMemory=	$2"
+	# echo "  TRIM=	$3"
+	# echo "  TRIM_LENGTH_ASSEMBLY=	$4"
+	# echo "  SEED_ASSEMBLY=	$5"
+	# echo "  PALIMDROME_ASSEMBLY=	$6"
+	# echo "  SIMPLE_ASSEMBLY=	$7"
+	# echo "  windowSize_ASSEMBLY=	$8"
+	# echo "  windowQuality_ASSEMBLY=	$9"
+	# echo "  TRAILING_ASSEMBLY=	${10}"
+	# echo "  TRIM_LENGTH_MAPPING=	${11}"
+	# echo "  LEADING_MAPPING=	${12}"
+	# echo "  TRAILING_MAPPING=	${13}"
+	# echo "  HEADCROP=	${56}"
+	# echo "  FixStacks=	${14}"
+	# echo "  ASSEMBLY=	${15}"
+	# echo "  ATYPE=	${16}"
+	# echo "  simC=	${17}"
+	# echo "  HPC=	${18}"
+	# echo "  MANCUTOFF=	${19}"
+	# echo "  CUTOFF=	${20}"
+	# echo "  CUTOFF2=	${21}"
+	# echo "  MAP=	${22}"
+	# echo "  optA=	${23}"
+	# echo "  optB=	${24}"
+	# echo "  optO=	${25}"
+	# echo "  MAPPING_MIN_ALIGNMENT_SCORE=	${26}"
+	# echo "  MAPPING_CLIPPING_PENALTY=	${27}"
 	
-	echo "  FILTERMAP=	${45}"
+	# echo "  FILTERMAP=	${45}"
 	
-	echo "  MAPPING_MIN_QUALITY=	${28}"
+	# echo "  MAPPING_MIN_QUALITY=	${28}"
 	
-	echo "  SAMTOOLS_VIEW_f=	${46}"
+	# echo "  SAMTOOLS_VIEW_f=	${46}"
 	
-	echo "  SAMTOOLS_VIEW_F=	${29}"
+	# echo "  SAMTOOLS_VIEW_F=	${29}"
 	
-	echo "  SAMTOOLS_VIEW_Fcustom=	${47}"
-	echo "  SAMTOOLS_VIEW_fcustom=	${48}"
-	echo "  SOFT_CLIP_CUTOFF=	${49}"
-	echo "  FILTER_MIN_AS=	${52}"
-	echo "  FILTER_ORPHANS=	${50}"
+	# echo "  SAMTOOLS_VIEW_Fcustom=	${47}"
+	# echo "  SAMTOOLS_VIEW_fcustom=	${48}"
+	# echo "  SOFT_CLIP_CUTOFF=	${49}"
+	# echo "  FILTER_MIN_AS=	${52}"
+	# echo "  FILTER_ORPHANS=	${50}"
 	
-	echo "  SNP=	${30}"
-	echo "  POOLS=	${31}"
-	echo "  POOL_PLOIDY_FILE=	${32}"
-	echo "  PLOIDY=	${33}"
-	echo "  BEST_N_ALLELES=	${34}"
-	echo "  MIN_MAPPING_QUAL=	${35}"
-	echo "  MIN_BASE_QUAL=	${36}"
-	echo "  HAPLOTYPE_LENGTH=	${37}"
-	echo "  MIN_REPEAT_ENTROPY=	${38}"
-	echo "  MIN_COVERAGE=	${39}"
-	echo "  MIN_ALT_FRACTION=	${40}"
-	echo "  MIN_ALT_COUNT=	${41}"
-	echo "  MIN_ALT_TOTAL=	${42}"
-	echo "  READ_MAX_MISMATCH_FRACTION=	${43}"
-	echo "  FREEBAYES_Q=	${53}"
-	echo "  FREEBAYES_U=	${54}"
-	echo "  MAIL=	${44}"
-	echo "  BEDTOOLSFLAG=	${51}"
+	# echo "  SNP=	${30}"
+	# echo "  POOLS=	${31}"
+	# echo "  POOL_PLOIDY_FILE=	${32}"
+	# echo "  PLOIDY=	${33}"
+	# echo "  BEST_N_ALLELES=	${34}"
+	# echo "  MIN_MAPPING_QUAL=	${35}"
+	# echo "  MIN_BASE_QUAL=	${36}"
+	# echo "  HAPLOTYPE_LENGTH=	${37}"
+	# echo "  MIN_REPEAT_ENTROPY=	${38}"
+	# echo "  MIN_COVERAGE=	${39}"
+	# echo "  MIN_ALT_FRACTION=	${40}"
+	# echo "  FREEBAYES_C=	${41}"
+	# echo "  FREEBAYES_G=	${42}"
+	# echo "  FREEBAYES_z=	${43}"
+	# echo "  FREEBAYES_Q=	${53}"
+	# echo "  FREEBAYES_U=	${54}"
+	
+	# echo "		freebayes -3 $FREEBAYES_3"
+	# echo "		freebayes -\$ $FREEBAYES_DOLLAR"
+	# echo "		freebayes -e $FREEBAYES_e"
+
+	# if [[ $FREEBAYES_w != "" ]]; then echo "		freebayes ${FREEBAYES_w}"; fi
+	# if [[ $FREEBAYES_V != "" ]]; then echo "		freebayes ${FREEBAYES_V}"; fi
+	# if [[ $FREEBAYES_a != "" ]]; then echo "		freebayes ${FREEBAYES_a}"; fi
+	# if [[ $FREEBAYES_no_partial_observations != "" ]]; then echo "		freebayes ${FREEBAYES_no_partial_observations}"; fi
+	
+	
+	
+	# echo "  MAIL=	${44}"
+	# echo "  BEDTOOLSFLAG=	${51}"
+	
+	
+	
 	
 	#Load config arguments into variables
 	# RMH added ALL variables
-	FUNKTION=${55}
-	NUMProc=$1
-	MAXMemory=$2
-	TRIM=$3
-	TRIM_LENGTH_ASSEMBLY=$4
-	SEED_ASSEMBLY=$5
-	PALIMDROME_ASSEMBLY=$6
-	SIMPLE_ASSEMBLY=$7
-	windowSize_ASSEMBLY=$8
-	windowQuality_ASSEMBLY=$9
-	TRAILING_ASSEMBLY=${10}
-	TRIM_LENGTH_MAPPING=${11}
-	LEADING_MAPPING=${12}
-	TRAILING_MAPPING=${13}
-	HEADCROP=${56}
-	FixStacks=${14}
-	ASSEMBLY=${15}
-	ATYPE=${16}
-	simC=${17}
-	HPC=${18}
-	MANCUTOFF=${19}
-	CUTOFF=${20}
-	CUTOFF2=${21}
-	MAP=${22}
-	optA=${23}
-	optB=${24}
-	optO=${25}
-	MAPPING_MIN_ALIGNMENT_SCORE=${26}
-	MAPPING_CLIPPING_PENALTY=${27}
-	FILTERMAP=${45}
-	MAPPING_MIN_QUALITY=${28}
-	SAMTOOLS_VIEW_f=${46}
-	SAMTOOLS_VIEW_F=${29}
-	SAMTOOLS_VIEW_Fcustom=${47}
-	SAMTOOLS_VIEW_fcustom=${48}
-	SOFT_CLIP_CUTOFF=${49}
-	FILTER_MIN_AS=${52}
-	FILTER_ORPHANS=${50}
-	SNP=${30}
-	POOLS=${31}
-	POOL_PLOIDY_FILE=${32}
-	PLOIDY=${33}
-	BEST_N_ALLELES=${34}
-	MIN_MAPPING_QUAL=${35}
-	MIN_BASE_QUAL=${36}
-	HAPLOTYPE_LENGTH=${37}
-	MIN_REPEAT_ENTROPY=${38}
-	MIN_COVERAGE=${39}
-	MIN_ALT_FRACTION=${40}
-	MIN_ALT_COUNT=${41}
-	MIN_ALT_TOTAL=${42}
-	READ_MAX_MISMATCH_FRACTION=${43}
-	FREEBAYES_Q=${53}
-	FREEBAYES_U=${54}
-	MAIL=${44}
-	BEDTOOLSFLAG=${51}
+	# FUNKTION=${55}
+	# NUMProc=$1
+	# MAXMemory=$2
+	# TRIM=$3
+	# TRIM_LENGTH_ASSEMBLY=$4
+	# SEED_ASSEMBLY=$5
+	# PALIMDROME_ASSEMBLY=$6
+	# SIMPLE_ASSEMBLY=$7
+	# windowSize_ASSEMBLY=$8
+	# windowQuality_ASSEMBLY=$9
+	# TRAILING_ASSEMBLY=${10}
+	# TRIM_LENGTH_MAPPING=${11}
+	# LEADING_MAPPING=${12}
+	# TRAILING_MAPPING=${13}
+	# HEADCROP=${56}
+	# FixStacks=${14}
+	# ASSEMBLY=${15}
+	# ATYPE=${16}
+	# simC=${17}
+	# HPC=${18}
+	# MANCUTOFF=${19}
+	# CUTOFF=${20}
+	# CUTOFF2=${21}
+	# MAP=${22}
+	# optA=${23}
+	# optB=${24}
+	# optO=${25}
+	# MAPPING_MIN_ALIGNMENT_SCORE=${26}
+	# MAPPING_CLIPPING_PENALTY=${27}
+	# FILTERMAP=${45}
+	# MAPPING_MIN_QUALITY=${28}
+	# SAMTOOLS_VIEW_f=${46}
+	# SAMTOOLS_VIEW_F=${29}
+	# SAMTOOLS_VIEW_Fcustom=${47}
+	# SAMTOOLS_VIEW_fcustom=${48}
+	# SOFT_CLIP_CUTOFF=${49}
+	# FILTER_MIN_AS=${52}
+	# FILTER_ORPHANS=${50}
+	# SNP=${30}
+	# POOLS=${31}
+	# POOL_PLOIDY_FILE=${32}
+	# PLOIDY=${33}
+	# BEST_N_ALLELES=${34}
+	# MIN_MAPPING_QUAL=${35}
+	# MIN_BASE_QUAL=${36}
+	# HAPLOTYPE_LENGTH=${37}
+	# MIN_REPEAT_ENTROPY=${38}
+	# MIN_COVERAGE=${39}
+	# MIN_ALT_FRACTION=${40}
+	# FREEBAYES_C=${41}
+	# FREEBAYES_G=${42}
+	# FREEBAYES_z=${43}
+	# FREEBAYES_Q=${53}
+	# FREEBAYES_U=${54}
+	# MAIL=${44}
+	# BEDTOOLSFLAG=${51}
 
 	CUTOFFS=$CUTOFF.$CUTOFF2
 	
@@ -565,8 +586,8 @@ main(){
 #	if [ "$TRIM" == "yes" ]; then
 	if [ "$FUNKTION" == "trimFQ" ]; then
 		echo " ";echo " "`date` "Trimming reads " 
-		TrimReadsRef $NUMProc $R $CONFIG #& 2> ./mkREF/trimref.log
-		TrimReads $NUMProc $R $CONFIG #& 2> ./mkBAM/trim.log
+		TrimReadsRef #$NUMProc $R $CONFIG #& 2> ./mkREF/trimref.log
+		TrimReads #$NUMProc $R $CONFIG #& 2> ./mkBAM/trim.log
 	fi
 
 #	elif [ "$ASSEMBLY" == "yes" ]; then
@@ -576,17 +597,17 @@ main(){
 
 #	elif [ "$MAP" == "yes" ]; then
 	if [ "$FUNKTION" == "mkBAM" ]; then
-		MAP2REF $CUTOFF.$CUTOFF2 $NUMProc $CONFIG $ATYPE $Rsed NAMES
+		MAP2REF #$CUTOFF.$CUTOFF2 $NUMProc $CONFIG $ATYPE $Rsed NAMES
 	fi
 
 #	elif [ "$FILTERMAP" == "yes" ]; then
 	if [ "$FUNKTION" == "fltrBAM" ]; then
-		FILTERBAM $CUTOFFS $NUMProc $CONFIG $ATYPE
+		FILTERBAM #$CUTOFFS $NUMProc $CONFIG $ATYPE
 	fi
 	
 #	elif [ "$SNP" == "yes" ]; then
 	if [ "$FUNKTION" == "mkVCF" ]; then
-		GENOTYPE $CUTOFFS $NUMProc $CONFIG
+		GENOTYPE #$CUTOFFS $NUMProc $CONFIG
 	fi
 
 	##Checking for possible errors
@@ -615,7 +636,7 @@ main(){
 	#fi
 
 
-	#Creates (or appends to) a dDcoent run file recording variables
+	#Creates (or appends to) a dDocent run file recording variables
 	#RMH added ALL variables
 	echo "Variables used in dDocent Run at" $STARTTIME >> dDocent.runs
 	echo "Number of Processors" >> dDocent.runs
@@ -648,7 +669,7 @@ main(){
 	echo $HEADCROP >> dDocent.runs
 	echo "FixStacks" >> dDocent.runs
 	echo $FixStacks >> dDocent.runs
-	echo "Assembly?" >> dDocent.runs
+	# echo "Assembly?" >> dDocent.runs
 #	echo $ASSEMBLY >> dDocent.runs
 	echo "Type_of_Assembly" >> dDocent.runs
 	echo $ATYPE >> dDocent.runs
@@ -662,7 +683,7 @@ main(){
 	echo $CUTOFF >> dDocent.runs
 	echo "CUTOFF2" >> dDocent.runs 
 	echo $CUTOFF2 >> dDocent.runs
-	echo "Mapping_Reads?" >> dDocent.runs
+	# echo "Mapping_Reads?" >> dDocent.runs
 #	echo $MAP >> dDocent.runs
 	echo "Mapping_Match_Value" >> dDocent.runs
 	echo $optA >> dDocent.runs
@@ -678,7 +699,7 @@ main(){
 	echo $MAPPING_MIN_QUALITY >> dDocent.runs
 	echo "SAMTOOLS_VIEW_F" >> dDocent.runs
 	echo $SAMTOOLS_VIEW_F >> dDocent.runs
-	echo "Calling_SNPs?" >> dDocent.runs
+	# echo "Calling_SNPs?" >> dDocent.runs
 #	echo $SNP >> dDocent.runs
 	echo "POOLS" >> dDocent.runs
 	echo $POOLS >> dDocent.runs
@@ -700,12 +721,12 @@ main(){
 	echo $MIN_COVERAGE >> dDocent.runs
 	echo "MIN_ALT_FRACTION" >> dDocent.runs
 	echo $MIN_ALT_FRACTION >> dDocent.runs
-	echo "MIN_ALT_COUNT" >> dDocent.runs
-	echo $MIN_ALT_COUNT >> dDocent.runs
-	echo "MIN_ALT_TOTAL" >> dDocent.runs
-	echo $MIN_ALT_TOTAL >> dDocent.runs
-	echo "READ_MAX_MISMATCH_FRACTION" >> dDocent.runs
-	echo $READ_MAX_MISMATCH_FRACTION >> dDocent.runs
+	echo "FREEBAYES_C" >> dDocent.runs
+	echo $FREEBAYES_C >> dDocent.runs
+	echo "FREEBAYES_G" >> dDocent.runs
+	echo $FREEBAYES_G >> dDocent.runs
+	echo "FREEBAYES_z" >> dDocent.runs
+	echo $FREEBAYES_z >> dDocent.runs
 	echo "Email" >> dDocent.runs
 	echo $MAIL >> dDocent.runs
 
@@ -756,33 +777,28 @@ FIXSTACKS () {
 }
 
 
-
 ##############################################################################################
 #Function for trimming reads using trimmomatic
 ###############################################################################################
 
 TrimReadsRef () { 
-	NUMProc=$1
-	R=$2
-	CONFIG=$3
+	# NUMProc=$1
+	# R=$2
+	# CONFIG=$3
 	echo " "
 	echo `date` "Trimming reads for reference genome"
 
 	TRIMMOMATIC=$(find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null | head -1)
 	ADAPTERS=$(find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | head -1)
 
-	TRIM_LENGTH_ASSEMBLY=$(grep 'trimmomatic MINLEN (integer, mkREF only)' $CONFIG | awk '{print $1;}')
-	SEED_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<seed mismatches> (integer)' $CONFIG | awk '{print $1;}')
-	PALIMDROME_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<palindrome clip thresh> (integer)' $CONFIG | awk '{print $1;}')
-	SIMPLE_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)' $CONFIG | awk '{print $1;}')
-	windowSize_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowSize> (integer)' $CONFIG | awk '{print $1;}')
-	windowQuality_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
-	#TRAILING_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
-	TRAILING_ASSEMBLY=$(grep 'trimmomatic TRAILING:<quality> (integer, mkREF only)' $CONFIG | awk '{print $1;}')
-	# TRIM_LENGTH_MAPPING=$(grep 'trimmomatic MINLEN (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
-	# LEADING_MAPPING=$(grep 'trimmomatic LEADING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
-	# TRAILING_MAPPING=$(grep 'trimmomatic TRAILING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
-	HEADCROP=$(grep 'HEADCROP:<length> (integer, only Read1 for ezRAD)' $CONFIG | awk '{print $1;}')
+	# TRIM_LENGTH_ASSEMBLY=$(grep 'trimmomatic MINLEN (integer, mkREF only)' $CONFIG | awk '{print $1;}')
+	# SEED_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<seed mismatches> (integer)' $CONFIG | awk '{print $1;}')
+	# PALIMDROME_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<palindrome clip thresh> (integer)' $CONFIG | awk '{print $1;}')
+	# SIMPLE_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)' $CONFIG | awk '{print $1;}')
+	# windowSize_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowSize> (integer)' $CONFIG | awk '{print $1;}')
+	# windowQuality_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
+	# TRAILING_ASSEMBLY=$(grep 'trimmomatic TRAILING:<quality> (integer, mkREF only)' $CONFIG | awk '{print $1;}')
+	# HEADCROP=$(grep 'HEADCROP:<length> (integer, only Read1 for ezRAD)' $CONFIG | awk '{print $1;}')
 
 	
 	echo "TRIMMOMATIC=	$TRIMMOMATIC"
@@ -828,8 +844,8 @@ TrimReadsRef () {
 ###############################################################################################
 
 TrimReads () { 
-	NUMProc=$1
-	R=$2
+	# NUMProc=$1
+	# R=$2
 	
 	echo " "
 	echo; echo `date` "Trimming reads for mapping"
@@ -837,18 +853,17 @@ TrimReads () {
 	TRIMMOMATIC=$(find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null | head -1)
 	ADAPTERS=$(find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | head -1)
 
-	TRIM_LENGTH_ASSEMBLY=$(grep 'trimmomatic MINLEN (integer, mkREF only)' $CONFIG | awk '{print $1;}')
-	SEED_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<seed mismatches> (integer)' $CONFIG | awk '{print $1;}')
-	PALIMDROME_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<palindrome clip thresh> (integer)' $CONFIG | awk '{print $1;}')
-	SIMPLE_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)' $CONFIG | awk '{print $1;}')
-	windowSize_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowSize> (integer)' $CONFIG | awk '{print $1;}')
-	windowQuality_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
-	#TRAILING_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
-	TRAILING_ASSEMBLY=$(grep 'trimmomatic TRAILING:<quality> (integer, mkREF only)' $CONFIG | awk '{print $1;}')
-	TRIM_LENGTH_MAPPING=$(grep 'trimmomatic MINLEN (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
-	LEADING_MAPPING=$(grep 'trimmomatic LEADING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
-	TRAILING_MAPPING=$(grep 'trimmomatic TRAILING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
-	HEADCROP=$(grep 'HEADCROP:<length> (integer, only Read1 for ezRAD)' $CONFIG | awk '{print $1;}')
+	# TRIM_LENGTH_ASSEMBLY=$(grep 'trimmomatic MINLEN (integer, mkREF only)' $CONFIG | awk '{print $1;}')
+	# SEED_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<seed mismatches> (integer)' $CONFIG | awk '{print $1;}')
+	# PALIMDROME_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<palindrome clip thresh> (integer)' $CONFIG | awk '{print $1;}')
+	# SIMPLE_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)' $CONFIG | awk '{print $1;}')
+	# windowSize_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowSize> (integer)' $CONFIG | awk '{print $1;}')
+	# windowQuality_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
+	# TRAILING_ASSEMBLY=$(grep 'trimmomatic TRAILING:<quality> (integer, mkREF only)' $CONFIG | awk '{print $1;}')
+	# TRIM_LENGTH_MAPPING=$(grep 'trimmomatic MINLEN (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
+	# LEADING_MAPPING=$(grep 'trimmomatic LEADING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
+	# TRAILING_MAPPING=$(grep 'trimmomatic TRAILING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
+	# HEADCROP=$(grep 'HEADCROP:<length> (integer, only Read1 for ezRAD)' $CONFIG | awk '{print $1;}')
 
 	
 	if [ ! -d "mkBAM" ]; then mkdir mkBAM &>/dev/null; fi
@@ -889,24 +904,21 @@ Assemble(){
 	# names=$8[@]
 	# NAMES=("${!names}")
 
-	echo $Fwild
-	echo $Rwild
-
-	ATYPE=$(grep 'Type of reads for assembly (PE, SE, OL, RPE)' $CONFIG | awk '{print $1;}')
-	simC=$(grep 'cdhit Clustering_Similarity_Pct (0-1)' $CONFIG | awk '{print $1;}')
-	HPC=$(grep 'Get graphs for cutoffs, then stop? (yes or no)' $CONFIG | awk '{print $1;}')
-	MANCUTOFF=$(grep 'Manually set cutoffs? (yes or no)' $CONFIG | awk '{print $1;}')
-	if [ "$MANCUTOFF" = "no" ]; then
-		CUTOFF=$(grep 'Cutoff1 (integer)' $CONFIG | awk '{print $1;}')
-		CUTOFF2=$(grep 'Cutoff2 (integer)' $CONFIG | awk '{print $1;}')
-		#echo ""; echo `date` " CUTOFF=" $CUTOFF
-		#echo ""; echo `date` " CUTOFF2=" $CUTOFF2
-	else
-		echo ""; echo `date` " ERROR: This is the HPC version of dDocent.  Manual cutoffs are not possible.  Please change config file settings."
-		echo "  Aborting dDocentHPC"
-		exit
-	fi
-	CUTOFFS=$CUTOFF.$CUTOFF2
+	# ATYPE=$(grep 'Type of reads for assembly (PE, SE, OL, RPE)' $CONFIG | awk '{print $1;}')
+	# simC=$(grep 'cdhit Clustering_Similarity_Pct (0-1)' $CONFIG | awk '{print $1;}')
+	# HPC=$(grep 'Get graphs for cutoffs, then stop? (yes or no)' $CONFIG | awk '{print $1;}')
+	# MANCUTOFF=$(grep 'Manually set cutoffs? (yes or no)' $CONFIG | awk '{print $1;}')
+	# if [ "$MANCUTOFF" = "no" ]; then
+		# CUTOFF=$(grep 'Cutoff1 (integer)' $CONFIG | awk '{print $1;}')
+		# CUTOFF2=$(grep 'Cutoff2 (integer)' $CONFIG | awk '{print $1;}')
+		# #echo ""; echo `date` " CUTOFF=" $CUTOFF
+		# #echo ""; echo `date` " CUTOFF2=" $CUTOFF2
+	# else
+		# echo ""; echo `date` " ERROR: This is the HPC version of dDocent.  Manual cutoffs are not possible.  Please change config file settings."
+		# echo "  Aborting dDocentHPC"
+		# exit
+	# fi
+	# CUTOFFS=$CUTOFF.$CUTOFF2
 
 
 	AWK1='BEGIN{P=1}{if(P==1||P==2){gsub(/^[@]/,">");print}; if(P==4)P=0; P++}'
@@ -1311,20 +1323,21 @@ EOF
 
 MAP2REF(){
 
-	CUTOFFS=$1
-	NUMProc=$2
-	CONFIG=$3
-	ATYPE=$4
-	Rsed=$5
-	names=$6[@]
-	NAMES=("${!names}")
+	# CUTOFFS=$1
+	# NUMProc=$2
+	# CONFIG=$3
+	# ATYPE=$4
+	# Rsed=$5
+	# names=$6[@]
+	# NAMES=("${!names}")
 
-	optA=$(grep -A1 _Match $CONFIG | tail -1)
-	optB=$(grep -A1 MisMatch $CONFIG | tail -1)
-	optO=$(grep -A1 Gap $CONFIG | tail -1)
-	MAPPING_MIN_ALIGNMENT_SCORE=$(grep -A1 '^Mapping_Minimum_Alignment_Score' $CONFIG | tail -1)
-	MAPPING_CLIPPING_PENALTY=$(grep -A1 '^Mapping_Clipping_Penalty' $CONFIG | tail -1)
+	# optA=$(grep 'bwa mem -A Mapping_Match_Value (integer)' $CONFIG | awk '{print $1;}')
+	# optB=$(grep 'bwa mem -B Mapping_MisMatch_Value (integer)' $CONFIG | awk '{print $1;}')
+	# optO=$(grep 'bwa mem -O Mapping_GapOpen_Penalty (integer)' $CONFIG | awk '{print $1;}')
+	# MAPPING_MIN_ALIGNMENT_SCORE=$(grep 'bwa mem -T Mapping_Minimum_Alignment_Score (integer)' $CONFIG | awk '{print $1;}')
+	# MAPPING_CLIPPING_PENALTY=$(grep 'bwa mem -L Mapping_Clipping_Penalty (integer,integer)' $CONFIG | awk '{print $1;}')
 
+	
 	echo " ";echo `date` " Using BWA to map reads."
 	if [ reference.$CUTOFFS.fasta -nt reference.$CUTOFFS.fasta.fai ]; then
 		samtools faidx reference.$CUTOFFS.fasta
@@ -1405,69 +1418,69 @@ MAP2REF(){
 ###############################################################################################
 
 function FILTERBAM(){
-	CUTOFFS=$1
-	NUMProc=$2
-	CONFIG=$3
-	ATYPE=$4
+	# CUTOFFS=$1
+	# NUMProc=$2
+	# CONFIG=$3
+	# ATYPE=$4
 
-	MAPPING_MIN_QUALITY=$(grep -A1 '^Mapping_Min_Quality' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_F4=$(grep -A1 '^Remove_unmapped_reads' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_F8=$(grep -A1 '^Remove_read_pair_if_one_is_unmapped' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_F256=$(grep -A1 '^Remove_secondary_alignments' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_F512=$(grep -A1 '^Remove_reads_not_passing_platform_vendor_filters' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_F1024=$(grep -A1 '^Remove_PCR_or_optical_duplicates' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_F2048=$(grep -A1 '^Remove_supplementary_alignments' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_f2=$(grep -A1 '^Keep_only_properly_aligned_read_pairs' $CONFIG | tail -1)
-	if [ "$SAMTOOLS_VIEW_F4" == "yes" ]; then
-		F4=4
-	else
-		F4=0
-	fi
+	# MAPPING_MIN_QUALITY=$(grep -A1 '^Mapping_Min_Quality' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_F4=$(grep -A1 '^Remove_unmapped_reads' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_F8=$(grep -A1 '^Remove_read_pair_if_one_is_unmapped' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_F256=$(grep -A1 '^Remove_secondary_alignments' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_F512=$(grep -A1 '^Remove_reads_not_passing_platform_vendor_filters' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_F1024=$(grep -A1 '^Remove_PCR_or_optical_duplicates' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_F2048=$(grep -A1 '^Remove_supplementary_alignments' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_f2=$(grep -A1 '^Keep_only_properly_aligned_read_pairs' $CONFIG | tail -1)
+	# if [ "$SAMTOOLS_VIEW_F4" == "yes" ]; then
+		# F4=4
+	# else
+		# F4=0
+	# fi
 	
-	if [ "$SAMTOOLS_VIEW_F8" == "yes" ]; then
-		F8=8
-	else
-		F8=0
-	fi
+	# if [ "$SAMTOOLS_VIEW_F8" == "yes" ]; then
+		# F8=8
+	# else
+		# F8=0
+	# fi
 	
-	if [ "$SAMTOOLS_VIEW_F256" == "yes" ]; then
-		F256=256
-	else
-		F256=0
-	fi
+	# if [ "$SAMTOOLS_VIEW_F256" == "yes" ]; then
+		# F256=256
+	# else
+		# F256=0
+	# fi
 	
-	if [ "$SAMTOOLS_VIEW_F512" == "yes" ]; then
-		F512=512
-	else
-		F512=0
-	fi
+	# if [ "$SAMTOOLS_VIEW_F512" == "yes" ]; then
+		# F512=512
+	# else
+		# F512=0
+	# fi
 	
-	if [ "$SAMTOOLS_VIEW_F1024" == "yes" ]; then
-		F1024=1024
-	else
-		F1024=0
-	fi
+	# if [ "$SAMTOOLS_VIEW_F1024" == "yes" ]; then
+		# F1024=1024
+	# else
+		# F1024=0
+	# fi
 
-	if [ "$SAMTOOLS_VIEW_F2048" == "yes" ]; then
-		F2048=2048
-	else
-		F2048=0
-	fi
+	# if [ "$SAMTOOLS_VIEW_F2048" == "yes" ]; then
+		# F2048=2048
+	# else
+		# F2048=0
+	# fi
 	
-	SAMTOOLS_VIEW_F=$(($F4+$F8+$F256+$F512+$F1024+$F2048)) 
+	# SAMTOOLS_VIEW_F=$(($F4+$F8+$F256+$F512+$F1024+$F2048)) 
 	
-	if [ "$SAMTOOLS_VIEW_f2" == "yes" ]; then
-		SAMTOOLS_VIEW_f=2
-	else
-		SAMTOOLS_VIEW_f=0
-	fi
+	# if [ "$SAMTOOLS_VIEW_f2" == "yes" ]; then
+		# SAMTOOLS_VIEW_f=2
+	# else
+		# SAMTOOLS_VIEW_f=0
+	# fi
 	
-	SAMTOOLS_VIEW_Fcustom=$(grep -A1 '^Custom_samtools_view_F_bit_value' $CONFIG | tail -1)
-	SAMTOOLS_VIEW_fcustom=$(grep -A1 '^Custom_samtools_view_f_bit_value' $CONFIG | tail -1)
-	SOFT_CLIP_CUT=$(grep -A1 '^Remove_reads_with_excessive_soft_clipping' $CONFIG | tail -1)
-	SOFT_CLIP_CUTOFF=$((($SOFT_CLIP_CUT+9)/10))
-	FILTER_MIN_AS=$(grep -A1 '^Remove_reads_with_alignment_score_below' $CONFIG | tail -1)
-	FILTER_ORPHANS=$(grep -A1 '^Remove_reads_orphaned_by_filters' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_Fcustom=$(grep -A1 '^Custom_samtools_view_F_bit_value' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_fcustom=$(grep -A1 '^Custom_samtools_view_f_bit_value' $CONFIG | tail -1)
+	# SOFT_CLIP_CUT=$(grep -A1 '^Remove_reads_with_excessive_soft_clipping' $CONFIG | tail -1)
+	# SOFT_CLIP_CUTOFF=$((($SOFT_CLIP_CUT+9)/10))
+	# FILTER_MIN_AS=$(grep -A1 '^Remove_reads_with_alignment_score_below' $CONFIG | tail -1)
+	# FILTER_ORPHANS=$(grep -A1 '^Remove_reads_orphaned_by_filters' $CONFIG | tail -1)
 
 	echo "";echo " "`date` "Filtering raw BAM Files"
 	if [ "$ATYPE" == "PE" ]; then 	#paired end alignments
@@ -1505,7 +1518,7 @@ function FILTERBAM(){
 				export -f SoftClipOrphanFilter
 				
 				echo "";echo "  "`date` " Applying Filter 2: removing excessively soft clipped reads (and their mates)"
-				echo "   "`date` " SOFT_CLIP_CUTOFF is $SOFT_CLIP_CUTOFF * 10"
+				echo "";echo "   "`date` " SOFT_CLIP_CUTOFF is $SOFT_CLIP_CUTOFF * 10"
 				ls *$CUTOFFS-RG.bam | parallel --no-notice -j $NUMProc "SoftClipOrphanFilter {} $SOFT_CLIP_CUTOFF $FILTER_ORPHANS reference.$CUTOFFS.fasta $FILTER_MIN_AS"
 			fi
 		
@@ -1528,85 +1541,65 @@ function FILTERBAM(){
 
 function GENOTYPE(){
 	echo ""; echo `date` "Genotyping initiated..."	
-	CUTOFFS=$1
-	NUMProc=$2
-	CONFIG=$3
+	# CUTOFFS=$1
+	# NUMProc=$2
+	# CONFIG=$3
 
-	POOLS=$(grep 'freebayes -J --pooled-discrete (yes or no)' $CONFIG | awk '{print $1;}')
-	POOL_PLOIDY_FILE=$(grep 'freebayes -A --cnv-map (filename.bed or no)' $CONFIG | awk '{print $1;}')
-	PLOIDY=$(grep 'freebayes -p --ploidy (integer)' $CONFIG | awk '{print $1;}')
-	BEST_N_ALLELES=$(grep 'freebayes -n --use-best-n-alleles (integer)' $CONFIG | awk '{print $1;}')
-	MIN_MAPPING_QUAL=$(grep 'freebayes -m --min-mapping-quality (integer)' $CONFIG | awk '{print $1;}')
-	MIN_BASE_QUAL=$(grep 'freebayes -q --min-base-quality (integer)' $CONFIG | awk '{print $1;}')
-	HAPLOTYPE_LENGTH=$(grep 'freebayes -E --haplotype-length (-1, 3, or integer)' $CONFIG | awk '{print $1;}')
-	MIN_REPEAT_ENTROPY=$(grep 'freebayes    --min-repeat-entropy (0, 1, or integer)' $CONFIG | awk '{print $1;}')
-	MIN_COVERAGE=$(grep 'freebayes    --min-coverage (integer)' $CONFIG | awk '{print $1;}')
-	MIN_ALT_FRACTION=$(grep 'freebayes -F --min-alternate-fraction' $CONFIG | awk '{print $1;}')
-	MIN_ALT_COUNT=$(grep 'freebayes -C --min-alternate-count' $CONFIG | awk '{print $1;}')
-	MIN_ALT_TOTAL=$(grep 'freebayes -G --min-alternate-total' $CONFIG | awk '{print $1;}')
-	READ_MAX_MISMATCH_FRACTION=$(grep 'freebayes -z --read-max-mismatch-fraction' $CONFIG | awk '{print $1;}')
+	# POOLS=$(grep 'freebayes -J --pooled-discrete (yes or no)' $CONFIG | awk '{print $1;}')
+	# POOL_PLOIDY_FILE=$(grep 'freebayes -A --cnv-map (filename.bed or no)' $CONFIG | awk '{print $1;}')
+	# PLOIDY=$(grep 'freebayes -p --ploidy (integer)' $CONFIG | awk '{print $1;}')
+	# BEST_N_ALLELES=$(grep 'freebayes -n --use-best-n-alleles (integer)' $CONFIG | awk '{print $1;}')
+	# MIN_MAPPING_QUAL=$(grep 'freebayes -m --min-mapping-quality (integer)' $CONFIG | awk '{print $1;}')
+	# MIN_BASE_QUAL=$(grep 'freebayes -q --min-base-quality (integer)' $CONFIG | awk '{print $1;}')
+	# HAPLOTYPE_LENGTH=$(grep 'freebayes -E --haplotype-length (-1, 3, or integer)' $CONFIG | awk '{print $1;}')
+	# MIN_REPEAT_ENTROPY=$(grep 'freebayes    --min-repeat-entropy (0, 1, or integer)' $CONFIG | awk '{print $1;}')
+	# MIN_COVERAGE=$(grep 'freebayes    --min-coverage (integer)' $CONFIG | awk '{print $1;}')
+	# MIN_ALT_FRACTION=$(grep 'freebayes -F --min-alternate-fraction' $CONFIG | awk '{print $1;}')
 	
-	# POOLS=$(grep -A1 'Is the data pooled' $CONFIG | tail -1)
-	# POOL_PLOIDY_FILE=$(grep -A1 '^If the data is pooled, will you provide a copy number variation' $CONFIG | tail -1)
-	# PLOIDY=$(grep -A1 '^If no cnv file is provided, then what is the ploidy of the samples' $CONFIG | tail -1)
-	# BEST_N_ALLELES=$(grep -A1 '^Use_Best_N_Alleles' $CONFIG | tail -1)
-	# MIN_MAPPING_QUAL=$(grep -A1 '^Minimum_Mapping_Quality' $CONFIG | tail -1)
-	# MIN_BASE_QUAL=$(grep -A1 '^Minimum_Base_Quality' $CONFIG | tail -1)
-	# HAPLOTYPE_LENGTH=$(grep -A1 '^Haplotype_Length' $CONFIG | tail -1)
-	# MIN_REPEAT_ENTROPY=$(grep -A1 '^Min_Repeat_Entropy' $CONFIG | tail -1)
-	# MIN_COVERAGE=$(grep -A1 '^Min_Coverage' $CONFIG | tail -1)
-	# MIN_ALT_FRACTION=$(grep -A1 '^Min_Alternate_Fraction' $CONFIG | tail -1)
-	#MIN_ALT_COUNT=$(grep -A1 '^Min_Alternate_Count' $CONFIG | tail -1)
-	#MIN_ALT_TOTAL=$(grep -A1 '^Min_Alternate_Total' $CONFIG | tail -1)
-	#READ_MAX_MISMATCH_FRACTION=$(grep -A1 '^Read_Max_Mismatch_Fraction' $CONFIG | tail -1)
+	# FREEBAYES_z=$(grep 'freebayes -z --read-max-mismatch-fraction' $CONFIG | awk '{print $1;}')
+	# FREEBAYES_C=$(grep 'freebayes -C --min-alternate-count' $CONFIG | awk '{print $1;}')
+	# FREEBAYES_3=$(grep 'freebayes ~3 ~~min-alternate-qsum' $CONFIG | awk '{print $1;}'); FREEBAYES_3=$((FREEBAYES_3 * FREEBAYES_C))
+	# FREEBAYES_G=$(grep 'freebayes -G --min-alternate-total' $CONFIG | awk '{print $1;}')
+	# FREEBAYES_Q=$(grep 'freebayes -Q --mismatch-base-quality-threshold' $CONFIG | awk '{print $1;}')
+	# FREEBAYES_U=$(grep 'freebayes -U --read-mismatch-limit' $CONFIG | awk '{print $1;}')
+	# FREEBAYES_DOLLAR=$(grep 'freebayes -\$ --read-snp-limit' $CONFIG | awk '{print $1;}')
+	# FREEBAYES_e=$(grep 'freebayes -e --read-indel-limit' $CONFIG | awk '{print $1;}')
 
-	FREEBAYES_z=$(grep 'freebayes -z --read-max-mismatch-fraction' $CONFIG | awk '{print $1;}')
-	FREEBAYES_C=$(grep 'freebayes -C --min-alternate-count' $CONFIG | awk '{print $1;}')
-	FREEBAYES_3=$(grep 'freebayes ~3 ~~min-alternate-qsum' $CONFIG | awk '{print $1;}'); FREEBAYES_3=$((FREEBAYES_3 * FREEBAYES_C))
-	FREEBAYES_G=$(grep 'freebayes -G --min-alternate-total' $CONFIG | awk '{print $1;}')
-	FREEBAYES_Q=$(grep 'freebayes -Q --mismatch-base-quality-threshold' $CONFIG | awk '{print $1;}')
-	FREEBAYES_U=$(grep 'freebayes -U --read-mismatch-limit' $CONFIG | awk '{print $1;}')
-	FREEBAYES_DOLLAR=$(grep 'freebayes -\$ --read-snp-limit' $CONFIG | awk '{print $1;}')
-	FREEBAYES_e=$(grep 'freebayes -e --read-indel-limit' $CONFIG | awk '{print $1;}')
-
-	FREEBAYES_w=$(grep 'freebayes -w --hwe-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_w == "no" ]; then FREEBAYES_w=""; else FREEBAYES_w="-w "; fi
-	FREEBAYES_V=$(grep 'freebayes -V --binomial-obs-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_V == "no" ]; then FREEBAYES_V=""; else FREEBAYES_V="-V "; fi
-	FREEBAYES_a=$(grep 'freebayes -a --allele-balance-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_a == "no" ]; then FREEBAYES_a=""; else FREEBAYES_a="-a "; fi
-	FREEBAYES_no_partial_observations=$(grep 'freebayes --no-partial-observations' $CONFIG | awk '{print $1;}'); if [ ${FREEBAYES_no_partial_observations} == "no" ]; then FREEBAYES_no_partial_observations=""; else FREEBAYES_no_partial_observations="--no-partial-observations "; fi
+	# FREEBAYES_w=$(grep 'freebayes -w --hwe-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_w == "no" ]; then FREEBAYES_w=""; else FREEBAYES_w="-w "; fi
+	# FREEBAYES_V=$(grep 'freebayes -V --binomial-obs-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_V == "no" ]; then FREEBAYES_V=""; else FREEBAYES_V="-V "; fi
+	# FREEBAYES_a=$(grep 'freebayes -a --allele-balance-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_a == "no" ]; then FREEBAYES_a=""; else FREEBAYES_a="-a "; fi
+	# FREEBAYES_no_partial_observations=$(grep 'freebayes --no-partial-observations' $CONFIG | awk '{print $1;}'); if [ ${FREEBAYES_no_partial_observations} == "no" ]; then FREEBAYES_no_partial_observations=""; else FREEBAYES_no_partial_observations="--no-partial-observations "; fi
 	
 	
 
-	echo ""; echo "	Settings read in from config file:"
-	echo "		POOLS=$POOLS"
-	echo "		POOL_PLOIDY_FILE=$POOL_PLOIDY_FILE"
-	echo "		PLOIDY=$PLOIDY"
-	echo "		BEST_N_ALLELES=$BEST_N_ALLELES"
-	echo "		MIN_MAPPING_QUAL $MIN_MAPPING_QUAL"
-	echo "		MIN_BASE_QUAL $MIN_BASE_QUAL"
-	echo "		HAPLOTYPE_LENGTH $HAPLOTYPE_LENGTH"
-	echo "		MIN_REPEAT_ENTROPY $MIN_REPEAT_ENTROPY"
-	echo "		MIN_COVERAGE $MIN_COVERAGE"
-	echo "		MIN_ALT_FRACTION $MIN_ALT_FRACTION"
-#	echo "		MIN_ALT_COUNT $MIN_ALT_COUNT"
-#	echo "		MIN_ALT_TOTAL $MIN_ALT_TOTAL"
-#	echo "		READ_MAX_MISMATCH_FRACTION $READ_MAX_MISMATCH_FRACTION"
+	# echo ""; echo "	Settings read in from config file:"
+	# echo "		POOLS=$POOLS"
+	# echo "		POOL_PLOIDY_FILE=$POOL_PLOIDY_FILE"
+	# echo "		PLOIDY=$PLOIDY"
+	# echo "		BEST_N_ALLELES=$BEST_N_ALLELES"
+	# echo "		MIN_MAPPING_QUAL $MIN_MAPPING_QUAL"
+	# echo "		MIN_BASE_QUAL $MIN_BASE_QUAL"
+	# echo "		HAPLOTYPE_LENGTH $HAPLOTYPE_LENGTH"
+	# echo "		MIN_REPEAT_ENTROPY $MIN_REPEAT_ENTROPY"
+	# echo "		MIN_COVERAGE $MIN_COVERAGE"
+	# echo "		MIN_ALT_FRACTION $MIN_ALT_FRACTION"
 
-	echo "		freebayes -z $FREEBAYES_z"
-	echo "		freebayes -C $FREEBAYES_C"
-	echo "		freebayes -G $FREEBAYES_G"
-	echo "		freebayes -3 $FREEBAYES_3"
-	echo "		freebayes -Q $FREEBAYES_Q"
-	echo "		freebayes -U $FREEBAYES_U"
-	echo "		freebayes -\$ $FREEBAYES_DOLLAR"
-	echo "		freebayes -e $FREEBAYES_e"
+	# echo "		freebayes -z $FREEBAYES_z"
+	# echo "		freebayes -C $FREEBAYES_C"
+	# echo "		freebayes -G $FREEBAYES_G"
+	# echo "		freebayes -3 $FREEBAYES_3"
+	# echo "		freebayes -Q $FREEBAYES_Q"
+	# echo "		freebayes -U $FREEBAYES_U"
+	# echo "		freebayes -\$ $FREEBAYES_DOLLAR"
+	# echo "		freebayes -e $FREEBAYES_e"
 
-	echo "		freebayes -w $FREEBAYES_w"
-	echo "		freebayes -V $FREEBAYES_V"
-	echo "		freebayes -a $FREEBAYES_a"
-	if [ $FREEBAYES_w != "" ]; then echo "		freebayes ${FREEBAYES_w}"; fi
-	if [ $FREEBAYES_V != "" ]; then echo "		freebayes ${FREEBAYES_V}"; fi
-	if [ $FREEBAYES_a != "" ]; then echo "		freebayes ${FREEBAYES_a}"; fi
-	if [ $FREEBAYES_no_partial_observations != "" ]; then echo "		freebayes ${FREEBAYES_no_partial_observations}"; fi
+	# echo "		freebayes -w $FREEBAYES_w"
+	# echo "		freebayes -V $FREEBAYES_V"
+	# echo "		freebayes -a $FREEBAYES_a"
+	# if [ $FREEBAYES_w != "" ]; then echo "		freebayes ${FREEBAYES_w}"; fi
+	# if [ $FREEBAYES_V != "" ]; then echo "		freebayes ${FREEBAYES_V}"; fi
+	# if [ $FREEBAYES_a != "" ]; then echo "		freebayes ${FREEBAYES_a}"; fi
+	# if [ $FREEBAYES_no_partial_observations != "" ]; then echo "		freebayes ${FREEBAYES_no_partial_observations}"; fi
 	
 	echo ""; echo " "`date` " Preparing files for genotyping..."
 	
@@ -1706,6 +1699,7 @@ function GENOTYPE(){
 
 	if [ ! -s popmap.$CUTOFFS ]; then
 		echo "  "`date` " Creating popmap..."
+		echo ""
 		cut -f1 -d "_" namelist.$CUTOFFS > p.$CUTOFFS
 		paste namelist.$CUTOFFS p.$CUTOFFS > popmap.$CUTOFFS
 		rm p.$CUTOFFS
@@ -1785,180 +1779,12 @@ bamToBed -i cat.$CUTOFFS-RRG.bam | bedtools merge > mapped.$CUTOFFS.bed
 
 ###############################################################################################
 
-# GetInfo(){
-	# echo "$NumInd individuals are detected. Is this correct? Enter yes or no and press [ENTER]"
-
-	# read Indcorrect
-
-	# if [ "$Indcorrect" == "no" ]; then
-			# echo "Please double check that all fastq files are named Ind01.F.fq.gz and Ind01.R.fq.gz"
-			# exit 1
-	# elif [ "$Indcorrect" == "yes" ]; then
-				# echo "Proceeding with $NumInd individuals"
-	# else
-			# echo "Incorrect Input"
-			# exit 1
-	# fi
-
-	# #Tries to get number of processors, if not asks user
-	# NUMProc=( `grep -c ^processor /proc/cpuinfo 2> /dev/null` ) 
-	# NUMProc=$(($NUMProc + 0)) 
-
-	# echo "dDocent detects $NUMProc processors available on this system."
-	# echo "Please enter the maximum number of processors to use for this analysis."
-			# read NUMProc
-			
-	# if [ $NUMProc -lt 1 ]; then
-			# echo "Incorrect. Please enter the number of processing cores on this computer"
-			# read NUMProc
-	# fi                
-	# if [ $NUMProc -lt 1 ]; then
-			# echo "Incorrect input, exiting"
-			# exit 1
-	# fi
-
-	# #Tries to get maximum system memory, if not asks user
-	# MAXMemory=$(($(grep -Po '(?<=^MemTotal:)\s*[0-9]+' /proc/meminfo | tr -d " ") / 1048576))G
-
-	# echo "dDocent detects $MAXMemory maximum memory available on this system."
-	# echo "Please enter the maximum memory to use for this analysis. The size can be postfixed with 
-	# K, M, G, T, P, k, m, g, t, or p which would multiply the size with 1024, 1048576, 1073741824, 
-	# 1099511627776, 1125899906842624, 1000, 1000000, 1000000000, 1000000000000, or 1000000000000000 respectively."
-	# echo "For example, to limit dDocent to ten gigabytes, enter 10G or 10g"
-			# read MAXMemory
-
-	# while [[ -z $MAXMemory ]];
-		# do
-		# echo "Incorrect input"
-		# echo -e "Please enter the maximum memory to use for this analysis. The size can be postfixed with K, M, G, T, P, k, m, g, t, or p which would multiply the size with 1024, 1048576, 1073741824, 1099511627776, 1125899906842624, 1000, 1000000, 1000000000, 1000000000000, or 1000000000000000 respectively."
-		# echo -e "This option does not work with all distributions of Linux.  If runs are hanging at variant calling, enter 0"
-		# echo -e "Then press [ENTER]"
-		# read MAXMemory
-		# done
-
-	# #Asks if user wants to trim reads.  This allows this part of the pipeline to be skipped during subsequent analyses
-	# echo -e "\nDo you want to quality trim your reads?" 
-	# echo "Type yes or no and press [ENTER]?"
-
-	# read TRIM
-
-	# #Asks if user wants to perform an assembly.  This allows this part of the pipeline to be skipped during subsequent analyses
-
-	# echo -e "\nDo you want to perform an assembly?"
-	# echo "Type yes or no and press [ENTER]?"
-
-	# read ASSEMBLY
-
-	# if [ "$ASSEMBLY" == "no" ]; then
-			# echo -e "\nReference contigs need to be in a file named reference.$CUTOFF.$CUTOFF2.fasta\n"
-			# sleep 1
-	# else
-		# echo -e "What type of assembly would you like to perform?  Enter SE for single end, PE for paired-end, RPE for paired-end sequencing for RAD protocols with random shearing, or OL for paired-end sequencing that has substantial overlap."
-		# echo -e "Then press [ENTER]"
-		# read ATYPE
-
-		# while [[ $ATYPE != "SE" && $ATYPE != "PE" && $ATYPE != "OL" && $ATYPE != "RPE" ]];
-		# do
-		# echo "Incorrect input"
-		# echo -e "What type of assembly would you like to perform?  Enter SE for single end, PE for paired-end, RPE for paired-end sequencing for RAD protocols with random shearing, or OL for paired-end sequencing that has substantial overlap."
-		# echo -e "Then press [ENTER]"
-		# read ATYPE
-		# done
-	# fi
-	# #If performing de novo assembly, asks if the user wants to enter a different -c value
-	# if [ "$ASSEMBLY" == "yes" ]; then
-		# echo "Reads will be assembled with Rainbow"
-		# echo "CD-HIT will cluster reference sequences by similarity. The -c parameter (% similarity to cluster) may need to be changed for your taxa."
-		# echo "Would you like to enter a new c parameter now? Type yes or no and press [ENTER]"
-		# read optC
-		# if [ "$optC" == "no" ]; then
-				# echo "Proceeding with default 0.9 value."
-				# simC=0.9
-			# elif [ "$optC" == "yes" ]; then
-				# echo "Please enter new value for c. Enter in decimal form (For 90%, enter 0.9)"
-				# read newC
-				# simC=$newC
-			# else
-				# echo "Incorrect input. Proceeding with the default value."
-				# simC=0.9
-			# fi
-	# fi
-
-	# #Asks if user wants to map reads and change default mapping variables for BWA
-	# echo "Do you want to map reads?  Type yes or no and press [ENTER]"
-	# read MAP
-	# if [ "$MAP" == "no" ]; then
-		# echo "Mapping will not be performed"
-		# optA=1
-		# optB=4
-		# optO=6
-	# else
-		# echo "BWA will be used to map reads.  You may need to adjust -A -B and -O parameters for your taxa."
-		# echo "Would you like to enter a new parameters now? Type yes or no and press [ENTER]"
-		# read optq
-
-		# if [ "$optq" == "yes" ]; then
-			# echo "Please enter new value for A (match score).  It should be an integer.  Default is 1."
-			# read newA
-			# optA=$newA
-					# echo "Please enter new value for B (mismatch score).  It should be an integer.  Default is 4."
-			# read newB
-			# optB=$newB
-					# echo "Please enter new value for O (gap penalty).  It should be an integer.  Default is 6."
-			# read newO
-			# optO=$newO
-		# else
-			# echo "Proceeding with default values for BWA read mapping."
-			# optA=1
-			# optB=4
-			# optO=6
-		# fi
-	# fi
-
-	# #Does user wish to call SNPs?
-	# echo "Do you want to use FreeBayes to call SNPs?  Please type yes or no and press [ENTER]"
-	# read SNP
-
-	# while [[ $SNP != "yes" && $SNP != "no" ]];
-		# do
-		# echo "Incorrect input"
-		# echo -e "Do you want to use FreeBayes to call SNPs?  Please type yes or no and press [ENTER]"
-		# read SNP
-	# done
-
-	# #Asks user for email address to notify when analysis is complete
-	# echo ""
-	# echo "Please enter your email address.  dDocent will email you when it is finished running."
-	# echo "Don't worry; dDocent has no financial need to sell your email address to spammers."
-	# read MAIL
-	# echo ""
-	# echo ""
-
-	# if [ "$ASSEMBLY" == "no" ]; then
-		# #Prints instructions on how to move analysis to background and disown process
-		# echo "At this point, all configuration information has been entered and dDocent may take several hours to run." 
-		# echo "It is recommended that you move this script to a background operation and disable terminal input and output."
-		# echo "All data and logfiles will still be recorded."
-		# echo "To do this:"
-		# echo "Press control and Z simultaneously"
-		# echo "Type 'bg' without the quotes and press enter"
-		# echo "Type 'disown -h' again without the quotes and press enter"
-		# echo ""
-		# echo "Now sit back, relax, and wait for your analysis to finish."
-	# fi
-
-	# if [ "$ASSEMBLY" == "yes" ]; then
-		# echo "dDocent will require input during the assembly stage.  Please wait until prompt says it is safe to move program to the background."
-	# fi
-# }
-
-#echo FUNKTION=$FUNKTION
 #Actually starts program
 if [[ -n "$1" ]]; then
 	#main $1
 	# RMH added ALL variables below; main $NUMProc $MAXMemory $TRIM $FixStacks $ASSEMBLY $ATYPE $simC $MAP $optA $optB $optO $SNP $MAIL $HPC $MANCUTOFF $CUTOFF $CUTOFF2 $TRIM_LENGTH_ASSEMBLY $TRIM_LENGTH_MAPPING $SEED_ASSEMBLY $PALIMDROME_ASSEMBLY $SIMPLE_ASSEMBLY $windowSize_ASSEMBLY $windowQuality_ASSEMBLY
 	#echo FUNKTION=$FUNKTION
-	main $NUMProc $MAXMemory $TRIM $TRIM_LENGTH_ASSEMBLY $SEED_ASSEMBLY $PALIMDROME_ASSEMBLY $SIMPLE_ASSEMBLY $windowSize_ASSEMBLY $windowQuality_ASSEMBLY $TRAILING_ASSEMBLY $TRIM_LENGTH_MAPPING $LEADING_MAPPING $TRAILING_MAPPING $FixStacks $ASSEMBLY $ATYPE $simC $HPC $MANCUTOFF $CUTOFF $CUTOFF2 $MAP $optA $optB $optO $MAPPING_MIN_ALIGNMENT_SCORE $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SNP $POOLS $POOL_PLOIDY_FILE $PLOIDY $BEST_N_ALLELES $MIN_MAPPING_QUAL $MIN_BASE_QUAL $HAPLOTYPE_LENGTH $MIN_REPEAT_ENTROPY $MIN_COVERAGE $MIN_ALT_FRACTION $MIN_ALT_COUNT $MIN_ALT_TOTAL $READ_MAX_MISMATCH_FRACTION $MAIL $FILTERMAP $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom $SOFT_CLIP_CUTOFF $FILTER_ORPHANS $BEDTOOLSFLAG $FILTER_MIN_AS $FREEBAYES_Q $FREEBAYES_U $FUNKTION $HEADCROP
+	main #$NUMProc $MAXMemory $TRIM $TRIM_LENGTH_ASSEMBLY $SEED_ASSEMBLY $PALIMDROME_ASSEMBLY $SIMPLE_ASSEMBLY $windowSize_ASSEMBLY $windowQuality_ASSEMBLY $TRAILING_ASSEMBLY $TRIM_LENGTH_MAPPING $LEADING_MAPPING $TRAILING_MAPPING $FixStacks $ASSEMBLY $ATYPE $simC $HPC $MANCUTOFF $CUTOFF $CUTOFF2 $MAP $optA $optB $optO $MAPPING_MIN_ALIGNMENT_SCORE $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SNP $POOLS $POOL_PLOIDY_FILE $PLOIDY $BEST_N_ALLELES $MIN_MAPPING_QUAL $MIN_BASE_QUAL $HAPLOTYPE_LENGTH $MIN_REPEAT_ENTROPY $MIN_COVERAGE $MIN_ALT_FRACTION $FREEBAYES_C $FREEBAYES_G $FREEBAYES_z $MAIL $FILTERMAP $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom $SOFT_CLIP_CUTOFF $FILTER_ORPHANS $BEDTOOLSFLAG $FILTER_MIN_AS $FREEBAYES_Q $FREEBAYES_U $FUNKTION $HEADCROP
 else
 	#main
 	echo ""; echo `date` " This is the HPC version of dDocent.  A config file must be specified"
