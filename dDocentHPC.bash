@@ -24,7 +24,7 @@ else
 fi
 
 
-#dDocent can now accept a configuration file instead of running interactively
+#load variables from config file
 if [ -n "$2" ]; then
 	echo " "
 	echo `date` "Files output to: " $(pwd)
@@ -488,7 +488,7 @@ main(){
 		echo "  files trimmed for assembly must be *r1.fq.gz *r2.fq.gz"
 		echo "  files trimmed for mapping must be *R1.fq.gz *R2.fq.gz"
 		
-#	if [ "$TRIM" == "yes" ]; then
+
 	if [ "$FUNKTION" == "trimFQ" ]; then
 		F="F"
 		Fwild="*.F.fq.gz"
@@ -497,7 +497,22 @@ main(){
 		Rwild="*.R.fq.gz"
 		Rsed=".R.fq.gz"
 		echo "";echo "  extensions selected: $Fwild $Rwild"
-#	elif [ "$ASSEMBLY" == "yes" ]; then
+	elif [ "$FUNKTION" == "trimFQref" ]; then
+		F="F"
+		Fwild="*.F.fq.gz"
+		Fsed=".F.fq.gz"
+		R="R"
+		Rwild="*.R.fq.gz"
+		Rsed=".R.fq.gz"
+		echo "";echo "  extensions selected: $Fwild $Rwild"
+	elif [ "$FUNKTION" == "trimFQmap" ]; then
+		F="F"
+		Fwild="*.F.fq.gz"
+		Fsed=".F.fq.gz"
+		R="R"
+		Rwild="*.R.fq.gz"
+		Rsed=".R.fq.gz"
+		echo "";echo "  extensions selected: $Fwild $Rwild"
 	elif [ "$FUNKTION" == "mkREF" ]; then
 		F="r1"
 		Fwild="*.r1.fq.gz"
@@ -506,7 +521,6 @@ main(){
 		Rwild="*.r2.fq.gz"
 		Rsed=".r2.fq.gz"
 		echo "";echo "  extensions selected: $Fwild $Rwild"
-#	elif [ "$MAP" == "yes" ]; then
 	elif [ "$FUNKTION" == "mkBAM" ]; then
 		F="R1"
 		Fwild="*.R1.fq.gz"
@@ -515,7 +529,6 @@ main(){
 		Rwild="*.R2.fq.gz"
 		Rsed=".R2.fq.gz"
 		echo "";echo "  extensions selected: $Fwild $Rwild"
-#	elif [ "$FILTERMAP" == "yes" ]; then
 	elif [ "$FUNKTION" == "fltrBAM" ]; then
 		F="R1"
 		Fwild="*-RAW.bam"
@@ -524,7 +537,6 @@ main(){
 		Rwild="*.R2.fq.gz"
 		Rsed=".R2.fq.gz"
 		echo "";echo "  extensions selected: $Fwild $Rwild"
-#	elif [ "$SNP" == "yes" ]; then
 	elif [ "$FUNKTION" == "mkVCF" ]; then
 		F="R1"
 		Fwild="*-RG.bam"
@@ -583,29 +595,34 @@ main(){
 		FIXSTACKS
 	fi
 	
-#	if [ "$TRIM" == "yes" ]; then
 	if [ "$FUNKTION" == "trimFQ" ]; then
 		echo " ";echo " "`date` "Trimming reads " 
 		TrimReadsRef #$NUMProc $R $CONFIG #& 2> ./mkREF/trimref.log
 		TrimReads #$NUMProc $R $CONFIG #& 2> ./mkBAM/trim.log
 	fi
-
-#	elif [ "$ASSEMBLY" == "yes" ]; then
+	
+	if [ "$FUNKTION" == "trimFQref" ]; then
+		echo " ";echo " "`date` "Trimming reads " 
+		TrimReadsRef #$NUMProc $R $CONFIG #& 2> ./mkREF/trimref.log
+	fi
+	
+	if [ "$FUNKTION" == "trimFQmap" ]; then
+		echo " ";echo " "`date` "Trimming reads " 
+		TrimReads #$NUMProc $R $CONFIG #& 2> ./mkBAM/trim.log
+	fi
+	
 	if [ "$FUNKTION" == "mkREF" ]; then
 		Assemble #$NUMProc $CONFIG $Rsed $NumInd $Fwild $Rwild $awk NAMES 
 	fi
 
-#	elif [ "$MAP" == "yes" ]; then
 	if [ "$FUNKTION" == "mkBAM" ]; then
 		MAP2REF #$CUTOFF.$CUTOFF2 $NUMProc $CONFIG $ATYPE $Rsed NAMES
 	fi
 
-#	elif [ "$FILTERMAP" == "yes" ]; then
 	if [ "$FUNKTION" == "fltrBAM" ]; then
 		FILTERBAM #$CUTOFFS $NUMProc $CONFIG $ATYPE
 	fi
 	
-#	elif [ "$SNP" == "yes" ]; then
 	if [ "$FUNKTION" == "mkVCF" ]; then
 		GENOTYPE #$CUTOFFS $NUMProc $CONFIG
 	fi
