@@ -48,7 +48,7 @@ if [ -n "$2" ]; then
 	SIMPLE_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)' $CONFIG | awk '{print $1;}')
 	windowSize_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowSize> (integer)' $CONFIG | awk '{print $1;}')
 	windowQuality_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
-	TRAILING_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
+	TRAILING_ASSEMBLY=$(grep 'trimmomatic TRAILING:<quality> (integer, mkREF only)' $CONFIG | awk '{print $1;}')
 	TRIM_LENGTH_MAPPING=$(grep 'trimmomatic MINLEN (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
 	LEADING_MAPPING=$(grep 'trimmomatic LEADING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
 	TRAILING_MAPPING=$(grep 'trimmomatic TRAILING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
@@ -73,7 +73,7 @@ if [ -n "$2" ]; then
 	MAP="RemoveThisVar"
 	optA=$(grep 'bwa mem -A Mapping_Match_Value (integer)' $CONFIG | awk '{print $1;}')
 	optB=$(grep 'bwa mem -B Mapping_MisMatch_Value (integer)' $CONFIG | awk '{print $1;}')
-	optO=$(grep 'Cbwa mem -O Mapping_GapOpen_Penalty (integer)' $CONFIG | awk '{print $1;}')
+	optO=$(grep 'bwa mem -O Mapping_GapOpen_Penalty (integer)' $CONFIG | awk '{print $1;}')
 	MAPPING_MIN_ALIGNMENT_SCORE=$(grep 'bwa mem -T Mapping_Minimum_Alignment_Score (integer)' $CONFIG | awk '{print $1;}')
 	MAPPING_CLIPPING_PENALTY=$(grep 'bwa mem -L Mapping_Clipping_Penalty (integer,integer)' $CONFIG | awk '{print $1;}')
 	
@@ -139,7 +139,7 @@ if [ -n "$2" ]; then
 	FILTER_MIN_AS=$(grep 'Remove_reads_with_alignment_score_below (integers by 10s)' $CONFIG | awk '{print $1;}')
 	FILTER_ORPHANS=$(grep 'Remove_reads_orphaned_by_filters? (yes,no)' $CONFIG | awk '{print $1;}')
 
-	SNP="remove this var"
+	SNP="RemoveThisVar"
 	POOLS=$(grep 'freebayes -J --pooled-discrete (yes or no)' $CONFIG | awk '{print $1;}')
 	POOL_PLOIDY_FILE=$(grep 'freebayes -A --cnv-map (filename.bed or no)' $CONFIG | awk '{print $1;}')
 	PLOIDY=$(grep 'freebayes -p --ploidy (integer)' $CONFIG | awk '{print $1;}')
@@ -385,7 +385,7 @@ main(){
 	echo "  BEST_N_ALLELES=	${34}"
 	echo "  MIN_MAPPING_QUAL=	${35}"
 	echo "  MIN_BASE_QUAL=	${36}"
-	echo "  HAPLOTYPE_LENuuGTH=	${37}"
+	echo "  HAPLOTYPE_LENGTH=	${37}"
 	echo "  MIN_REPEAT_ENTROPY=	${38}"
 	echo "  MIN_COVERAGE=	${39}"
 	echo "  MIN_ALT_FRACTION=	${40}"
@@ -539,7 +539,8 @@ main(){
 	#NUMNAMES=$(mawk '/_/' namelist.$CUTOFFS | wc -l)
 	NUMNAMES=$(grep -c '^' namelist.$CUTOFFS)
 
-	if [ "$NUMNAMES" -eq "$NumInd" ]; then
+	
+	if [ "$NUMNAMES" == "$NumInd" ]; then
 		NAMES=( `cat "namelist.$CUTOFFS" `)
 		echo " ";echo " The samples being processed are:"
 		cat namelist.$CUTOFFS | parallel --no-notice "echo '  '{}"
@@ -564,13 +565,13 @@ main(){
 #	if [ "$TRIM" == "yes" ]; then
 	if [ "$FUNKTION" == "trimFQ" ]; then
 		echo " ";echo " "`date` "Trimming reads " 
-		TrimReadsRef $NUMProc $R #& 2> ./mkREF/trimref.log
-		TrimReads $NUMProc $R #& 2> ./mkBAM/trim.log
+		TrimReadsRef $NUMProc $R $CONFIG #& 2> ./mkREF/trimref.log
+		TrimReads $NUMProc $R $CONFIG #& 2> ./mkBAM/trim.log
 	fi
 
 #	elif [ "$ASSEMBLY" == "yes" ]; then
 	if [ "$FUNKTION" == "mkREF" ]; then
-		Assemble $NUMProc $CONFIG $Rsed $NumInd $Fwild $Rwild $awk NAMES 
+		Assemble #$NUMProc $CONFIG $Rsed $NumInd $Fwild $Rwild $awk NAMES 
 	fi
 
 #	elif [ "$MAP" == "yes" ]; then
@@ -763,6 +764,7 @@ FIXSTACKS () {
 TrimReadsRef () { 
 	NUMProc=$1
 	R=$2
+	CONFIG=$3
 	echo " "
 	echo `date` "Trimming reads for reference genome"
 
@@ -775,7 +777,8 @@ TrimReadsRef () {
 	SIMPLE_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)' $CONFIG | awk '{print $1;}')
 	windowSize_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowSize> (integer)' $CONFIG | awk '{print $1;}')
 	windowQuality_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
-	TRAILING_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
+	#TRAILING_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
+	TRAILING_ASSEMBLY=$(grep 'trimmomatic TRAILING:<quality> (integer, mkREF only)' $CONFIG | awk '{print $1;}')
 	# TRIM_LENGTH_MAPPING=$(grep 'trimmomatic MINLEN (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
 	# LEADING_MAPPING=$(grep 'trimmomatic LEADING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
 	# TRAILING_MAPPING=$(grep 'trimmomatic TRAILING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
@@ -840,7 +843,8 @@ TrimReads () {
 	SIMPLE_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)' $CONFIG | awk '{print $1;}')
 	windowSize_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowSize> (integer)' $CONFIG | awk '{print $1;}')
 	windowQuality_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
-	TRAILING_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
+	#TRAILING_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
+	TRAILING_ASSEMBLY=$(grep 'trimmomatic TRAILING:<quality> (integer, mkREF only)' $CONFIG | awk '{print $1;}')
 	TRIM_LENGTH_MAPPING=$(grep 'trimmomatic MINLEN (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
 	LEADING_MAPPING=$(grep 'trimmomatic LEADING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
 	TRAILING_MAPPING=$(grep 'trimmomatic TRAILING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
@@ -873,18 +877,20 @@ TrimReads () {
 ###############################################################################################
 
 Assemble(){
-$NUMProc $CONFIG $Rsed $NumInd $Fwild $Rwild $awk NAMES
-	NUMProc=$1
-	CONFIG=$2
-	Rsed=$3
-	NumInd=$4
-	Fwild=$5
-	Rwild=$6
-	awk=$7
-	names=${8[@]}
-	NAMES=("${!names}")
+#Assemble $NUMProc $CONFIG $Rsed $NumInd $Fwild $Rwild $awk NAMES 
+#         $NUMProc $CONFIG $Rsed $NumInd $Fwild $Rwild $awk NAMES
+	# NUMProc=$1
+	# CONFIG=$2
+	# Rsed=$3
+	# NumInd=$4
+	# Fwild=$5
+	# Rwild=$6
+	# awk=$7
+	# names=$8[@]
+	# NAMES=("${!names}")
 
-	
+	echo $Fwild
+	echo $Rwild
 
 	ATYPE=$(grep 'Type of reads for assembly (PE, SE, OL, RPE)' $CONFIG | awk '{print $1;}')
 	simC=$(grep 'cdhit Clustering_Similarity_Pct (0-1)' $CONFIG | awk '{print $1;}')
@@ -1946,11 +1952,12 @@ bamToBed -i cat.$CUTOFFS-RRG.bam | bedtools merge > mapped.$CUTOFFS.bed
 	# fi
 # }
 
-
+#echo FUNKTION=$FUNKTION
 #Actually starts program
-if [ -n "$1" ]; then
+if [[ -n "$1" ]]; then
 	#main $1
 	# RMH added ALL variables below; main $NUMProc $MAXMemory $TRIM $FixStacks $ASSEMBLY $ATYPE $simC $MAP $optA $optB $optO $SNP $MAIL $HPC $MANCUTOFF $CUTOFF $CUTOFF2 $TRIM_LENGTH_ASSEMBLY $TRIM_LENGTH_MAPPING $SEED_ASSEMBLY $PALIMDROME_ASSEMBLY $SIMPLE_ASSEMBLY $windowSize_ASSEMBLY $windowQuality_ASSEMBLY
+	#echo FUNKTION=$FUNKTION
 	main $NUMProc $MAXMemory $TRIM $TRIM_LENGTH_ASSEMBLY $SEED_ASSEMBLY $PALIMDROME_ASSEMBLY $SIMPLE_ASSEMBLY $windowSize_ASSEMBLY $windowQuality_ASSEMBLY $TRAILING_ASSEMBLY $TRIM_LENGTH_MAPPING $LEADING_MAPPING $TRAILING_MAPPING $FixStacks $ASSEMBLY $ATYPE $simC $HPC $MANCUTOFF $CUTOFF $CUTOFF2 $MAP $optA $optB $optO $MAPPING_MIN_ALIGNMENT_SCORE $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SNP $POOLS $POOL_PLOIDY_FILE $PLOIDY $BEST_N_ALLELES $MIN_MAPPING_QUAL $MIN_BASE_QUAL $HAPLOTYPE_LENGTH $MIN_REPEAT_ENTROPY $MIN_COVERAGE $MIN_ALT_FRACTION $MIN_ALT_COUNT $MIN_ALT_TOTAL $READ_MAX_MISMATCH_FRACTION $MAIL $FILTERMAP $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom $SOFT_CLIP_CUTOFF $FILTER_ORPHANS $BEDTOOLSFLAG $FILTER_MIN_AS $FREEBAYES_Q $FREEBAYES_U $FUNKTION $HEADCROP
 else
 	#main
