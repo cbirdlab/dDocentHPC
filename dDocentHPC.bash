@@ -530,16 +530,20 @@ main(){
 		echo "";echo "  extensions selected: $Fwild $Rwild"
 	elif [ "$FUNKTION" == "fltrBAM" ]; then
 		F="R1"
-		Fwild="*-RAW.bam"
-		Fsed=".${CUTOFFS}-RAW.bam"
+		#Fwild="*-RAW.bam"
+		#Fsed=".${CUTOFFS}-RAW.bam"
+		Fwild="*.R1.fq.gz"
+		Fsed=".R1.fq.gz"
 		R="R2"
 		Rwild="*.R2.fq.gz"
 		Rsed=".R2.fq.gz"
 		echo "";echo "  extensions selected: $Fwild $Rwild"
 	elif [ "$FUNKTION" == "mkVCF" ]; then
 		F="R1"
-		Fwild="*-RG.bam"
-		Fsed=".${CUTOFFS}-RG.bam"
+		Fwild="*.R1.fq.gz"
+		Fsed=".R1.fq.gz"
+		# Fwild="*-RG.bam"
+		# Fsed=".${CUTOFFS}-RG.bam"
 		R="R2"
 		Rwild="*.R2.fq.gz"
 		Rsed=".R2.fq.gz"
@@ -555,16 +559,52 @@ main(){
 		echo "";echo "  extensions selected: $Fwild $Rwild"
 	fi
 
-	NumInd=$(ls $Fwild | wc -l)
-	NumInd=$(($NumInd - 0))
-
-	#Create list of sample names
-	if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
-		ls $Fwild > namelist.$CUTOFFS
-		sed -i'' -e "s/$Fsed//g" namelist.$CUTOFFS
+	if [[ $FUNKTION ! == "fltrBAM" ]]; then
+		NumInd=$(ls *.${CUTOFFS}-RAW.bam | wc -l)
+		#Create list of sample names
+		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
+			ls *.${CUTOFFS}-RAW.bam > namelist.$CUTOFFS
+			sed -i'' -e "s/*.${CUTOFFS}-RAW.bam//g" namelist.$CUTOFFS
+		elif [ "$(grep -c '^' namelist.$CUTOFFS)" != "$NumInd" ]; then
+			echo "";echo " The existing namelist file does not match the present sample set and is being recreated. "
+			ls *.${CUTOFFS}-RAW.bam > namelist.$CUTOFFS
+			sed -i'' -e "s/*.${CUTOFFS}-RAW.bam//g" namelist.$CUTOFFS
+		else
+			echo "";echo " The namelist file already exists and was not recreated. "
+			echo "  If you experience errors, you should delete the namelist file."
+		fi
+		NUMNAMES=$(grep -c '^' namelist.$CUTOFFS)
+		if [ "$NUMNAMES" == "$NumInd" ]; then
+		
+	elif [[ $FUNKTION ! == "mkVCF" ]]; then
+		NumInd=$(ls *.${CUTOFFS}-RG.bam | wc -l)
+		#Create list of sample names
+		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
+			ls *.${CUTOFFS}-RG.bam > namelist.$CUTOFFS
+			sed -i'' -e "s/*.${CUTOFFS}-RG.bam//g" namelist.$CUTOFFS
+		elif [ "$(grep -c '^' namelist.$CUTOFFS)" != "$NumInd" ]; then
+			echo "";echo " The existing namelist file does not match the present sample set and is being recreated. "
+			ls *.${CUTOFFS}-RG.bam > namelist.$CUTOFFS
+			sed -i'' -e "s/*.${CUTOFFS}-RG.bam//g" namelist.$CUTOFFS
+		else
+			echo "";echo " The namelist file already exists and was not recreated. "
+			echo "  If you experience errors, you should delete the namelist file."
+		fi
 	else
-		echo "";echo " The namelist file already exists and was not recreated. "
-		echo "  If you experience errors, you should delete the namelist file."
+		NumInd=$(ls $Fwild | wc -l)
+		NumInd=$(($NumInd - 0))
+		#Create list of sample names
+		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
+			ls $Fwild > namelist.$CUTOFFS
+			sed -i'' -e "s/$Fsed//g" namelist.$CUTOFFS
+		elif [ "$(grep -c '^' namelist.$CUTOFFS)" != "$NumInd" ]; then
+			echo "";echo " The existing namelist file does not match the present sample set and is being recreated. "
+			ls $Fwild > namelist.$CUTOFFS
+			sed -i'' -e "s/*.${CUTOFFS}-RAW.bam//g" namelist.$CUTOFFS
+		else
+			echo "";echo " The namelist file already exists and was not recreated. "
+			echo "  If you experience errors, you should delete the namelist file."
+		fi
 	fi
 
 	#Create an array of sample names
