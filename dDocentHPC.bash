@@ -484,8 +484,8 @@ main(){
 	#this alerts user to fastq file naming conventions
 		echo "";echo " The HPC version of dDocent will only digest files with particular extensions for particular tasks"
 		echo "  untouched files for trimming must be *.F.fq.gz and *.R.fq.gz"
-		echo "  files trimmed for assembly must be *r1.fq.gz *r2.fq.gz"
-		echo "  files trimmed for mapping must be *R1.fq.gz *R2.fq.gz"
+		echo "  files trimmed for assembly (mkREF) must be *r1.fq.gz *r2.fq.gz"
+		echo "  files trimmed for mapping (mkBAM) must be *R1.fq.gz *R2.fq.gz"
 		
 
 	if [ "$FUNKTION" == "trimFQ" ]; then
@@ -559,7 +559,7 @@ main(){
 		echo "";echo "  extensions selected: $Fwild $Rwild"
 	fi
 
-	if [[ $FUNKTION ! == "fltrBAM" ]]; then
+	if [ "$FUNKTION" == "fltrBAM" ]; then
 		NumInd=$(ls *.${CUTOFFS}-RAW.bam | wc -l)
 		#Create list of sample names
 		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
@@ -573,10 +573,7 @@ main(){
 			echo "";echo " The namelist file already exists and was not recreated. "
 			echo "  If you experience errors, you should delete the namelist file."
 		fi
-		NUMNAMES=$(grep -c '^' namelist.$CUTOFFS)
-		if [ "$NUMNAMES" == "$NumInd" ]; then
-		
-	elif [[ $FUNKTION ! == "mkVCF" ]]; then
+	elif [ "$FUNKTION" == "mkVCF" ]; then
 		NumInd=$(ls *.${CUTOFFS}-RG.bam | wc -l)
 		#Create list of sample names
 		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
