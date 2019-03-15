@@ -1747,6 +1747,23 @@ function GENOTYPE(){
 				coverageBed -abam cat.$CUTOFFS-RRG.bam -b mapped.$CUTOFFS.bed -counts > cov.$CUTOFFS.stats
 			else
 				bedtools coverage -b cat.$CUTOFFS-RRG.bam -a mapped.$CUTOFFS.bed -counts -sorted > cov.$CUTOFFS.stats
+				#CEB need to figure out how to import files with cutoffs into gnuplot
+				paste $(seq 1 $(cat cov.$CUTOFFS.stats | wc -l)) $(cut -f4 cov.$CUTOFFS.stats | sort -r) > cov.dat
+gnuplot << \EOF 
+set terminal dumb size 120, 30
+set autoscale 
+unset label
+set title "Scatter plot of total depth of coverage for each contig in cat*RRG.bam."
+set ylabel "Number of Reads"
+set xlabel "Contig"
+xmax="`cut -f1 cov.dat | tail -1`"
+xmax=xmax+1
+ymax="`head -1 cov.dat | cut -f2 `"
+set xrange [0:xmax]
+set yrange [0:ymax]
+plot 'cov.dat' pt "*" 
+pause -1
+EOF
 			fi			
 		fi
 		if head -1 reference.$CUTOFFS.fasta | grep -e 'dDocent' reference.$CUTOFFS.fasta 1>/dev/null; then
