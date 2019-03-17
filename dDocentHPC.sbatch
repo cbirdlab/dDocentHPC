@@ -20,6 +20,11 @@ module load ddocent
 #fq.gz files
 bash dDocentHPC.bash trimFQ config.4.all
 
+#or run both trims at same time
+#srun --nodes=1 bash dDocentHPC.bash trimFQref config.4.all &
+#srun --nodes=1 bash dDocentHPC.bash trimFQmap config.4.all &
+#wait
+
 #this will assemble the fq.gz files in the mkREF and mkBAM directories that were
 #created by the trim function.  We have to cd to the mkREF directory
 #then execute dDocentHPC mkREF
