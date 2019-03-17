@@ -902,6 +902,7 @@ TrimReads () {
 	echo " SEED_ASSEMBLY=	$SEED_ASSEMBLY"
 	echo " PALIMDROME_ASSEMBLY=	$PALIMDROME_ASSEMBLY"
 	echo " SIMPLE_ASSEMBLY=	$SIMPLE_ASSEMBLY"
+	echo " HEADCROP=	$HEADCROP"
 	echo " TRAILING_ASSEMBLY=	$TRAILING_ASSEMBLY"
 	echo " windowSize_ASSEMBLY=	$windowSize_ASSEMBLY"
 	echo " windowQuality_ASSEMBLY=	$windowQuality_ASSEMBLY"
@@ -1410,7 +1411,7 @@ MAP2REF(){
 			#MaxLen=$(mawk '{ print length() | "sort -rn" }' lengths.$CUTOFFS.txt| head -1)
 			#INSERT=$(($MaxLen * 2 ))
 			#calculate mean contig length in ref
-			INSERT=$(awk '{ print length($1); }' reference.4.10.fasta | grep '...' | sort | awk '{ sum += $1; n++ } END { print sum / n}')
+			INSERT=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | grep '...' | sort | awk '{ sum += $1; n++ } END { print sum / n}')
 			#SD=$(($INSERT / 5))
 			#calculate SD of contig lengths in ref
 			SD=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | grep '...' | sort | awk '{sum+=$1; sumsq+=$1*$1}END{print sqrt(sumsq/NR - (sum/NR)**2)}')
