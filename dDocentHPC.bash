@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION=4.1
+VERSION=4.2
 #This script serves as an interactive bash wrapper to QC, assemble, map, and call SNPs from double digest RAD (SE or PE), ezRAD (SE or PE) data, or SE RAD data.
 #It requires that your raw data are split up by tagged individual and follow the naming convention of:
 
@@ -665,7 +665,6 @@ main(){
 
 	##Checking for possible errors
 
-#	if [ "$MAP" != "no" ]; then
 	if [ "$FUNKTION" == "mkBAM" ]; then
 		ERROR1=$(mawk '/developer/' bwa* | wc -l 2>/dev/null) 
 	fi
@@ -1375,23 +1374,17 @@ EOF
 ###############################################################################################
 
 MAP2REF(){
-
-	# CUTOFFS=$1
-	# NUMProc=$2
-	# CONFIG=$3
-	# ATYPE=$4
-	# Rsed=$5
-	# names=$6[@]
-	# NAMES=("${!names}")
-
-	# optA=$(grep 'bwa mem -A Mapping_Match_Value (integer)' $CONFIG | awk '{print $1;}')
-	# optB=$(grep 'bwa mem -B Mapping_MisMatch_Value (integer)' $CONFIG | awk '{print $1;}')
-	# optO=$(grep 'bwa mem -O Mapping_GapOpen_Penalty (integer)' $CONFIG | awk '{print $1;}')
-	# MAPPING_MIN_ALIGNMENT_SCORE=$(grep 'bwa mem -T Mapping_Minimum_Alignment_Score (integer)' $CONFIG | awk '{print $1;}')
-	# MAPPING_CLIPPING_PENALTY=$(grep 'bwa mem -L Mapping_Clipping_Penalty (integer,integer)' $CONFIG | awk '{print $1;}')
-
-	
 	echo " ";echo `date` " Using BWA to map reads."
+	if [ ! -f reference.$CUTOFFS.fasta ]; then
+		echo " ";echo `date` "  Reference genome not found in working directory..."
+		if [ ! -f ../mkREF/reference.$CUTOFFS.fasta ]; then
+			echo " ";echo `date` "  ERROR: Reference genome not found in mkREF directory. Please copy reference genome to working directory. ex: reference.10.10.fasta"
+			exit 1
+		else
+			echo " ";echo `date` "  Reference genome found in mkREF directory, copying to working directory..."
+			cp ../mkREF/reference.$CUTOFFS.fasta .
+		fi
+	fi
 	if [ reference.$CUTOFFS.fasta -nt reference.$CUTOFFS.fasta.fai ]; then
 		samtools faidx reference.$CUTOFFS.fasta
 		bwa index reference.$CUTOFFS.fasta &> index.$CUTOFFS.log

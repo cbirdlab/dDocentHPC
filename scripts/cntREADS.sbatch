@@ -19,6 +19,7 @@ gnuplot << \EOF
 set terminal dumb size 120, 30
 set autoscale
 unset label
+set logscale x
 set title "Histogram of Reads Per Individual Per Direction"
 set ylabel "Number of Individuals x Direction"
 set xlabel "Depth of Coverage"
@@ -34,9 +35,10 @@ gnuplot << \EOF
 set terminal dumb size 120, 30
 set autoscale 
 unset label
-set title "Scatter plot of depth per individual"
-set ylabel "Depth"
-set xlabel "Individual"
+set title "Scatter plot of coverage per individual x direction"
+set ylabel "NumReads"
+set xlabel "Individual x Direction"
+set logscale y
 plot 'NumFqGzReads' pt "*" 
 pause -1
 EOF
