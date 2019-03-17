@@ -843,28 +843,19 @@ TrimReadsRef () {
 	TRIMMOMATIC=$(find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null | head -1)
 	ADAPTERS=$(find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | head -1)
 
-	# TRIM_LENGTH_ASSEMBLY=$(grep 'trimmomatic MINLEN (integer, mkREF only)' $CONFIG | awk '{print $1;}')
-	# SEED_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<seed mismatches> (integer)' $CONFIG | awk '{print $1;}')
-	# PALIMDROME_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<palindrome clip thresh> (integer)' $CONFIG | awk '{print $1;}')
-	# SIMPLE_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)' $CONFIG | awk '{print $1;}')
-	# windowSize_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowSize> (integer)' $CONFIG | awk '{print $1;}')
-	# windowQuality_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
-	# TRAILING_ASSEMBLY=$(grep 'trimmomatic TRAILING:<quality> (integer, mkREF only)' $CONFIG | awk '{print $1;}')
-	# HEADCROP=$(grep 'HEADCROP:<length> (integer, only Read1 for ezRAD)' $CONFIG | awk '{print $1;}')
-
-	
-	echo "TRIMMOMATIC=	$TRIMMOMATIC"
-	echo "ADAPTERS=	$ADAPTERS"
-	echo "NUMProc=	$NUMProc"
-	echo "SEED_ASSEMBLY=	$SEED_ASSEMBLY"
-	echo "PALIMDROME_ASSEMBLY=	$PALIMDROME_ASSEMBLY"
-	echo "SIMPLE_ASSEMBLY=	$SIMPLE_ASSEMBLY"
-	echo "TRAILING_ASSEMBLY=	$TRAILING_ASSEMBLY"
-	echo "windowSize_ASSEMBLY=	$windowSize_ASSEMBLY"
-	echo "windowQuality_ASSEMBLY=	$windowQuality_ASSEMBLY"
-	echo "TRIM_LENGTH_ASSEMBLY=	$TRIM_LENGTH_ASSEMBLY"
-	echo "F=	$F"
-	echo "R=	$R"
+	echo " TRIMMOMATIC=	$TRIMMOMATIC"
+	echo " ADAPTERS=	$ADAPTERS"
+#	echo " NUMProc=	$NUMProc"
+	echo " SEED_ASSEMBLY=	$SEED_ASSEMBLY"
+	echo " PALIMDROME_ASSEMBLY=	$PALIMDROME_ASSEMBLY"
+	echo " SIMPLE_ASSEMBLY=	$SIMPLE_ASSEMBLY"
+	echo " HEADCROP=	$HEADCROP"
+	echo " TRAILING_ASSEMBLY=	$TRAILING_ASSEMBLY"
+	echo " windowSize_ASSEMBLY=	$windowSize_ASSEMBLY"
+	echo " windowQuality_ASSEMBLY=	$windowQuality_ASSEMBLY"
+	echo " TRIM_LENGTH_ASSEMBLY=	$TRIM_LENGTH_ASSEMBLY"
+#	echo " F=	$F"
+#	echo " R=	$R"
 
 	if [ ! -d "mkREF" ]; then mkdir mkREF &>/dev/null; fi
 	if [ ! -d "./mkREF/unpaired" ]; then mkdir ./mkREF/unpaired &>/dev/null; fi
@@ -874,9 +865,9 @@ TrimReadsRef () {
 	if [ -f "${NAMES[1]}".$R.fq.gz ]; then
 		THREADS=1  #CEB I tried different numbers here and 1 seems to be best
 		Proc=$(($NUMProc/$THREADS))  
-		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads $THREADS -phred33 {}.F.fq.gz {}.R.fq.gz ./mkREF/{}.r1.fq.gz ./mkREF/unpaired/{}.unpairedF.fq.gz ./mkREF/{}.r2.fq.gz ./mkREF/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY HEADCROP:$HEADCROP TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY  &> ./mkREF/logs/{}.trim.log"
+		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads $THREADS -phred33 {}.F.fq.gz {}.R.fq.gz ./mkREF/{}.r1.fq.gz ./mkREF/unpaired/{}.unpairedF.fq.gz ./mkREF/{}.r2.fq.gz ./mkREF/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY  &> ./mkREF/logs/{}.trim.log"
 	else 
-		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkREF/{}.r1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY HEADCROP:$HEADCROP TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY CROP:$TRIM_LENGTH_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY &> ./mkREF/logs/{}.trim.log"
+		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkREF/{}.r1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY &> ./mkREF/logs/{}.trim.log"
 	fi
 	
 	if [[ $HEADCROP != 0 ]]; then
@@ -905,18 +896,18 @@ TrimReads () {
 	TRIMMOMATIC=$(find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null | head -1)
 	ADAPTERS=$(find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | head -1)
 
-	# TRIM_LENGTH_ASSEMBLY=$(grep 'trimmomatic MINLEN (integer, mkREF only)' $CONFIG | awk '{print $1;}')
-	# SEED_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<seed mismatches> (integer)' $CONFIG | awk '{print $1;}')
-	# PALIMDROME_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<palindrome clip thresh> (integer)' $CONFIG | awk '{print $1;}')
-	# SIMPLE_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)' $CONFIG | awk '{print $1;}')
-	# windowSize_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowSize> (integer)' $CONFIG | awk '{print $1;}')
-	# windowQuality_ASSEMBLY=$(grep 'trimmomatic SLIDINGWINDOW:<windowQuality> (integer)' $CONFIG | awk '{print $1;}')
-	# TRAILING_ASSEMBLY=$(grep 'trimmomatic TRAILING:<quality> (integer, mkREF only)' $CONFIG | awk '{print $1;}')
-	# TRIM_LENGTH_MAPPING=$(grep 'trimmomatic MINLEN (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
-	# LEADING_MAPPING=$(grep 'trimmomatic LEADING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
-	# TRAILING_MAPPING=$(grep 'trimmomatic TRAILING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
-	# HEADCROP=$(grep 'HEADCROP:<length> (integer, only Read1 for ezRAD)' $CONFIG | awk '{print $1;}')
-
+	echo " TRIMMOMATIC=	$TRIMMOMATIC"
+	echo " ADAPTERS=	$ADAPTERS"
+#	echo " NUMProc=	$NUMProc"
+	echo " SEED_ASSEMBLY=	$SEED_ASSEMBLY"
+	echo " PALIMDROME_ASSEMBLY=	$PALIMDROME_ASSEMBLY"
+	echo " SIMPLE_ASSEMBLY=	$SIMPLE_ASSEMBLY"
+	echo " TRAILING_ASSEMBLY=	$TRAILING_ASSEMBLY"
+	echo " windowSize_ASSEMBLY=	$windowSize_ASSEMBLY"
+	echo " windowQuality_ASSEMBLY=	$windowQuality_ASSEMBLY"
+	echo " TRIM_LENGTH_ASSEMBLY=	$TRIM_LENGTH_ASSEMBLY"
+#	echo " F=	$F"
+#	echo " R=	$R"
 	
 	if [ ! -d "mkBAM" ]; then mkdir mkBAM &>/dev/null; fi
 	if [ ! -d "./mkBAM/unpaired" ]; then mkdir ./mkBAM/unpaired &>/dev/null; fi
@@ -925,9 +916,9 @@ TrimReads () {
 	if [ -f "${NAMES[1]}".$R.fq.gz ]; then
 		THREADS=1     #CEB I tried different numbers here and 1 seems to be best
 		Proc=$(($NUMProc/$THREADS))  
-		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads $THREADS -phred33 {}.F.fq.gz {}.R.fq.gz ./mkBAM/{}.R1.fq.gz ./mkBAM/unpaired/{}.unpairedF.fq.gz ./mkBAM/{}.R2.fq.gz ./mkBAM/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY HEADCROP:$HEADCROP LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
+		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads $THREADS -phred33 {}.F.fq.gz {}.R.fq.gz ./mkBAM/{}.R1.fq.gz ./mkBAM/unpaired/{}.unpairedF.fq.gz ./mkBAM/{}.R2.fq.gz ./mkBAM/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
 	else 
-		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkBAM/{}.R1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY HEADCROP:$HEADCROP LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
+		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkBAM/{}.R1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
 	fi 
 	
 	if [[ $HEADCROP != 0 ]]; then
@@ -1276,10 +1267,12 @@ EOF
 		sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/	/g' uniq.$CUTOFFS.fasta | cut -f1 > uniq.$CUTOFFS.F.fasta
 		CDHIT=$(python -c "print max("$simC" - 0.1,0.8)")
 		cd-hit-est -i uniq.$CUTOFFS.F.fasta -o xxx.$CUTOFFS -c $CDHIT -T 0 -M 0 -g 1 -d 100 &>cdhit.$CUTOFFS.log
-		mawk '{if ($1 ~ /Cl/) clus = clus + 1; else  print $3 "\t" clus}' xxx.$CUTOFFS.clstr | sed 's/[>dDococent_Contig_,...]//g' | sort -g -k1 > sort.contig.cluster.ids.$CUTOFFS
+		mawk '{if ($1 ~ /Cl/) clus = clus + 1; else  print $3 "\t" clus}' xxx.$CUTOFFS.clstr | sed 's/[>dDococent_Contig_,...]//g' | sort -g -k1 -S 50% --parallel=$NUMProc > sort.contig.cluster.ids.$CUTOFFS
 		paste sort.contig.cluster.ids.$CUTOFFS totaluniqseq.$CUTOFFS > contig.cluster.totaluniqseq.$CUTOFFS
-		sort -k2,2 -g contig.cluster.totaluniqseq.$CUTOFFS | sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/	/g' > rcluster.$CUTOFFS
+
 		#CD-hit output is converted to rainbow format
+		sort -k2,2 -g -S 50% --parallel=$NUMProc contig.cluster.totaluniqseq.$CUTOFFS | sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/	/g' > rcluster.$CUTOFFS
+
 		echo ""
 		echo -n "Running rainbow div "
 		date
@@ -1292,7 +1285,7 @@ EOF
 		echo `date` " Selecting contigs"
 
 		#This AWK code replaces rainbow's contig selection perl script
-		cat rbasm.$CUTOFFS.out <(echo "E") |sed 's/[0-9]*:[0-9]*://g' | mawk ' {
+		cat rbasm.$CUTOFFS.out <(echo "E") | sed 's/[0-9]*:[0-9]*://g' | mawk ' {
 			if (NR == 1) e=$2;
 			else if ($1 ~/E/ && lenp > len1) {c=c+1; print ">dDocent_Contig_" e "\n" seq2 "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}
 			else if ($1 ~/E/ && lenp <= len1) {c=c+1; print ">dDocent_Contig_" e "\n" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}

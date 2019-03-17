@@ -1,6 +1,7 @@
 #!/bin/bash
 
-#SBATCH --job-name=trim_ref
+#SBATCH --job-name=trimFQ-mkVCF
+#SBATCH -o trimFQ-mkREF-mkBAM-fltrBAM-mkVCF-%j.out
 #SBATCH --time=48:00:00
 #SBATCH -p normal
 #SBATCH --nodes=1
@@ -8,6 +9,11 @@
 module load ddocent
 
 #this is an example sbatch script to run dDocentHPC on a slurm supercomputer
+#it is assumed that you have copied dDocentHPC.bash and config.4.all to your project directory
+#and your *F.fq.gz and *R.fq.gz files are in the project directory
+
+#while this will run all of dDocentHPC's functions, it is recommended to run each function independently
+#and evaluate the output before moving to the next step
 
 #this will trim the fq.gz files using the settings in config.4.all
 #it is assumed that the directory you run this script from has the 
