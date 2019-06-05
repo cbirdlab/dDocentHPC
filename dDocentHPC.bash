@@ -324,8 +324,10 @@ fi
 TEST=$(ls *.fq 2> /dev/null | wc -l )
 
 if [ "$TEST" -gt 0 ]; then
-	echo -e "\ndDocent is now configured to work on compressed sequence files.  Please run gzip to compress your files."
-	echo "This is as simple as 'gzip *.fq'"
+	echo -e "\ndDocent is now configured to work on compressed sequence files.  "
+	echo -e "\nIf the following files are not your original data files, they can likely be deleted."
+	ls *fq
+	echo "Otherwise, please run gzip to compress your files. This is as simple as 'gzip *.fq'"
 	echo "Please rerun dDocent after compressing files."
 	echo $TEST
 	exit 1
@@ -1266,7 +1268,7 @@ EOF
 		echo -n "Reads are first clustered using only the Forward reads using CD-hit instead of rainbow "
 		date
 		sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/	/g' uniq.$CUTOFFS.fasta | cut -f1 > uniq.$CUTOFFS.F.fasta
-		CDHIT=$(python -c "print max("$simC" - 0.1,0.8)")
+		CDHIT=$(python -c "print max ("$simC" - 0.1,0.8)")
 		cd-hit-est -i uniq.$CUTOFFS.F.fasta -o xxx.$CUTOFFS -c $CDHIT -T 0 -M 0 -g 1 -d 100 &>cdhit.$CUTOFFS.log
 		mawk '{if ($1 ~ /Cl/) clus = clus + 1; else  print $3 "\t" clus}' xxx.$CUTOFFS.clstr | sed 's/[>dDococent_Contig_,...]//g' | sort -g -k1 -S 50% --parallel=$NUMProc > sort.contig.cluster.ids.$CUTOFFS
 		paste sort.contig.cluster.ids.$CUTOFFS totaluniqseq.$CUTOFFS > contig.cluster.totaluniqseq.$CUTOFFS
@@ -1277,7 +1279,7 @@ EOF
 		echo ""
 		echo -n "Running rainbow div "
 		date
-		rainbow div -i rcluster.$CUTOFFS -o rbdiv.$CUTOFFS.out -f 0.5 -K 10
+		rainbow div -i rcluster.$CUTOFFS -o rbdiv.$CUTOFFS.out -f 0.5 -k 1 -K 50   #puritz has -k 2 and -K 10
 		echo ""
 		echo -n "Running rainbow merge "
 		date
@@ -1286,18 +1288,18 @@ EOF
 		echo `date` " Selecting contigs"
 
 		#This AWK code replaces rainbow's contig selection perl script
-		cat rbasm.$CUTOFFS.out <(echo "E") | sed 's/[0-9]*:[0-9]*://g' | mawk ' {
-			if (NR == 1) e=$2;
-			else if ($1 ~/E/ && lenp > len1) {c=c+1; print ">dDocent_Contig_" e "\n" seq2 "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}
-			else if ($1 ~/E/ && lenp <= len1) {c=c+1; print ">dDocent_Contig_" e "\n" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}
-			else if ($1 ~/C/) clus=$2;
-			else if ($1 ~/L/) len=$2;
-			else if ($1 ~/S/) seq=$2;
-			else if ($1 ~/N/) freq=$2;
-			else if ($1 ~/R/ && $0 ~/0/ && $0 !~/1/ && len > lenf) {seq1 = seq; fclus=clus;lenf=len}
-			else if ($1 ~/R/ && $0 ~/0/ && $0 ~/1/) {seq1 = seq; fclus=clus; len1=len}
-			else if ($1 ~/R/ && $0 ~!/0/ && freq > freqp && len >= lenp || $1 ~/R/ && $0 ~!/0/ && freq == freqp && len > lenp) {seq2 = seq; lenp = len; freqp=freq}
-			}' > rainbow.$CUTOFFS.fasta
+cat rbasm.$CUTOFFS.out <(echo "E") | sed 's/[0-9]*:[0-9]*://g' | mawk ' {
+if (NR == 1) e=$2;
+else if ($1 ~/E/ && lenp > len1) {c=c+1; print ">dDocent_Contig_" e "\n" seq2 "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}
+else if ($1 ~/E/ && lenp <= len1) {c=c+1; print ">dDocent_Contig_" e "\n" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}
+else if ($1 ~/C/) clus=$2;
+else if ($1 ~/L/) len=$2;
+else if ($1 ~/S/) seq=$2;
+else if ($1 ~/N/) freq=$2;
+else if ($1 ~/R/ && $0 ~/0/ && $0 !~/1/ && len > lenf) {seq1 = seq; fclus=clus;lenf=len}
+else if ($1 ~/R/ && $0 ~/0/ && $0 ~/1/) {seq1 = seq; fclus=clus; len1=len}
+else if ($1 ~/R/ && $0 ~!/0/ && freq > freqp && len >= lenp || $1 ~/R/ && $0 ~!/0/ && freq == freqp && len > lenp) {seq2 = seq; lenp = len; freqp=freq}
+}' > rainbow.$CUTOFFS.fasta
 
 		seqtk seq -r rainbow.$CUTOFFS.fasta > rainbow.$CUTOFFS.RC.fasta
 		mv rainbow.$CUTOFFS.RC.fasta rainbow.$CUTOFFS.fasta
