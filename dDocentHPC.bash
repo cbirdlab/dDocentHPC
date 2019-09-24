@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION=4.2
+VERSION=4.3
 #This script serves as an interactive bash wrapper to QC, assemble, map, and call SNPs from double digest RAD (SE or PE), ezRAD (SE or PE) data, or SE RAD data.
 #It requires that your raw data are split up by tagged individual and follow the naming convention of:
 
@@ -7,7 +7,6 @@ VERSION=4.2
 
 #Prints out title and contact info
 echo; echo -e "\n* dDocentHPC v$VERSION Forked by cbird@tamucc.edu * \n"
-#echo -e "Contact jpuritz@gmail.com with any problems \n\n "
 
 
 #Determine which functions to run
@@ -53,7 +52,7 @@ if [ -n "$2" ]; then
 	LEADING_MAPPING=$(grep 'trimmomatic LEADING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
 	TRAILING_MAPPING=$(grep 'trimmomatic TRAILING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
 	HEADCROP=$(grep 'HEADCROP:<length> (integer, only Read1 for ezRAD)' $CONFIG | awk '{print $1;}')
-	
+
 	FixStacks=$(grep 'FixStacks (yes,no)' $CONFIG | awk '{print $1;}')
 	ASSEMBLY="RemoveThisVar"
 	ATYPE=$(grep 'Type of reads for assembly (PE, SE, OL, RPE)' $CONFIG | awk '{print $1;}')
@@ -76,7 +75,7 @@ if [ -n "$2" ]; then
 	optO=$(grep 'bwa mem -O Mapping_GapOpen_Penalty (integer)' $CONFIG | awk '{print $1;}')
 	MAPPING_MIN_ALIGNMENT_SCORE=$(grep 'bwa mem -T Mapping_Minimum_Alignment_Score (integer)' $CONFIG | awk '{print $1;}')
 	MAPPING_CLIPPING_PENALTY=$(grep 'bwa mem -L Mapping_Clipping_Penalty (integer,integer)' $CONFIG | awk '{print $1;}')
-	
+
 	FILTERMAP="RemoveThisVar"
 	MAPPING_MIN_QUALITY=$(grep 'Mapping_Min_Quality (integer)' $CONFIG | awk '{print $1;}')
 	SAMTOOLS_VIEW_F4=$(grep 'Remove_unmapped_reads? (yes,no)' $CONFIG | awk '{print $1;}')
@@ -92,25 +91,25 @@ if [ -n "$2" ]; then
 	else
 		F4=0
 	fi
-	
+
 	if [ "$SAMTOOLS_VIEW_F8" == "yes" ]; then
 		F8=8
 	else
 		F8=0
 	fi
-	
+
 	if [ "$SAMTOOLS_VIEW_F256" == "yes" ]; then
 		F256=256
 	else
 		F256=0
 	fi
-	
+
 	if [ "$SAMTOOLS_VIEW_F512" == "yes" ]; then
 		F512=512
 	else
 		F512=0
 	fi
-	
+
 	if [ "$SAMTOOLS_VIEW_F1024" == "yes" ]; then
 		F1024=1024
 	else
@@ -122,15 +121,15 @@ if [ -n "$2" ]; then
 	else
 		F2048=0
 	fi
-	
+
 	SAMTOOLS_VIEW_F=$(($F4+$F8+$F256+$F512+$F1024+$F2048)) 
-	
+
 	if [ "$SAMTOOLS_VIEW_f2" == "yes" ]; then
 		SAMTOOLS_VIEW_f=2
 	else
 		SAMTOOLS_VIEW_f=0
 	fi
-	
+
 	SAMTOOLS_VIEW_Fcustom=$(grep 'Custom_samtools_view_F_bit_value? (integer)' $CONFIG | awk '{print $1;}')
 	SAMTOOLS_VIEW_fcustom=$(grep 'Custom_samtools_view_f_bit_value? (integer)' $CONFIG | awk '{print $1;}')
 	SOFT_CLIP_CUT=$(grep 'Remove_reads_with_excessive_soft_clipping? (no, integers by 10s)' $CONFIG | awk '{print $1;}')
@@ -149,7 +148,7 @@ if [ -n "$2" ]; then
 	MIN_REPEAT_ENTROPY=$(grep 'freebayes    --min-repeat-entropy (0, 1, or integer)' $CONFIG | awk '{print $1;}')
 	MIN_COVERAGE=$(grep 'freebayes    --min-coverage (integer)' $CONFIG | awk '{print $1;}')
 	MIN_ALT_FRACTION=$(grep 'freebayes -F --min-alternate-fraction' $CONFIG | awk '{print $1;}')
-	
+
 	FREEBAYES_z=$(grep 'freebayes -z --read-max-mismatch-fraction' $CONFIG | awk '{print $1;}')
 	FREEBAYES_C=$(grep 'freebayes -C --min-alternate-count' $CONFIG | awk '{print $1;}')
 	FREEBAYES_3=$(grep 'freebayes ~3 ~~min-alternate-qsum' $CONFIG | awk '{print $1;}'); FREEBAYES_3=$((FREEBAYES_3 * FREEBAYES_C))
@@ -319,6 +318,11 @@ else
 	 awk=awk
 fi
 
+if ! sort --version | fgrep GNU &>/dev/null; then
+	sort=gsort
+else
+	sort=sort
+fi
 
 #This code checks for individual fastq files follow the correct naming convention and are gziped
 TEST=$(ls *.fq 2> /dev/null | wc -l )
@@ -413,11 +417,8 @@ main(){
 	# if [[ $FREEBAYES_no_partial_observations != "" ]]; then echo "		freebayes ${FREEBAYES_no_partial_observations}"; fi
 	
 	
-	
 	# echo "  MAIL=	${44}"
 	# echo "  BEDTOOLSFLAG=	${51}"
-	
-	
 	
 	
 	#Load config arguments into variables
@@ -610,7 +611,7 @@ main(){
 	#NUMNAMES=$(mawk '/_/' namelist.$CUTOFFS | wc -l)
 	NUMNAMES=$(grep -c '^' namelist.$CUTOFFS)
 
-	
+
 	if [ "$NUMNAMES" == "$NumInd" ]; then
 		NAMES=( `cat "namelist.$CUTOFFS" `)
 		echo " ";echo " The samples being processed are:"
@@ -938,42 +939,20 @@ TrimReads () {
 ###############################################################################################
 
 Assemble(){
-#Assemble $NUMProc $CONFIG $Rsed $NumInd $Fwild $Rwild $awk NAMES 
-#         $NUMProc $CONFIG $Rsed $NumInd $Fwild $Rwild $awk NAMES
-	# NUMProc=$1
-	# CONFIG=$2
-	# Rsed=$3
-	# NumInd=$4
-	# Fwild=$5
-	# Rwild=$6
-	# awk=$7
-	# names=$8[@]
-	# NAMES=("${!names}")
-
-	# ATYPE=$(grep 'Type of reads for assembly (PE, SE, OL, RPE)' $CONFIG | awk '{print $1;}')
-	# simC=$(grep 'cdhit Clustering_Similarity_Pct (0-1)' $CONFIG | awk '{print $1;}')
-	# HPC=$(grep 'Get graphs for cutoffs, then stop? (yes or no)' $CONFIG | awk '{print $1;}')
-	# MANCUTOFF=$(grep 'Manually set cutoffs? (yes or no)' $CONFIG | awk '{print $1;}')
-	# if [ "$MANCUTOFF" = "no" ]; then
-		# CUTOFF=$(grep 'Cutoff1 (integer)' $CONFIG | awk '{print $1;}')
-		# CUTOFF2=$(grep 'Cutoff2 (integer)' $CONFIG | awk '{print $1;}')
-		# #echo ""; echo `date` " CUTOFF=" $CUTOFF
-		# #echo ""; echo `date` " CUTOFF2=" $CUTOFF2
-	# else
-		# echo ""; echo `date` " ERROR: This is the HPC version of dDocent.  Manual cutoffs are not possible.  Please change config file settings."
-		# echo "  Aborting dDocentHPC"
-		# exit
-	# fi
-	# CUTOFFS=$CUTOFF.$CUTOFF2
-
 
 	AWK1='BEGIN{P=1}{if(P==1||P==2){gsub(/^[@]/,">");print}; if(P==4)P=0; P++}'
 	AWK2='!/>/'
 	AWK3='!/NNN/'
+	AWK4='{for(i=0;i<$1;i++)print}'
 	PERLT='while (<>) {chomp; $z{$_}++;} while(($k,$v) = each(%z)) {print "$v\t$k\n";}'
-	SED1='s/^[ 	]*//'
-	SED2='s/ /	/g'
+	SED1='s/^[ \t]*//'
+	SED2='s/\s/\t/g'
 	FRL=$(zcat ${NAMES[0]}.r1.fq.gz | mawk '{ print length() | "sort -rn" }' | head -1)
+
+	special_uniq(){
+		mawk -v x=$1 '$1 >= x' $2  |cut -f2 | sed -e 's/NNNNNNNNNN/\t/g' | cut -f1 | uniq
+	}
+	export -f special_uniq
 
 	if [ ! -s "namelistfr.$CUTOFFS" ];then
 		ls $Fwild > namelistfr.$CUTOFFS
@@ -984,76 +963,75 @@ Assemble(){
 		echo "  If you experience errors, you should delete the namelistfr file."
 	fi
 
-	#$$$$$$$$$$$CEB$$$$$$$$$$$$$$$$
 	#this block of code will either align or concatenate r1 & r2 seqs and create a file of unique sequences 
-		echo " "; echo `date` " Reference Genome Assembly Step 1, Select Cutoffs"
+	echo " "; echo `date` " Reference Genome Assembly Step 1, Select Cutoffs"
 
+	if [ ${NAMES[@]:(-1)}.r1.fq.gz -nt ${NAMES[@]:(-1)}.uniq.seqs ];then
+		echo " ";echo `date` " the *.fq.gz files are newer than the *uniq.seqs files or the *.uniq.seq files do not exist"
 
-		if [ ${NAMES[@]:(-1)}.r1.fq.gz -nt ${NAMES[@]:(-1)}.uniq.seqs ];then
-			echo " ";echo `date` " the *.fq.gz files are newer than the *uniq.seqs files or the *.uniq.seq files do not exist"
-			
-			if [ ! -s ${NAMES[@]:(-1)}.uniq.seqs ];then
-				echo "";echo `date` " make *.uniq.seqs files"		
-				if [[ "$ATYPE" == "PE" || "$ATYPE" == "RPE" ]]; then
-				#If PE assembly, creates a concatenated file of every unique for each individual in parallel
-					#CEB this would be faster if fwd & rev could be created in 1 line
-					#cat namelist.$CUTOFF.$CUTOFF2 | parallel --no-notice -j $NUMProc "zcat {}.r1.fq.gz | mawk '$AWK1' | mawk '$AWK2' > {}.forward"
-					#cat namelist.$CUTOFF.$CUTOFF2 | parallel --no-notice -j $NUMProc "zcat {}.r2.fq.gz | mawk '$AWK1' | mawk '$AWK2' > {}.reverse"
-					#here is my try at making this go faster
-					cat namelistfr.$CUTOFFS | parallel --no-notice -j $NUMProc "zcat {}.fq.gz | mawk '$AWK1' | mawk '$AWK2' > {}.XXX"
-					rename r1.XXX forward *r1.XXX
-					rename r2.XXX reverse *r2.XXX
-					if [ "$ATYPE" = "RPE" ]; then
-						echo "";echo `date` " RPE assembly"
-						cat namelist.$CUTOFFS | parallel --no-notice -j $NUMProc "paste -d '-' {}.forward {}.reverse | mawk '$AWK3'| sed 's/-/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/' | sort | uniq -c -w $FRL| sed -e '$SED1' | sed -e '$SED2' > {}.uniq.seqs"
-					else
-						echo "";echo `date` " PE assembly"
-						cat namelist.$CUTOFFS | parallel --no-notice -j $NUMProc "paste -d '-' {}.forward {}.reverse | mawk '$AWK3'| sed 's/-/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/' | perl -e '$PERLT' > {}.uniq.seqs"
-					fi
-					rm *.forward
-					rm *.reverse
+		if [ ! -s ${NAMES[@]:(-1)}.uniq.seqs ];then
+			echo "";echo `date` " make *.uniq.seqs files"
+			if [[ "$ATYPE" == "PE" || "$ATYPE" == "RPE" ]]; then
+				
+				cat namelistfr.$CUTOFFS | parallel --no-notice -j $NUMProc "zcat {}.fq.gz | mawk '$AWK1' | mawk '$AWK2' > {}.XXX"
+				rename r1.XXX forward *r1.XXX
+				rename r2.XXX reverse *r2.XXX
+				
+				if [ "$ATYPE" = "RPE" ]; then
+					echo "";echo `date` " RPE assembly"
+
+					cat namelist.$CUTOFFS | parallel --no-notice -j $NUMProc "paste {}.forward {}.reverse | $sort -k1 -S 200M > {}.fr"
+					cat namelist.$CUTOFFS | parallel --no-notice -j $NUMProc "cut -f1 {}.fr | uniq -c > {}.f.uniq && cut -f2 {}.fr > {}.r"
+					cat namelist.$CUTOFFS | parallel --no-notice -j $NUMProc "mawk '$AWK4' {}.f.uniq > {}.f.uniq.e" 
+					cat namelist.$CUTOFFS | parallel --no-notice -j $NUMProc "paste -d '-' {}.f.uniq.e {}.r | mawk '$AWK3'| sed -e 's/-/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/' | sed -e '$SED1' | sed -e '$SED2' > {}.uniq.seqs"
+					rm *.f.uniq.e *.f.uniq *.r *.fr
+				else
+					echo "";echo `date` " PE assembly"
+					cat namelist.$CUTOFFS | parallel --no-notice -j $NUMProc "paste -d '-' {}.forward {}.reverse | mawk '$AWK3'| sed 's/-/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/' | perl -e '$PERLT' > {}.uniq.seqs"
 				fi
-				if [ "$ATYPE" == "SE" ]; then
-					echo "";echo `date` " SE assembly"
-				#if SE assembly, creates files of every unique read for each individual in parallel
-					cat namelist.$CUTOFFS | parallel --no-notice -j $NUMProc "zcat {}.r1.fq.gz | mawk '$AWK1' | mawk '$AWK2' | perl -e '$PERLT' > {}.uniq.seqs"
-				fi
-				if [ "$ATYPE" == "OL" ]; then
-				#If OL assembly, dDocent assumes that the majority of PE reads will overlap, so the software PEAR is used to merge paired reads into single reads
-					echo "";echo `date` " OL assembly"
-					# for i in "${NAMES[@]}";
-						# do
-						# #zcat $i.R.fq.gz | head -2 | tail -1 >> lengths.$CUTOFF.$CUTOFF2.txt
-						# zcat $i$Rsed | head -2 | tail -1 >> lengths.$CUTOFF.$CUTOFF2.txt
-					# done	
-					#parallel code ceb aug 2018
-					parallel --no-notice -j $NUMProc "zcat {}$Rsed | head -2 | tail -1 >> lengths.$CUTOFFS.txt" ::: "${NAMES[@]}"
-					
-					MaxLen=$(mawk '{ print length() | "sort -rn" }' lengths.$CUTOFFS.txt| head -1)
-					LENGTH=$(( $MaxLen / 3))
-					echo "";echo `date` " OL assembly: PEAR "
-					# for i in "${NAMES[@]}"
-						# do
-						# #pearRM -f $i.F.fq.gz -r $i.R.fq.gz -o $i -j $NUMProc -n $LENGTH 
-						# pearRM -f $i$Fsed -r $i$Rsed -o $i -j $NUMProc -n $LENGTH -p 0.0001
-					# done
-					#parallel code ceb aug 2018; need to check and see how many threads pear can use
-					parallel --no-notice -j "$NUMProc pearRM -f {}$Fsed -r {}$Rsed -o {} -j $NUMProc -n $LENGTH -p 0.0001" ::: "${NAMES[@]}"
-					
-					echo "";echo `date` " OL assembly: create *.uniq.seqs "
-					cat namelist.$CUTOFFS | parallel --no-notice -j $NUMProc "mawk '$AWK1' {}.assembled.fastq | mawk '$AWK2' | perl -e '$PERLT' > {}.uniq.seqs"
-				fi
-			else
-				echo "";echo "***************************************************************************"
-				echo `date` " if you want to recreate *uniq.seqs files then you need to delete the present *.uniq.seq files "
-				echo "***************************************************************************"
-				echo " "
+
+				ls *.[fr][oe][rv][we][ar][rs][de] | parallel --no-notice -j $NUMProc rm {}
+
 			fi
+			
+			if [ "$ATYPE" == "SE" ]; then
+				echo "";echo `date` " SE assembly"
+				#if SE assembly, creates files of every unique read for each individual in parallel
+				cat namelist.$CUTOFFS | parallel --no-notice -j $NUMProc "zcat {}.r1.fq.gz | mawk '$AWK1' | mawk '$AWK2' | perl -e '$PERLT' > {}.uniq.seqs"
+			fi
+			
+			if [ "$ATYPE" == "OL" ]; then
+				#If OL assembly, dDocent assumes that the majority of PE reads will overlap, so the software PEAR is used to merge paired reads into single reads
+				echo "";echo `date` " OL assembly"
+				# for i in "${NAMES[@]}";
+					# do
+					# #zcat $i.R.fq.gz | head -2 | tail -1 >> lengths.$CUTOFF.$CUTOFF2.txt
+					# zcat $i$Rsed | head -2 | tail -1 >> lengths.$CUTOFF.$CUTOFF2.txt
+				# done	
+				#parallel code ceb aug 2018
+				parallel --no-notice -j $NUMProc "zcat {}$Rsed | head -2 | tail -1 >> lengths.$CUTOFFS.txt" ::: "${NAMES[@]}"
+				
+				MaxLen=$(mawk '{ print length() | "sort -rn" }' lengths.$CUTOFFS.txt| head -1)
+				LENGTH=$(( $MaxLen / 3))
+				echo "";echo `date` " OL assembly: PEAR "
+				# for i in "${NAMES[@]}"
+					# do
+					# #pearRM -f $i.F.fq.gz -r $i.R.fq.gz -o $i -j $NUMProc -n $LENGTH 
+					# pearRM -f $i$Fsed -r $i$Rsed -o $i -j $NUMProc -n $LENGTH -p 0.0001
+				# done
+				#parallel code ceb aug 2018; need to check and see how many threads pear can use
+				parallel --no-notice -j "$NUMProc pearRM -f {}$Fsed -r {}$Rsed -o {} -j $NUMProc -n $LENGTH -p 0.0001" ::: "${NAMES[@]}"
+				
+				echo "";echo `date` " OL assembly: create *.uniq.seqs "
+				cat namelist.$CUTOFFS | parallel --no-notice -j $NUMProc "mawk '$AWK1' {}.assembled.fastq | mawk '$AWK2' | perl -e '$PERLT' > {}.uniq.seqs"
+			fi
+		else
+			echo "";echo "***************************************************************************"
+			echo `date` " if you want to recreate *uniq.seqs files then you need to delete the present *.uniq.seq files "
+			echo "***************************************************************************"
+			echo " "
 		fi
-	#end block of code that will either align or concatenate R1 & R2 seqs and create a file of unique sequences 
-	#$$$$$$$$$$$$CEB$$$$$$$$$$$$$$$$
-
-
+	fi
 
 	#Create a data file with the number of unique sequences and the number of occurrences
 	#if the creation of uniqseq.data were done in parallel, it would be much faster.  Evan?
@@ -1069,55 +1047,42 @@ Assemble(){
 	fi
 
 	if [ ! -e "uniqseq.data" ]; then
-		#echo "";echo `date` " initiating make uniq.seqs"
-		#cat *.uniq.seqs > uniq.seqs
+		echo "";echo `date` " making uniqseq.data ..."
 		
-		# if uniqseq.data does not exist or does not have a file size greater than zero then do this
 		#this removes singletons,should speed up making uniqseq.data since singletons aren't used in uniq.seqs
-		#first step: remove singletons from *.uniq.seqs files in parallel
-		echo "";echo `date` " removing singletons from *.uniq.seqs"	
-		ls *.uniq.seqs | parallel "grep -v '^1[[:space:]]' {} > {}.temp "
-		ls *.uniq.seqs | parallel "mv {}.temp {} "
-		
-		#second step 
-		#echo "";echo `date` " make uniq.seqs"
-		#cat *.uniq.seqs | grep -v "^1[[:space:]]" > uniq.seqs
-		
-	fi
 
-	if [ ! -e "uniqseq.data" ]; then
-		echo "";echo `date` " make uniqseq.data"
+		echo "";echo `date` " removing singletons from *.uniq.seqs"	
+		ls *.uniq.seqs | parallel --no-notice -j $NUMProc "grep -Pv '^1\t' {} > {}.temp "
+		ls *.uniq.seqs | parallel --no-notice -j $NUMProc "mv {}.temp {} "
+
 		seq 2 20 > pfile
-		#cat pfile | parallel --no-notice "echo -n {}xxx && mawk -v x={} '\$1 >= x' uniq.seqs | wc -l" | mawk  '{gsub("xxx","\t",$0); print;}'| sort -g > uniqseq.data
 		ls *.uniq.seqs > uniqseqfilenames.txt
 
-		echo "";echo `date` " counting up uniqseqs"
-		#CEB i changed the following line to overwrite the previous results rather than append
-		parallel --no-notice "(echo -n -e {2}'\t' && grep -c {2} {1}) > {1}.{2}.test " :::: uniqseqfilenames.txt pfile
-		
-		#Evan, here, we should count up the total number of lines in the uniq.seqs files, then subtract the total from the 2-20 counts
+		echo "";echo `date` " counting up uniqseqs ..."
+		parallel --no-notice -j $NUMProc "(echo -n -e {2}'\t' && grep -c {2} {1}) > {1}.{2}.test " :::: uniqseqfilenames.txt pfile
+
+		#count up the total number of lines in the uniq.seqs files, then subtract the total from the 2-20 counts
 		#that will give us  the number greater than 20, which can be appended to the *.data files
 		#ls *.uniq.seqs | parallel --no-notice "sed -n '$=' {} > {}.tot.test"
+		ls *.uniq.seqs | parallel --no-notice -j $NUMProc "cat {}.*.test | sort -g > {}.data"
 
-		ls *.uniq.seqs | parallel --no-notice "cat {}.*.test | sort -g > {}.data"
-		
 		echo "";echo `date` " combining uniqseq counts"
-		cat *uniq.seqs.data | awk '{sums[$1] += $2;} END { for (i in sums) print i " " sums[i]; }' | sort -g > uniqseq.predata
+		cat *uniq.seqs.data | awk '{sums[$1] += $2;} END { for (i in sums) print i " " sums[i]; }' | $sort -g --parallel=$NUMProc > uniqseq.predata
 
-		echo "";echo `date` " calculating >=X for uniqseq.data"
-		#need to make function of awk statement to put inside parallel
+		echo "";echo `date` " calculating >=X for uniqseq.data ..."
+
+		#make function for awk statement to put inside parallel
 		cntUniq() {
-		 awk -v var=$1 'FNR >= var {f+=$2}END{print f}' uniqseq.predata >> grtrthans
+			awk -v var=$1 'FNR >= var {f+=$2}END{print f}' uniqseq.predata >> grtrthans
 		}
 		rm -rf grtrthans
-		#need to do this
 		export -f cntUniq
+
 		#subtract 1 from each number in pfile and feed to parallel to run function
-		awk '{$1 = $1 - 1; print}' pfile | parallel --no-notice cntUniq
-		#make uniqseq.data
-		sort -nr grtrthans > greaterthans
+		awk '{$1 = $1 - 1; print}' pfile | parallel --no-notice -j $NUMProc cntUniq
+		$sort -nr grtrthans > greaterthans
 		paste pfile greaterthans > uniqseq.data
-		#cleanup junk
+
 		rm -rf grtrthans
 		rm -rf greaterthans
 		rm -rf pfile
@@ -1125,14 +1090,12 @@ Assemble(){
 		rm -rf *uniq.seqs.data
 		rm -rf *uniqseq.predata
 
-		
-		
-		#cat pfile | parallel --no-notice "echo -n {}xxx && mawk -v x={} '$1 >= x' uniq.seqs | wc -l" | mawk  '{gsub("xxx","\t",$0); print;}'| sort -g > uniqseq.data
-		
+	else
+		echo "";echo `date` " uniqseq.data exists and won't be overwritten. If you experience errors, try deleting uniqseq.data"
 	fi
 
 	#Plot graph of above data
-		echo "";echo `date` " plot graph for cutoff 1"; echo ""
+	echo "";echo `date` " plot graph for cutoff 1"; echo ""
 
 gnuplot << \EOF 
 set terminal dumb size 120, 30
@@ -1146,25 +1109,15 @@ plot 'uniqseq.data' with lines notitle
 pause -1
 EOF
 
-
-
-
-	#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 	echo "";echo `date` " CEB has modified dDocent here such that there is no user input"
 	echo "";echo `date` " Use the graph above to set CUTOFF1 in the config file"
 	echo "";echo `date` " CUTOFF1 is currently set to $CUTOFF"
 	echo "";echo `date` " The graph below is dependent upon the value of CUTOFF1"
-	if [ "$MANCUTOFF" = "yes" ];then
-		echo -e "Please choose data cutoff.  In essence, you are picking a minimum (within individual) coverage level for a read (allele) to be used in the reference assembly"
-		read CUTOFF
-	fi
-
-	#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 	if [ "$ATYPE" == "RPE" ]; then
 		if [ ! -s "uniqCperindv.$CUTOFF" ];then
 			echo "";echo `date` " make uniqCperindv.$CUTOFF  tradRAD, not ezRAD & ddRAD"
-			parallel --no-notice -j $NUMProc mawk -v x=$CUTOFF \''$1 >= x'\' ::: *.uniq.seqs | cut -f2 | sort | uniq -c -w $FRL | sed -e 's/^[ 	]*//' | sed -e 's/ /	/g' > uniqCperindv.$CUTOFF
+			parallel --no-notice -j $NUMProc --env special_uniq special_uniq $CUTOFF {} ::: *.uniq.seqs  | $sort --parallel=$NUMProc -S 2G | uniq -c > uniqCperindv.$CUTOFF
 		fi
 	else
 		if [ ! -s "uniqCperindv.$CUTOFF" ];then
@@ -1176,6 +1129,7 @@ EOF
 			#ls *uniq.seqs | parallel 'cut -f2' | sort | uniq -c | grep -v '^1[[:space:]]' > uniqCperindv.$CUTOFF
 		fi
 	fi
+	
 	if [ "$NumInd" -gt 10 ]; then
 		NUM=$(($NumInd / 2))
 	else
@@ -1184,22 +1138,14 @@ EOF
 
 	if [ ! -s "uniqseq.$CUTOFF.peri.data" ];then
 		echo "";echo `date` " make uniqseq.$CUTOFF.peri.data"
-		#for ((i = 2; i <= $NUM; i++)); do
-		#	echo $i >> ufile.$CUTOFF
-		#done
-		#l
-
-		#cat ufile.$CUTOFF
 		# this one is slow.  Can it be sped up?
-		seq 2 $NUM | parallel --no-notice "echo -n {}xxx && mawk -v x={} '\$1 >= x' uniqCperindv.$CUTOFF | wc -l" | mawk  '{gsub("xxx","\t",$0); print;}'| sort -g > uniqseq.$CUTOFF.peri.data
-		#cat ufile | parallel --no-notice "echo -n {}xxx && mawk -v x={} '$1 >= x' uniqCperindv.$CUTOFF | wc -l" | mawk  '{gsub("xxx","\t",$0); print;}'| sort -g > uniqseq.$CUTOFF.peri.data
-		#rm ufile.$CUTOFF
+		seq 2 $NUM | parallel --no-notice "echo -n {}xxx && mawk -v x={} '\$1 >= x' uniqCperindv.$CUTOFF | wc -l" | mawk  '{gsub("xxx","\t",$0); print;}'| $sort -g > uniqseq.$CUTOFF.peri.data
 	fi
 
 	#Plot graph of above data
-		echo "";echo `date` " plot graph for cutoff 2"
-		echo ""
-		export PlotFile=uniqseq.$CUTOFF.peri.data
+	echo "";echo `date` " plot graph for cutoff 2"
+	echo ""
+	export PlotFile=uniqseq.$CUTOFF.peri.data
 gnuplot << \EOF 
 filename=system("echo $PlotFile")
 set terminal dumb size 120, 30
@@ -1218,121 +1164,166 @@ EOF
 
 	#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	echo "";echo `date` " CEB has modified dDocent here such that there is no user input"
-	if [ "$MANCUTOFF" = "yes" ]; then
-		echo -e "Please choose data cutoff.  Pick point right before the assymptote. A good starting cutoff might be 10% of the total number of individuals"
-		read CUTOFF2
-	fi
-	echo "";echo `date` " Once you have used the graphs to decide upon cutoffs, adjust the config file so that dDocent will complete reference genome assembly"
-	if [ "$HPC" = "yes" ]; then
-		echo "";echo `date` " Stopping because config file is set to HPC, Get Graphs for cutoffs, then stop? yes"
-		exit
-	fi
 	#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-	#Prints instructions on how to move analysis to background and disown process
 	echo "";echo `date` " Assembly Phase 2"
-	echo "";echo `date` " At this point, all configuration information has been entered and dDocent may take several hours to run." 
-	#echo "It is recommended that you move this script to a background operation and disable terminal input and output."
 	#echo "All data and logfiles will still be recorded."
-	#echo "To do this:"
-	#echo "Press control and Z simultaneously"
-	#echo "Type 'bg' without the quotes and press enter"
-	#echo "Type 'disown -h' again without the quotes and press enter"
-	#echo ""
-	#echo "Now sit back, relax, and wait for your analysis to finish."
 
 	#Now that data cutoffs have been chosen, reduce data set to specified set of unique reads, convert to FASTA format,
 	#and remove reads with substantial amounts of adapters
 
 	echo "";echo `date` " mawking"
-	mawk -v x=$CUTOFF2 '$1 >= x' uniqCperindv.$CUTOFF > uniq.k.$CUTOFF.c.$CUTOFF2.seqs
-	cut -f2 uniq.k.$CUTOFF.c.$CUTOFF2.seqs > totaluniqseq.$CUTOFFS
-	mawk '{c= c + 1; print ">dDocent_Contig_" c "\n" $1}' totaluniqseq.$CUTOFFS > uniq.$CUTOFFS.full.fasta
-	LENGTH=$(mawk '!/>/' uniq.$CUTOFFS.full.fasta  | mawk '(NR==1||length<shortest){shortest=length} END {print shortest}')
-	LENGTH=$(($LENGTH * 3 / 4))
-	$awk 'BEGIN {RS = ">" ; FS = "\n"} NR > 1 {print "@"$1"\n"$2"\n+""\n"gensub(/./, "I", "g", $2)}' uniq.$CUTOFFS.full.fasta > uniq.$CUTOFFS.fq
-	#$$$$$ceb$$$$$$$$$$$
-	#added cp line and turned off the trimmomatic
-	cp uniq.$CUTOFFS.fq uniq.$CUTOFFS.fq1
-	#java -jar $TRIMMOMATIC SE -threads $NUMProc -phred33 uniq.$CUTOFF.$CUTOFF2.fq uniq.$CUTOFF.$CUTOFF2.fq1 ILLUMINACLIP:$ADAPTERS:2:30:10 MINLEN:$LENGTH
-	mawk 'BEGIN{P=1}{if(P==1||P==2){gsub(/^[@]/,">");print}; if(P==4)P=0; P++}' uniq.$CUTOFFS.fq1 > uniq.$CUTOFFS.fasta
-	mawk '!/>/' uniq.$CUTOFFS.fasta > totaluniqseq.$CUTOFFS
-	rm uniq.$CUTOFFS.fq*
 
-	#If this is a PE assembly
+	if [[ "$ATYPE" == "RPE" || "$ATYPE" == "ROL" ]]; then
+		#NEED TO ADD A Config or Cmd line setting to overwrite these CEB
+		if [ ! -s "total.$CUTOFF.fr" ]; then
+			parallel --no-notice -j $NUMProc mawk -v x=$CUTOFF \''$1 >= x'\' ::: *.uniq.seqs | cut -f2 | sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/' | $sort -k1,1 --parallel=$NUMProc -S 2G > total.$CUTOFF.fr
+		fi
+		if [ ! -s "total.$CUTOFF.f.uniq" ]; then
+			parallel --no-notice --env special_uniq special_uniq $CUTOFF {} ::: *.uniq.seqs  | $sort --parallel=$NUMProc -S 2G | uniq -c > total.$CUTOFF.f.uniq
+		fi
+		if [ ! -s "total.$CUTOFF.f.uniq" ]; then
+			join -1 2 -2 1 -o 1.1,1.2,2.2 total.$CUTOFF.f.uniq total.$CUTOFF.fr | mawk '{print $1 "\t" $2 "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN" $3}' | mawk -v x=$CUTOFF2 '$1 >= x' > uniq.k.$CUTOFF.c.$CUTOFF2.seqs 
+		fi
+	else
+		parallel --no-notice mawk -v x=$CUTOFF \''$1 >= x'\' ::: *.uniq.seqs | cut -f2 | perl -e 'while (<>) {chomp; $z{$_}++;} while(($k,$v) = each(%z)) {print "$v\t$k\n";}' | mawk -v x=$CUTOFF2 '$1 >= x' > uniq.k.$CUTOFF.c.$CUTOFF2.seqs
+	fi
+	
+	if [ ! -s "totaluniqseq.$CUTOFFS" ]; then
+		$sort -k1 -r -n --parallel=$NUMProc -S 2G uniq.k.$CUTOFF.c.$CUTOFF2.seqs | parallel --no-notice -j $NUMProc -k --pipe --block 10M cut -f2 > totaluniqseq.$CUTOFFS 
+	fi
+	if [ ! -s "uniq.$CUTOFFS.fasta" ]; then
+		mawk '{c= c + 1; print ">dDocent_Contig_" c "\n" $1}' totaluniqseq.$CUTOFFS > uniq.$CUTOFFS.fasta
+	fi
+	# mawk '{c= c + 1; print ">dDocent_Contig_" c "\n" $1}' totaluniqseq.$CUTOFFS > uniq.full.$CUTOFFS.fasta
+	# LENGTH=$(mawk '!/>/' uniq.full.$CUTOFFS.fasta  | mawk '(NR==1||length<shortest){shortest=length} END {print shortest}')
+	# LENGTH=$(($LENGTH * 3 / 4))
+	# seqtk seq -F I uniq.full.$CUTOFFS.fasta > uniq.$CUTOFFS.fq
+	# if [ "$NUMProc" -gt 20 ]; then
+		# NP=20
+	# else
+		# NP=$NUMProc
+	# fi
+	# fastp -i uniq.$CUTOFFS.fq -o uniq.$CUTOFFS.fq1 -w $NP -Q &> assemble.$CUTOFFS.trim.log
+	# mawk 'BEGIN{P=1}{if(P==1||P==2){gsub(/^[@]/,">");print}; if(P==4)P=0; P++}' uniq.$CUTOFFS.fq1 | paste - - | $sort -k1,1 -V | tr "\t" "\n" > uniq.$CUTOFFS.fasta
+	# mawk '!/>/' uniq.$CUTOFFS.fasta > totaluniqseq.$CUTOFFS
+	# rm uniq.$CUTOFFS.fq*
+
 	if [[ "$ATYPE" == "PE" || "$ATYPE" == "RPE" ]]; then
 		echo ""
-		echo "begin PE Assembly"
+		echo `date` "begin $ATYPE Assembly"
+		
+		pmerge(){
+			num=$( echo $1 | sed -e 's/^0*//g')
+			CUTOFFS=$2
+			if [ "$num" -le 100 ]; then
+				j=$num
+				k=$(($num -1))
+			else
+				num=$(($num - 99))
+				j=$(python -c "print ("$num" * 100)")
+				k=$(python -c "print ("$j" - 100)")
+			fi
+			mawk -v x="$j" -v y="$k" '$5 <= x && $5 > y'  rbdiv.$CUTOFFS.out > rbdiv.$CUTOFFS.out.$1
+		
+			if [ -s "rbdiv.$CUTOFFS.out.$1" ]; then
+				#echo -n ${1},
+				rainbow merge -o rbasm.$CUTOFFS.out.$1 -a -i rbdiv.$CUTOFFS.out.$1 -r 2 -N10000 -R10000 -l 20 -f 0.75
+			fi
+		}
+		export -f pmerge
+		
 		#Reads are first clustered using only the Forward reads using CD-hit instead of rainbow
 		echo ""
-		echo -n "Reads are first clustered using only the Forward reads using CD-hit instead of rainbow "
-		date
-		sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/	/g' uniq.$CUTOFFS.fasta | cut -f1 > uniq.$CUTOFFS.F.fasta
-		CDHIT=$(python -c "print max ("$simC" - 0.1,0.8)")
-		cd-hit-est -i uniq.$CUTOFFS.F.fasta -o xxx.$CUTOFFS -c $CDHIT -T 0 -M 0 -g 1 -d 100 &>cdhit.$CUTOFFS.log
-		mawk '{if ($1 ~ /Cl/) clus = clus + 1; else  print $3 "\t" clus}' xxx.$CUTOFFS.clstr | sed 's/[>dDococent_Contig_,...]//g' | sort -g -k1 -S 50% --parallel=$NUMProc > sort.contig.cluster.ids.$CUTOFFS
-		paste sort.contig.cluster.ids.$CUTOFFS totaluniqseq.$CUTOFFS > contig.cluster.totaluniqseq.$CUTOFFS
+		echo `date` "Reads are first clustered using only the Forward reads using CD-hit instead of rainbow "
 
+		if [ "$ATYPE" == "PE" ]; then
+			sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' uniq.$CUTOFFS.fasta | cut -f1 > uniq.$CUTOFFS.F.fasta
+			CDHIT=$(python -c "print max ("$simC" - 0.1,0.8)")
+			cd-hit-est -i uniq.$CUTOFFS.F.fasta -o xxx.$CUTOFFS -c $CDHIT -T 0 -M 0 -g 1 -d 100 &>cdhit.$CUTOFFS.log
+			mawk '{if ($1 ~ /Cl/) clus = clus + 1; else  print $3 "\t" clus}' xxx.$CUTOFFS.clstr | sed 's/[>dDococent_Contig_,...]//g' | $sort -g -k1 --parallel=$NUMProc -S 50% > sort.contig.cluster.ids.$CUTOFFS
+			paste sort.contig.cluster.ids.$CUTOFFS totaluniqseq.$CUTOFFS > contig.cluster.totaluniqseq.$CUTOFFS
+		else
+			sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' totaluniqseq.$CUTOFFS | cut -f1 | $sort --parallel=$NUMProc -S 2G | uniq | mawk '{c= c + 1; print ">dDocent_Contig_" c "\n" $1}' > uniq.$CUTOFFS.F.fasta
+			CDHIT=$(python -c "print (max("$simC" - 0.1,0.8))")
+			cd-hit-est -i uniq.$CUTOFFS.F.fasta -o xxx.$CUTOFFS -c $CDHIT -T $NUMProc -M 0 -g 1 -d 100 &>cdhit.$CUTOFFS.log
+			mawk '{if ($1 ~ /Cl/) clus = clus + 1; else  print $3 "\t" clus}' xxx.$CUTOFFS.clstr | sed -e 's/[>dDocent_Contig_,...]//g' | $sort -g -k1 --parallel=$NUMProc -S 2G > sort.contig.cluster.ids.$CUTOFFS
+			paste sort.contig.cluster.ids.$CUTOFFS <(mawk '!/>/' uniq.$CUTOFFS.F.fasta) > contig.cluster.Funiq.$CUTOFFS
+			sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' totaluniqseq.$CUTOFFS | $sort -k1,1 --parallel=$NUMProc -S 2G | mawk '{print $0 "\t" NR}'  > totaluniqseq.$CUTOFFS.CN
+			join -t $'\t' -1 3 -2 1 contig.cluster.Funiq.$CUTOFFS totaluniqseq.$CUTOFFS.CN -o 2.3,1.2,2.1,2.2 > contig.cluster.totaluniqseq.$CUTOFFS
+
+		fi
+		
 		#CD-hit output is converted to rainbow format
-		sort -k2,2 -g -S 50% --parallel=$NUMProc contig.cluster.totaluniqseq.$CUTOFFS | sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/	/g' > rcluster.$CUTOFFS
+		$sort -k2,2 -g --parallel=$NUMProc -S 50% contig.cluster.totaluniqseq.$CUTOFFS | sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' > rcluster.$CUTOFFS
 
 		echo ""
-		echo -n "Running rainbow div "
-		date
+		echo `date` "Running rainbow div ..."
+
 		rainbow div -i rcluster.$CUTOFFS -o rbdiv.$CUTOFFS.out -f 0.5 -k 1 -K 50   #puritz has -k 2 and -K 10
 		echo ""
-		echo -n "Running rainbow merge "
-		date
-		rainbow merge -i rbdiv.$CUTOFFS.out -a -o rbasm.$CUTOFFS.out -N10000 -l 20 -f 0.75 -r 2 -R10000 
+		echo `date` "Running rainbow merge ..."
+
+		CLUST=(`tail -1 rbdiv.$CUTOFFS.out | cut -f5`)
+		CLUST1=$(( $CLUST / 100 + 1 ))
+		CLUST2=$(( $CLUST1 + 100 ))
+
+		seq -w 1 $CLUST2 | parallel --no-notice -j $NUMProc --env pmerge "pmerge {} $CUTOFFS"
+		cat rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
+		rm rbasm.$CUTOFFS.out.[0-9]* rbdiv.$CUTOFFS.out.[0-9]*
+				
 		echo ""
 		echo `date` " Selecting contigs"
 
 		#This AWK code replaces rainbow's contig selection perl script
-cat rbasm.$CUTOFFS.out <(echo "E") | sed 's/[0-9]*:[0-9]*://g' | mawk ' {
-if (NR == 1) e=$2;
-else if ($1 ~/E/ && lenp > len1) {c=c+1; print ">dDocent_Contig_" e "\n" seq2 "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}
-else if ($1 ~/E/ && lenp <= len1) {c=c+1; print ">dDocent_Contig_" e "\n" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}
-else if ($1 ~/C/) clus=$2;
-else if ($1 ~/L/) len=$2;
-else if ($1 ~/S/) seq=$2;
-else if ($1 ~/N/) freq=$2;
-else if ($1 ~/R/ && $0 ~/0/ && $0 !~/1/ && len > lenf) {seq1 = seq; fclus=clus;lenf=len}
-else if ($1 ~/R/ && $0 ~/0/ && $0 ~/1/) {seq1 = seq; fclus=clus; len1=len}
-else if ($1 ~/R/ && $0 ~!/0/ && freq > freqp && len >= lenp || $1 ~/R/ && $0 ~!/0/ && freq == freqp && len > lenp) {seq2 = seq; lenp = len; freqp=freq}
-}' > rainbow.$CUTOFFS.fasta
+		LENGTH=$(cut -f3 rbdiv.$CUTOFFS.out |mawk '(NR==1||length<shortest){shortest=length} END {print shortest}')
+		LENGTH=$(( $LENGTH * 11 / 10 ))
+
+		cat rbasm.$CUTOFFS.out <(echo "E") | sed 's/[0-9]*:[0-9]*://g' | mawk -v mlen=$LENGTH '{
+			if (NR == 1) e=$2;
+			# else if ($1 ~/E/ && lenp > len1) {c=c+1; print ">dDocent_Contig_" e "\n" seq2 "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}
+			else if ($1 ~/E/ && lenp > len1) {c=c+1; print ">dDocent_A_Contig_" e "\n" seq2 "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}
+			else if ($1 ~/E/ && lenp <= len1) {c=c+1; print ">dDocent_Contig_" e "\n" seq1; seq1=0; seq2=0;lenp=0;e=$2;fclus=0;len1=0;freqp=0;lenf=0}
+			else if ($1 ~/C/) clus=$2;
+			else if ($1 ~/L/) len=$2;
+			else if ($1 ~/S/) seq=$2;
+			else if ($1 ~/N/) freq=$2;
+			else if ($1 ~/R/ && $0 ~/0/ && $0 !~/1/ && len > lenf) {seq1 = seq; fclus=clus;lenf=len}
+			else if ($1 ~/R/ && $0 ~/0/ && $0 ~/1/) {seq1 = seq; fclus=clus;len1=len}
+			else if ($1 ~/R/ && $0 ~!/0/ && freq > freqp && len >= lenp || $1 ~/R/ && $0 ~!/0/ && freq == freqp && len > lenp) {seq2 = seq; lenp = len; freqp=freq}
+			}' > rainbow.$CUTOFFS.fasta
 
 		seqtk seq -r rainbow.$CUTOFFS.fasta > rainbow.$CUTOFFS.RC.fasta
 		mv rainbow.$CUTOFFS.RC.fasta rainbow.$CUTOFFS.fasta
-		
-		echo ""
-		echo -n "Check for overlap in paired end reads with Pear"
-		date
-		#The rainbow assembly is checked for overlap between newly assembled Forward and Reverse reads using the software PEAR
-		sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/	/g' rainbow.$CUTOFFS.fasta | cut -f1 | gawk 'BEGIN {RS = ">" ; FS = "\n"} NR > 1 {print "@"$1"\n"$2"\n+""\n"gensub(/./, "I", "g", $2)}' > ref.$CUTOFFS.F.fq
-		sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/	/g' rainbow.$CUTOFFS.fasta | cut -f2 | gawk 'BEGIN {RS = ">" ; FS = "\n"} NR > 1 {print "@"$1"\n"$2"\n+""\n"gensub(/./, "I", "g", $2)}' > ref.$CUTOFFS.R.fq
 
+		echo ""
+		echo `date` "Check for overlap in paired end reads with Pear"
+
+		grep -A1 "dDocent_A_Contig_" rainbow.$CUTOFFS.fasta | mawk '!/^--/' | sed -e 's/dDocent_A_Contig_/dDocent_Contig_/g' > rainbow.asm.$CUTOFFS.fasta
+		grep -A1 "dDocent_Contig_" rainbow.$CUTOFFS.fasta | mawk '!/^--/' > rainbow.n.$CUTOFFS.fasta
+
+		sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' rainbow.asm.$CUTOFFS.fasta | cut -f1 | seqtk seq -F I - > ref.$CUTOFFS.F.fq
+		sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' rainbow.asm.$CUTOFFS.fasta | cut -f2 | seqtk seq -F I - > ref.$CUTOFFS.R.fq
+		
 		seqtk seq -r ref.$CUTOFFS.R.fq > ref.$CUTOFFS.RC.fq
 		mv ref.$CUTOFFS.RC.fq ref.$CUTOFFS.R.fq
 		LENGTH=$(mawk '!/>/' rainbow.$CUTOFFS.fasta | mawk '(NR==1||length<shortest){shortest=length} END {print shortest}')
-		echo length is $LENGTH
 		LENGTH=$(( $LENGTH * 5 / 4))
-		
 
-		pearRM -f ref.$CUTOFFS.F.fq -r ref.$CUTOFFS.R.fq -o overlap.$CUTOFFS -p 0.0001 -j $NUMProc -n $LENGTH -v 20
+		pearRM -f ref.$CUTOFFS.F.fq -r ref.$CUTOFFS.R.fq -o overlap.$CUTOFFS -p 0.0001 -j $NUMProc -n $LENGTH -v 20 
 
 		rm ref.$CUTOFFS.F.fq ref.$CUTOFFS.R.fq
-		
-		
+
 		echo ""
-		echo -n "More mawking"
-		date
+		echo `date` "More mawking"
+
 		mawk 'BEGIN{P=1}{if(P==1||P==2){gsub(/^[@]/,">");print}; if(P==4)P=0; P++}' overlap.$CUTOFFS.assembled.fastq > overlap.$CUTOFFS.fasta
 		mawk '/>/' overlap.$CUTOFFS.fasta > overlap.$CUTOFFS.loci.names
 		mawk 'BEGIN{P=1}{if(P==1||P==2){gsub(/^[@]/,">");print}; if(P==4)P=0; P++}' overlap.$CUTOFFS.unassembled.forward.fastq > other.$CUTOFFS.F
 		mawk 'BEGIN{P=1}{if(P==1||P==2){gsub(/^[@]/,">");print}; if(P==4)P=0; P++}' overlap.$CUTOFFS.unassembled.reverse.fastq > other.$CUTOFFS.R
-		paste other.$CUTOFFS.F other.$CUTOFFS.R | mawk '{if ($1 ~ />/) print $1; else print $0}' | sed 's/	/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/g' > other.$CUTOFFS.FR
+		paste other.$CUTOFFS.F other.$CUTOFFS.R | mawk '{if ($1 ~ />/) print $1; else print $0}' | sed 's/\t/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/g' > other.$CUTOFFS.FR
 
-		cat other.$CUTOFFS.FR overlap.$CUTOFFS.fasta > totalover.$CUTOFFS.fasta
+		cat other.$CUTOFFS.FR overlap.$CUTOFFS.fasta rainbow.n.$CUTOFFS.fasta > totalover.$CUTOFFS.fasta
 
 		rm *.F *.R
 	fi
@@ -1340,28 +1331,31 @@ else if ($1 ~/R/ && $0 ~!/0/ && freq > freqp && len >= lenp || $1 ~/R/ && $0 ~!/
 	if [[ "$ATYPE" != "PE" && "$ATYPE" != "RPE" ]]; then
 		cp uniq.$CUTOFFS.fasta totalover.$CUTOFFS.fasta
 	fi
-		echo ""
-		echo -n "More CD-HITting"
-		date
+	
+	echo ""; 
+	echo `date` "More CD-HITting"
+
 	cd-hit-est -i totalover.$CUTOFFS.fasta -o reference.$CUTOFFS.fasta.original -M 0 -T 0 -c $simC
 
+	sed -e 's/^\([ACTG].*[ACTG]\)$/N\1N/g' reference.$CUTOFFS.fasta.original > reference.$CUTOFFS.fasta
+	
+	seqtk seq -r reference.$CUTOFFS.fasta > reference.$CUTOFFS.RC.fasta
+	
+	#new CEB 9-23-19, leaving off for now...
+	# if [[ "$ATYPE" == "RPE" || "$ATYPE" == "ROL" ]]; then
+		# sed -i 's/dDocent/dDocentR/g' reference.$CUTOFFS.fasta   
+	# fi
+	
+	
 	echo ""
-	echo -n "sed command "
-	date
-	sed -e 's/^C/NC/g' -e 's/^A/NA/g' -e 's/^G/NG/g' -e 's/^T/NT/g' -e 's/T$/TN/g' -e 's/A$/AN/g' -e 's/C$/CN/g' -e 's/G$/GN/g' reference.$CUTOFFS.fasta.original > reference.$CUTOFFS.fasta
+	echo `date` "samtools faidx & bwa index reference "
+
+	samtools faidx reference.$CUTOFFS.fasta
+	bwa index reference.$CUTOFFS.fasta
+	echo ""
+	echo `date` "End Assembly of Reference Genome"
 
 	echo ""
-	echo -n "samtools faidx "
-	date
-	samtools faidx reference.$CUTOFFS.fasta
-	echo ""
-	echo -n "bwa index reference "
-	date
-	bwa index reference.$CUTOFFS.fasta
-		echo ""
-		echo -n "End Assembly of Reference Genome"
-		date
-		echo ""
 }
 
 
