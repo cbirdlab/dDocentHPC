@@ -1176,14 +1176,19 @@ EOF
 
 	if [[ "$ATYPE" == "RPE" || "$ATYPE" == "ROL" ]]; then
 		#NEED TO ADD A Config or Cmd line setting to overwrite these CEB
-		if [ ! -s "total.$CUTOFF.fr" ] || [ ! -s "total.$CUTOFF.f.uniq" ] || [ ! -s "uniq.k.$CUTOFF.c.$CUTOFF2.seqs" ]; then
+		if [ ! -s "total.$CUTOFF.fr" ] || [ ! -s "total.$CUTOFF.f.uniq" ]; then
 			parallel --no-notice -j $NUMProc mawk -v x=$CUTOFF \''$1 >= x'\' ::: *.uniq.seqs | cut -f2 | sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/' | $sort -k1,1 --parallel=$NUMProc -S 2G > total.$CUTOFF.fr
 			parallel --no-notice --env special_uniq special_uniq $CUTOFF {} ::: *.uniq.seqs  | $sort --parallel=$NUMProc -S 2G | uniq -c > total.$CUTOFF.f.uniq
-			join -1 2 -2 1 -o 1.1,1.2,2.2 total.$CUTOFF.f.uniq total.$CUTOFF.fr | mawk '{print $1 "\t" $2 "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN" $3}' | mawk -v x=$CUTOFF2 '$1 >= x' > uniq.k.$CUTOFF.c.$CUTOFF2.seqs 
 		else
 			echo ""; echo `date` " The following file(s) will not be overwritten because they already exist: "
 			echo "                              total.$CUTOFF.fr"
 			echo "                              total.$CUTOFF.f.uniq"
+			echo "                             IF ERRORS OCCUR IMMEDIATELY FOLLOWING THIS, THEN TRY DELETING THE AFOREMENTIONED FILE(S)"
+		fi
+		if [ ! -s "uniq.k.$CUTOFF.c.$CUTOFF2.seqs" ]; then
+			join -1 2 -2 1 -o 1.1,1.2,2.2 total.$CUTOFF.f.uniq total.$CUTOFF.fr | mawk '{print $1 "\t" $2 "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN" $3}' | mawk -v x=$CUTOFF2 '$1 >= x' > uniq.k.$CUTOFF.c.$CUTOFF2.seqs 
+		else
+			echo ""; echo `date` " The following file(s) will not be overwritten because they already exist: "
 			echo "                              uniq.k.$CUTOFF.c.$CUTOFF2.seqs"
 			echo "                             IF ERRORS OCCUR IMMEDIATELY FOLLOWING THIS, THEN TRY DELETING THE AFOREMENTIONED FILE(S)"
 		fi
@@ -1339,10 +1344,20 @@ export -f pmerge
 			if [ "$NP" -eq 1 ]; then
 				rainbow merge -i rbdiv.$CUTOFFS.out -a -o rbasm.$CUTOFFS.out -N $N -l 20 -f 0.75 -r $r -R $R
 			else
-				echo "                              rbdiv$CUTOFFS.out is being split into $CLUST2 files for parallel processing"
-				seq -w 1 $CLUST2 | parallel --no-notice -j $NP --env pmerge "pmerge {} $CUTOFFS $r $N $R"
-				cat rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
-				rm rbasm.$CUTOFFS.out.[0-9]* rbdiv.$CUTOFFS.out.[0-9]*
+				#parallel by each precluster
+					echo "                              rbdiv$CUTOFFS.out is being split into $CLUST files for parallel processing"
+					mkdir RBDIV.$CUTOFFS
+					awk -v CUTOFFS=$CUTOFFS '{print>"RBDIV."CUTOFFS"/rbdiv."CUTOFFS".out."$5}' rbdiv.$CUTOFFS.out
+					ls RBDIV.$CUTOFFS | sed "s/rbdiv\.$CUTOFFS\.out\.//g" > preclusterID.$CUTOFFS
+					parallel --no-notice -j $NUMProc -k 'printf "%06d\n"' ::: preclusterID.$CUTOFFS > preclusterID.zeropad.$CUTOFFS
+					parallel --no-notice --link -j $NP "rainbow merge -o RBDIV.$CUTOFFS/rbasm.$CUTOFFS.out.{2} -a -i RBDIV.$CUTOFFS/rbdiv.$CUTOFFS.out.{1} -r $r -N $N -R $R -l 20 -f 0.75 " :::: preclusterID.$CUTOFFS :::: preclusterID.zeropad.$CUTOFFS
+					cat RBDIV.$CUTOFFS/rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
+					#rm -rf RBDIV.$CUTOFFS
+				#parallel by pmerge
+					# echo "                              rbdiv$CUTOFFS.out is being split into $CLUST2 files for parallel processing"
+					# seq -w 1 $CLUST2 | parallel --no-notice -j $NP --env pmerge "pmerge {} $CUTOFFS $r $N $R"
+					# cat rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
+					# rm rbasm.$CUTOFFS.out.[0-9]* rbdiv.$CUTOFFS.out.[0-9]*
 			fi
 		else
 			echo ""; echo `date` "  The following file(s) will not be overwritten because it already exists: "
