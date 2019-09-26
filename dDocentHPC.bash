@@ -1176,25 +1176,38 @@ EOF
 
 	if [[ "$ATYPE" == "RPE" || "$ATYPE" == "ROL" ]]; then
 		#NEED TO ADD A Config or Cmd line setting to overwrite these CEB
-		if [ ! -s "total.$CUTOFF.fr" ]; then
+		if [ ! -s "total.$CUTOFF.fr" ] || [ ! -s "total.$CUTOFF.f.uniq" ] || [ ! -s "uniq.k.$CUTOFF.c.$CUTOFF2.seqs" ]; then
 			parallel --no-notice -j $NUMProc mawk -v x=$CUTOFF \''$1 >= x'\' ::: *.uniq.seqs | cut -f2 | sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/' | $sort -k1,1 --parallel=$NUMProc -S 2G > total.$CUTOFF.fr
-		fi
-		if [ ! -s "total.$CUTOFF.f.uniq" ]; then
 			parallel --no-notice --env special_uniq special_uniq $CUTOFF {} ::: *.uniq.seqs  | $sort --parallel=$NUMProc -S 2G | uniq -c > total.$CUTOFF.f.uniq
-		fi
-		if [ ! -s "total.$CUTOFF.f.uniq" ]; then
 			join -1 2 -2 1 -o 1.1,1.2,2.2 total.$CUTOFF.f.uniq total.$CUTOFF.fr | mawk '{print $1 "\t" $2 "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN" $3}' | mawk -v x=$CUTOFF2 '$1 >= x' > uniq.k.$CUTOFF.c.$CUTOFF2.seqs 
+		else
+			echo ""; echo `date` " The following file(s) will not be overwritten because they already exist: "
+			echo "                              total.$CUTOFF.fr"
+			echo "                              total.$CUTOFF.f.uniq"
+			echo "                              uniq.k.$CUTOFF.c.$CUTOFF2.seqs"
+			echo "                             IF ERRORS OCCUR IMMEDIATELY FOLLOWING THIS, THEN TRY DELETING THE AFOREMENTIONED FILE(S)"
 		fi
 	else
-		parallel --no-notice mawk -v x=$CUTOFF \''$1 >= x'\' ::: *.uniq.seqs | cut -f2 | perl -e 'while (<>) {chomp; $z{$_}++;} while(($k,$v) = each(%z)) {print "$v\t$k\n";}' | mawk -v x=$CUTOFF2 '$1 >= x' > uniq.k.$CUTOFF.c.$CUTOFF2.seqs
+		if [ ! -s "uniq.k.$CUTOFF.c.$CUTOFF2.seqs" ]; then
+			parallel --no-notice mawk -v x=$CUTOFF \''$1 >= x'\' ::: *.uniq.seqs | cut -f2 | perl -e 'while (<>) {chomp; $z{$_}++;} while(($k,$v) = each(%z)) {print "$v\t$k\n";}' | mawk -v x=$CUTOFF2 '$1 >= x' > uniq.k.$CUTOFF.c.$CUTOFF2.seqs
+		else
+			echo ""; echo `date` " The following file(s) will not be overwritten because they already exist: "
+			echo "                              uniq.k.$CUTOFF.c.$CUTOFF2.seqs"
+			echo "                             IF ERRORS OCCUR IMMEDIATELY FOLLOWING THIS, THEN TRY DELETING THE AFOREMENTIONED FILE(S)"
+		fi
 	fi
 	
-	if [ ! -s "totaluniqseq.$CUTOFFS" ]; then
+	if [ ! -s "totaluniqseq.$CUTOFFS" ] || [ ! -s "uniq.$CUTOFFS.fasta" ]; then
 		$sort -k1 -r -n --parallel=$NUMProc -S 2G uniq.k.$CUTOFF.c.$CUTOFF2.seqs | parallel --no-notice -j $NUMProc -k --pipe --block 10M cut -f2 > totaluniqseq.$CUTOFFS 
-	fi
-	if [ ! -s "uniq.$CUTOFFS.fasta" ]; then
 		mawk '{c= c + 1; print ">dDocent_Contig_" c "\n" $1}' totaluniqseq.$CUTOFFS > uniq.$CUTOFFS.fasta
+	else
+		echo ""; echo `date` "  The following file(s) will not be overwritten because they already exist: "
+		echo "                              totaluniqseq.$CUTOFFS"
+		echo "                              uniq.$CUTOFFS.fasta"
+		echo "                             IF ERRORS OCCUR IMMEDIATELY FOLLOWING THIS, THEN TRY DELETING THE AFOREMENTIONED FILE(S)"
 	fi
+
+	#this was turned off because it caused some problems, it's supposed to remove adapters, but that's already been done.
 	# mawk '{c= c + 1; print ">dDocent_Contig_" c "\n" $1}' totaluniqseq.$CUTOFFS > uniq.full.$CUTOFFS.fasta
 	# LENGTH=$(mawk '!/>/' uniq.full.$CUTOFFS.fasta  | mawk '(NR==1||length<shortest){shortest=length} END {print shortest}')
 	# LENGTH=$(($LENGTH * 3 / 4))
@@ -1213,64 +1226,131 @@ EOF
 		echo ""
 		echo `date` "begin $ATYPE Assembly"
 		
-		pmerge(){
-			num=$( echo $1 | sed -e 's/^0*//g')
-			CUTOFFS=$2
-			if [ "$num" -le 100 ]; then
-				j=$num
-				k=$(($num -1))
-			else
-				num=$(($num - 99))
-				j=$(python -c "print ("$num" * 100)")
-				k=$(python -c "print ("$j" - 100)")
-			fi
-			mawk -v x="$j" -v y="$k" '$5 <= x && $5 > y'  rbdiv.$CUTOFFS.out > rbdiv.$CUTOFFS.out.$1
-		
-			if [ -s "rbdiv.$CUTOFFS.out.$1" ]; then
-				#echo -n ${1},
-				rainbow merge -o rbasm.$CUTOFFS.out.$1 -a -i rbdiv.$CUTOFFS.out.$1 -r 2 -N10000 -R10000 -l 20 -f 0.75
-			fi
-		}
-		export -f pmerge
+pmerge(){
+num=$( echo $1 | sed -e 's/^0*//g')
+CUTOFFS=$2
+r=$3
+N=$4
+R=$5
+if [ "$num" -le 100 ]; then
+	j=$num
+	k=$(($num -1))
+else
+	num=$(($num - 99))
+	j=$(python -c "print ("$num" * 100)")
+	k=$(python -c "print ("$j" - 100)")
+fi
+mawk -v x="$j" -v y="$k" '$5 <= x && $5 > y'  rbdiv.$CUTOFFS.out > rbdiv.$CUTOFFS.out.$1
+
+if [ -s "rbdiv.$CUTOFFS.out.$1" ]; then
+	echo -n ${1},
+	rainbow merge -o rbasm.$CUTOFFS.out.$1 -a -i rbdiv.$CUTOFFS.out.$1 -r $r -N $N -R $R -l 20 -f 0.75
+fi
+}
+export -f pmerge
 		
 		#Reads are first clustered using only the Forward reads using CD-hit instead of rainbow
 		echo ""
 		echo `date` "Reads are first clustered using only the Forward reads using CD-hit instead of rainbow "
 
 		if [ "$ATYPE" == "PE" ]; then
-			sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' uniq.$CUTOFFS.fasta | cut -f1 > uniq.$CUTOFFS.F.fasta
-			CDHIT=$(python -c "print max ("$simC" - 0.1,0.8)")
-			cd-hit-est -i uniq.$CUTOFFS.F.fasta -o xxx.$CUTOFFS -c $CDHIT -T 0 -M 0 -g 1 -d 100 &>cdhit.$CUTOFFS.log
-			mawk '{if ($1 ~ /Cl/) clus = clus + 1; else  print $3 "\t" clus}' xxx.$CUTOFFS.clstr | sed 's/[>dDococent_Contig_,...]//g' | $sort -g -k1 --parallel=$NUMProc -S 50% > sort.contig.cluster.ids.$CUTOFFS
-			paste sort.contig.cluster.ids.$CUTOFFS totaluniqseq.$CUTOFFS > contig.cluster.totaluniqseq.$CUTOFFS
+			if [ ! -s "contig.cluster.totaluniqseq.$CUTOFFS" ] || [ ! -s "sort.contig.cluster.ids.$CUTOFFS" ] || \
+			   [ ! -s "xxx.$CUTOFFS" ] || [ ! -s "uniq.$CUTOFFS.F.fasta" ]; then
+				sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' uniq.$CUTOFFS.fasta | cut -f1 > uniq.$CUTOFFS.F.fasta
+				CDHIT=$(python -c "print max ("$simC" - 0.1,0.8)")
+				cd-hit-est -i uniq.$CUTOFFS.F.fasta -o xxx.$CUTOFFS -c $CDHIT -T 0 -M 0 -g 1 -d 100 &>cdhit.$CUTOFFS.log
+				mawk '{if ($1 ~ /Cl/) clus = clus + 1; else  print $3 "\t" clus}' xxx.$CUTOFFS.clstr | sed 's/[>dDococent_Contig_,...]//g' | $sort -g -k1 --parallel=$NUMProc -S 50% > sort.contig.cluster.ids.$CUTOFFS
+				paste sort.contig.cluster.ids.$CUTOFFS totaluniqseq.$CUTOFFS > contig.cluster.totaluniqseq.$CUTOFFS
+			else
+				echo ""; echo `date` "  The following file(s) will not be overwritten because they already exist: "
+				echo "                              uniq.$CUTOFFS.F.fasta"
+				echo "                              xxx.$CUTOFFS"
+				echo "                              xxx.$CUTOFFS.clstr"
+				echo "                              sort.contig.cluster.ids.$CUTOFFS"
+				echo "                              contig.cluster.totaluniqseq.$CUTOFFS"
+				echo "                             IF ERRORS OCCUR IMMEDIATELY FOLLOWING THIS, THEN TRY DELETING THE AFOREMENTIONED FILE(S)"
+			fi
 		else
-			sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' totaluniqseq.$CUTOFFS | cut -f1 | $sort --parallel=$NUMProc -S 2G | uniq | mawk '{c= c + 1; print ">dDocent_Contig_" c "\n" $1}' > uniq.$CUTOFFS.F.fasta
-			CDHIT=$(python -c "print (max("$simC" - 0.1,0.8))")
-			cd-hit-est -i uniq.$CUTOFFS.F.fasta -o xxx.$CUTOFFS -c $CDHIT -T $NUMProc -M 0 -g 1 -d 100 &>cdhit.$CUTOFFS.log
-			mawk '{if ($1 ~ /Cl/) clus = clus + 1; else  print $3 "\t" clus}' xxx.$CUTOFFS.clstr | sed -e 's/[>dDocent_Contig_,...]//g' | $sort -g -k1 --parallel=$NUMProc -S 2G > sort.contig.cluster.ids.$CUTOFFS
-			paste sort.contig.cluster.ids.$CUTOFFS <(mawk '!/>/' uniq.$CUTOFFS.F.fasta) > contig.cluster.Funiq.$CUTOFFS
-			sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' totaluniqseq.$CUTOFFS | $sort -k1,1 --parallel=$NUMProc -S 2G | mawk '{print $0 "\t" NR}'  > totaluniqseq.$CUTOFFS.CN
-			join -t $'\t' -1 3 -2 1 contig.cluster.Funiq.$CUTOFFS totaluniqseq.$CUTOFFS.CN -o 2.3,1.2,2.1,2.2 > contig.cluster.totaluniqseq.$CUTOFFS
-
+			if [ ! -s "contig.cluster.totaluniqseq.$CUTOFFS" ] || [ ! -s "totaluniqseq.$CUTOFFS.CN" ] || \
+			   [ ! -s "contig.cluster.Funiq.$CUTOFFS" ] || [ ! -s "sort.contig.cluster.ids.$CUTOFFS" ] || \
+			   [ ! -s "xxx.$CUTOFFS" ] || [ ! -s "uniq.$CUTOFFS.F.fasta" ]; then
+				sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' totaluniqseq.$CUTOFFS | cut -f1 | $sort --parallel=$NUMProc -S 2G | uniq | mawk '{c= c + 1; print ">dDocent_Contig_" c "\n" $1}' > uniq.$CUTOFFS.F.fasta
+				CDHIT=$(python -c "print (max("$simC" - 0.1,0.8))")
+				cd-hit-est -i uniq.$CUTOFFS.F.fasta -o xxx.$CUTOFFS -c $CDHIT -T $NUMProc -M 0 -g 1 -d 100 &>cdhit.$CUTOFFS.log
+				mawk '{if ($1 ~ /Cl/) clus = clus + 1; else  print $3 "\t" clus}' xxx.$CUTOFFS.clstr | sed -e 's/[>dDocent_Contig_,...]//g' | $sort -g -k1 --parallel=$NUMProc -S 2G > sort.contig.cluster.ids.$CUTOFFS
+				paste sort.contig.cluster.ids.$CUTOFFS <(mawk '!/>/' uniq.$CUTOFFS.F.fasta) > contig.cluster.Funiq.$CUTOFFS
+				sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' totaluniqseq.$CUTOFFS | $sort -k1,1 --parallel=$NUMProc -S 2G | mawk '{print $0 "\t" NR}'  > totaluniqseq.$CUTOFFS.CN
+				join -t $'\t' -1 3 -2 1 contig.cluster.Funiq.$CUTOFFS totaluniqseq.$CUTOFFS.CN -o 2.3,1.2,2.1,2.2 > contig.cluster.totaluniqseq.$CUTOFFS
+			else
+				echo ""; echo `date` "  The following file(s) will not be overwritten because it already exists: "
+				echo "                              uniq.$CUTOFFS.F.fasta"
+				echo "                              xxx.$CUTOFFS"
+				echo "                              xxx.$CUTOFFS.clstr"
+				echo "                              sort.contig.cluster.ids.$CUTOFFS"
+				echo "                              contig.cluster.Funiq.$CUTOFFS"
+				echo "                              totaluniqseq.$CUTOFFS.CN"
+				echo "                              contig.cluster.totaluniqseq.$CUTOFFS"
+				echo "                             IF ERRORS OCCUR IMMEDIATELY FOLLOWING THIS, THEN TRY DELETING THE AFOREMENTIONED FILE(S)"
+			fi
 		fi
 		
 		#CD-hit output is converted to rainbow format
-		$sort -k2,2 -g --parallel=$NUMProc -S 50% contig.cluster.totaluniqseq.$CUTOFFS | sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' > rcluster.$CUTOFFS
+		if [ ! -s "rcluster.$CUTOFFS" ]; then
+			$sort -k2,2 -g --parallel=$NUMProc -S 50% contig.cluster.totaluniqseq.$CUTOFFS | sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' > rcluster.$CUTOFFS
+		else
+			echo ""; echo `date` "  The following file(s) will not be overwritten because it already exists: "
+			echo "                              rcluster.$CUTOFFS"
+			echo "                             IF ERRORS OCCUR IMMEDIATELY FOLLOWING THIS, THEN TRY DELETING THE AFOREMENTIONED FILE(S)"
+		fi
+		
+		if [ ! -s "rbdiv.$CUTOFFS.out" ]; then
+			echo ""; echo `date` "Running rainbow div ..."
+			rainbow div -i rcluster.$CUTOFFS -o rbdiv.$CUTOFFS.out -f 0.5 -k 1 -K 50   #puritz has -k 2 and -K 10
+			#make file with number of reads in each precluster to determine settings for rainbow merge
+			cut -f5 rbdiv.$CUTOFFS.out | uniq -c | tr -s " " "\t" | sed 's/^\t//g' > rbdiv.$CUTOFFS.readsPERprecluster.tsv
+		else
+			echo ""; echo `date` "  The following file(s) will not be overwritten because it already exists: "
+			echo "                              rbdiv.$CUTOFFS.out"
+			echo "                             IF ERRORS OCCUR IMMEDIATELY FOLLOWING THIS, THEN TRY DELETING THE AFOREMENTIONED FILE(S)"
+		fi
+		
+		if [ ! -s "rbasm.$CUTOFFS.out" ]; then
+			echo ""; echo `date` "Running rainbow merge ..."
+			echo "                              If you run out of RAM, adjust the number of threads and/or the -N and -R arguments"
+			#this is more reliable right now CEB 9-25-19
+			#rainbow merge -i rbdiv.$CUTOFFS.out -a -o rbasm.$CUTOFFS.out -N10000 -l 20 -f 0.75 -r 2 -R10000
+			#parallel method using pmerge
+			CLUST=(`tail -1 rbdiv.$CUTOFFS.out | cut -f5`)
+			# CLUST1=$(( $CLUST / 100 + 1 ))
+			CLUST1=$(( ($CLUST - 1) / 100 ))
+			CLUST2=$(( $CLUST1 + 100 ))
+			#this is running out of memory, so trying to fix:  CEB
+			R=$(sort -n rbdiv.16.16.seqsPERprecluster.tsv | awk '{all[NR] = $0} END{print all[int(NR*0.95)]}' | cut -f1)
+			r=$(sort -n rbdiv.16.16.seqsPERprecluster.tsv | awk '{all[NR] = $0} END{print all[int(NR*0.05)]}' | cut -f1)
+			N=$R
+			if [ "$R" -le "2000" ]; then 
+				NP=$NUMProc
+			elif [ "$R" -le "5000" ]; then 
+				NP=$(($(echo $MAXMemory | sed "s/.$//g") / 20))
+			else
+				NP=1
+			fi
+						echo "                              THREADS=$NP	-r $r	-N $N	-R $R"
+			if [ "$NP" -eq 1 ]; then
+				rainbow merge -i rbdiv.$CUTOFFS.out -a -o rbasm.$CUTOFFS.out -N $N -l 20 -f 0.75 -r $r -R $R
+			else
+				echo "                              rbdiv$CUTOFFS.out is being split into $CLUST2 files for parallel processing"
+				seq -w 1 $CLUST2 | parallel --no-notice -j $NP --env pmerge "pmerge {} $CUTOFFS $r $N $R"
+				cat rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
+				rm rbasm.$CUTOFFS.out.[0-9]* rbdiv.$CUTOFFS.out.[0-9]*
+			fi
+		else
+			echo ""; echo `date` "  The following file(s) will not be overwritten because it already exists: "
+			echo "                              rbasm.$CUTOFFS.out"
+			echo "                             IF ERRORS OCCUR IMMEDIATELY FOLLOWING THIS, THEN TRY DELETING THE AFOREMENTIONED FILE(S)"
+		fi
 
-		echo ""
-		echo `date` "Running rainbow div ..."
 
-		rainbow div -i rcluster.$CUTOFFS -o rbdiv.$CUTOFFS.out -f 0.5 -k 1 -K 50   #puritz has -k 2 and -K 10
-		echo ""
-		echo `date` "Running rainbow merge ..."
-
-		CLUST=(`tail -1 rbdiv.$CUTOFFS.out | cut -f5`)
-		CLUST1=$(( $CLUST / 100 + 1 ))
-		CLUST2=$(( $CLUST1 + 100 ))
-
-		seq -w 1 $CLUST2 | parallel --no-notice -j $NUMProc --env pmerge "pmerge {} $CUTOFFS"
-		cat rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
-		rm rbasm.$CUTOFFS.out.[0-9]* rbdiv.$CUTOFFS.out.[0-9]*
 				
 		echo ""
 		echo `date` " Selecting contigs"
