@@ -1014,7 +1014,7 @@ Assemble(){
 					# pearRM -f $i$Fsed -r $i$Rsed -o $i -j $NUMProc -n $LENGTH -p 0.0001
 				# done
 				#parallel code ceb aug 2018; need to check and see how many threads pear can use
-				parallel --no-notice -j "$NUMProc pearRM -f {}$Fsed -r {}$Rsed -o {} -j $NUMProc -n $LENGTH -p 0.0001" ::: "${NAMES[@]}"
+				parallel --no-notice -j $NUMProc "pearRM -f {}$Fsed -r {}$Rsed -o {} -j $NUMProc -n $LENGTH -p 0.0001" ::: "${NAMES[@]}"
 				
 				echo "";echo `date` " OL assembly: create *.uniq.seqs "
 				cat namelist.$CUTOFFS | parallel --no-notice -j $NUMProc "mawk '$AWK1' {}.assembled.fastq | mawk '$AWK2' | perl -e '$PERLT' > {}.uniq.seqs"
@@ -1341,13 +1341,13 @@ export -f pmerge
 				#parallel by each precluster
 					echo "                              rbdiv$CUTOFFS.out is being split into $CLUST files by precluster for parallel processing"; echo " "
 					mkdir RBDIV.$CUTOFFS.${r}-${R}
-					awk -v CUTOFFS=$CUTOFFS '{print>"RBDIV."CUTOFFS"/rbdiv."CUTOFFS".out."$5}' rbdiv.$CUTOFFS.out
-					ls RBDIV.$CUTOFFS | sed "s/rbdiv\.$CUTOFFS\.out\.//g" > preclusterID.$CUTOFFS
+					awk -v CUTOFFS=$CUTOFFS -v r=$r -v R=$R '{print>"RBDIV."CUTOFFS"."r"-"R"/rbdiv."CUTOFFS".out."$5}' rbdiv.$CUTOFFS.out
+					ls RBDIV.$CUTOFFS.$r-$R | sed "s/rbdiv\.$CUTOFFS\.out\.//g" > preclusterID.$CUTOFFS
 					parallel --no-notice -j $NUMProc -k 'printf "%06d\n"' :::: preclusterID.$CUTOFFS > preclusterID.zeropad.$CUTOFFS
-					parallel --no-notice --link -j $NP "echo -n {1}, ;rainbow merge -o RBDIV.$CUTOFFS/rbasm.$CUTOFFS.out.{2} -a -i RBDIV.$CUTOFFS/rbdiv.$CUTOFFS.out.{1} -r $r -N $N -R $R -l 20 -f 0.75 " :::: preclusterID.$CUTOFFS :::: preclusterID.zeropad.$CUTOFFS
+					parallel --no-notice --link -j $NP "echo -n {1}, ;rainbow merge -o RBDIV.$CUTOFFS.$r-$R/rbasm.$CUTOFFS.out.{2} -a -i RBDIV.$CUTOFFS.$r-$R/rbdiv.$CUTOFFS.out.{1} -r $r -N $N -R $R -l 20 -f 0.75 " :::: preclusterID.$CUTOFFS :::: preclusterID.zeropad.$CUTOFFS
 					echo "";
-					cat RBDIV.$CUTOFFS/rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
-					#rm -rf RBDIV.$CUTOFFS
+					cat RBDIV.$CUTOFFS.$r-$R/rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
+					#rm -rf RBDIV.$CUTOFFS.$r-$R
 				#parallel by pmerge
 					# echo "                              rbdiv$CUTOFFS.out is being split into $CLUST2 files for parallel processing"
 					# seq -w 1 $CLUST2 | parallel --no-notice -j $NP --env pmerge "pmerge {} $CUTOFFS $r $N $R"
@@ -1987,7 +1987,7 @@ if [[ -n "$1" ]]; then
 else
 	#main
 	echo ""; echo `date` " This is the HPC version of dDocent.  A config file must be specified"
-	echo ""; echo `date` " Aborting dDocent 4 HPC"
+	echo ""; echo `date` " Aborting dDocentHPC 4 "
 	exit
 fi
 
