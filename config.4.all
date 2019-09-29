@@ -24,12 +24,10 @@ no		FixStacks (yes,no)   											Demultiplexing with stacks introduces anomol
 ----------mkREF: Settings for de novo assembly of the reference genome--------------------------------------------
 PE		Type of reads for assembly (PE, SE, OL, RPE)					PE=ddRAD & ezRAD pairedend, non-overlapping reads; SE=singleend reads; OL=ddRAD & ezRAD overlapping reads, miseq; RPE=oregonRAD, restriction site + random shear
 0.9		cdhit Clustering_Similarity_Pct (0-1)							Use cdhit to cluster and collapse uniq reads by similarity threshold
-no		Get graphs for cutoffs, then stop? (yes or no)					Stops mkREF after making graphs to evaluate cutoffs.
-no		Manually set cutoffs? (yes or no)  								If yes is selected then dDocent will prompt you to enter cutoff values. 
 10		Cutoff1 (integer)												Use unique reads that have at least this much coverage for making the reference	genome
 10		Cutoff2 (integer)												Use unique reads that occur in at least this many individuals for making the reference genome
 0.05	rainbow merge -r <percentile> (decimal) 						Percentile-based minimum number of seqs to assemble in a precluster
-0.95	rainbow merge -R <percentile> (decimal)							Maximum number of seqs to assemble in a precluster
+0.95	rainbow merge -R <percentile> (decimal)							Percentile-based maximum number of seqs to assemble in a precluster
 ------------------------------------------------------------------------------------------------------------------
 
 ----------mkBAM: Settings for mapping the reads to the reference genome-------------------------------------------

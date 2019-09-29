@@ -1324,8 +1324,8 @@ export -f pmerge
 			CLUST1=$(( ($CLUST - 1) / 100 ))
 			CLUST2=$(( $CLUST1 + 100 ))
 			#this is running out of memory, so trying to fix:  CEB
-			R=$(sort -n rbdiv.$CUTOFFS.readsPERprecluster.tsv | awk '{all[NR] = $0} END{print all[int(NR*0.95)]}' | cut -f1)
-			r=$(sort -n rbdiv.$CUTOFFS.readsPERprecluster.tsv | awk '{all[NR] = $0} END{print all[int(NR*0.05)]}' | cut -f1)
+			R=$(sort -n rbdiv.$CUTOFFS.readsPERprecluster.tsv | awk -v R=$RPERCENTILE '{all[NR] = $0} END{print all[int(NR*R)]}' | cut -f1)
+			r=$(sort -n rbdiv.$CUTOFFS.readsPERprecluster.tsv | awk -v r=$rPERCENTILE '{all[NR] = $0} END{print all[int(NR*r)]}' | cut -f1)
 			N=$R
 			if [ "$R" -le "2000" ]; then 
 				NP=$NUMProc
