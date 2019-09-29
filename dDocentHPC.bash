@@ -1341,7 +1341,7 @@ EOF
 						echo "                              THREADS=$NP	-r $r	-N $N	-R $R"
 			if [ "$NP" -eq 1 ]; then
 				rainbow merge -i rbdiv.$CUTOFFS.out -a -o rbasm.$CUTOFFS.out -N $N -l 20 -f 0.75 -r $r -R $R
-			elif [ "$ATYPE" -eq "RPE" ]; then
+			elif [ "$ATYPE" == "RPE" ]; then
 				#parallel by each precluster
 					echo "                              rbdiv$CUTOFFS.out is being split into $CLUST files by precluster for parallel processing"; echo " "
 					mkdir RBDIV.$CUTOFFS.${r}-${R}
@@ -1352,7 +1352,7 @@ EOF
 					echo "";
 					cat RBDIV.$CUTOFFS.$r-$R/rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
 					rm -rf RBDIV.$CUTOFFS.$r-$R
-			elif [ "$ATYPE" -eq "PE" ]; then
+			elif [ "$ATYPE" == "PE" ]; then
 				#parallel by pmerge
 					echo "                              rbdiv$CUTOFFS.out is being split into $CLUST2 files for parallel processing"
 					seq -w 1 $CLUST2 | parallel --no-notice -j $NP --env pmerge "pmerge {} $CUTOFFS $r $N $R"
