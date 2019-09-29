@@ -1497,16 +1497,16 @@ MAP2REF(){
 			#MaxLen=$(mawk '{ print length() | "sort -rn" }' lengths.$CUTOFFS.txt| head -1)
 			#INSERT=$(($MaxLen * 2 ))
 			#calculate mean contig length in ref
-			INSERT=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | grep '...' | sort | awk '{ sum += $1; n++ } END { print sum / n}')
+			INSERT=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | awk '{ sum += $1; n++ } END { print sum / n}')
 			#SD=$(($INSERT / 5))
 			#calculate SD of contig lengths in ref
-			SD=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | grep '...' | sort | awk '{sum+=$1; sumsq+=$1*$1}END{print sqrt(sumsq/NR - (sum/NR)**2)}')
+			SD=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | awk '{sum+=$1; sumsq+=$1*$1}END{print sqrt(sumsq/NR - (sum/NR)**2)}')
 			#INSERTH=$(($INSERT + 100 ))
 			#longest contig in ref
-			INSERTH=$(awk '{ print length($0); }' reference.$CUTOFFS.fasta | grep '...' | sort | tail -1)
+			INSERTH=$(awk '{ print length($0); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | tail -1)
 			#INSERTL=$(($INSERT - 100 ))
 			#shortest contig in ref
-			INSERTL=$(awk '{ print length($0); }' reference.$CUTOFFS.fasta | grep '...' | sort | head -1)
+			INSERTL=$(awk '{ print length($0); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | head -1)
 		fi
 		#BWA for mapping for all samples.  As of version 2.0 can handle SE or PE reads by checking for PE read files
 		echo ""
@@ -1811,7 +1811,9 @@ function GENOTYPE(){
 		fi
 		if [ "cat.${CUTOFFS}-RRG.bam" -nt mapped.$CUTOFFS.bed ]; then
 			if [ ! -f cat.$CUTOFFS-RRG.bam.bai ]; then samtools index cat.$CUTOFFS-RRG.bam; fi
-			bamToBed -i cat.$CUTOFFS-RRG.bam | bedtools merge > mapped.$CUTOFFS.bed
+			#bamToBed -i cat.$CUTOFFS-RRG.bam | bedtools merge > mapped.$CUTOFFS.bed
+			#newer than previous line CEB 9-29-2019
+			bedtools merge -i cat.$CUTOFFS-RRG.bam > mapped.$CUTOFFS.bed
 		fi
 		#This code estimates the coverage of reference intervals and removes intervals in 0.01% of depth
 		#This allows genotyping to be more effecient and eliminates extreme copy number loci from the data
