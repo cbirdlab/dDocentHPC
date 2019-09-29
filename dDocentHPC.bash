@@ -1225,28 +1225,28 @@ EOF
 		echo ""
 		echo `date` "begin $ATYPE Assembly"
 		
-pmerge(){
-num=$( echo $1 | sed -e 's/^0*//g')
-CUTOFFS=$2
-r=$3
-N=$4
-R=$5
-if [ "$num" -le 100 ]; then
-	j=$num
-	k=$(($num -1))
-else
-	num=$(($num - 99))
-	j=$(python -c "print ("$num" * 100)")
-	k=$(python -c "print ("$j" - 100)")
-fi
-mawk -v x="$j" -v y="$k" '$5 <= x && $5 > y'  rbdiv.$CUTOFFS.out > rbdiv.$CUTOFFS.out.$1
+		pmerge(){
+		num=$( echo $1 | sed -e 's/^0*//g')
+		CUTOFFS=$2
+		r=$3
+		N=$4
+		R=$5
+		if [ "$num" -le 100 ]; then
+			j=$num
+			k=$(($num -1))
+		else
+			num=$(($num - 99))
+			j=$(python -c "print ("$num" * 100)")
+			k=$(python -c "print ("$j" - 100)")
+		fi
+		mawk -v x="$j" -v y="$k" '$5 <= x && $5 > y'  rbdiv.$CUTOFFS.out > rbdiv.$CUTOFFS.out.$1
 
-if [ -s "rbdiv.$CUTOFFS.out.$1" ]; then
-	echo -n ${1},
-	rainbow merge -o rbasm.$CUTOFFS.out.$1 -a -i rbdiv.$CUTOFFS.out.$1 -r $r -N $N -R $R -l 20 -f 0.75
-fi
-}
-export -f pmerge
+		if [ -s "rbdiv.$CUTOFFS.out.$1" ]; then
+			echo -n ${1},
+			rainbow merge -o rbasm.$CUTOFFS.out.$1 -a -i rbdiv.$CUTOFFS.out.$1 -r $r -N $N -R $R -l 20 -f 0.75
+		fi
+		}
+		export -f pmerge
 		
 		#Reads are first clustered using only the Forward reads using CD-hit instead of rainbow
 		echo ""
@@ -1337,7 +1337,7 @@ export -f pmerge
 						echo "                              THREADS=$NP	-r $r	-N $N	-R $R"
 			if [ "$NP" -eq 1 ]; then
 				rainbow merge -i rbdiv.$CUTOFFS.out -a -o rbasm.$CUTOFFS.out -N $N -l 20 -f 0.75 -r $r -R $R
-			else
+			elif [ "$ATYPE" -eq "RPE" ]; then
 				#parallel by each precluster
 					echo "                              rbdiv$CUTOFFS.out is being split into $CLUST files by precluster for parallel processing"; echo " "
 					mkdir RBDIV.$CUTOFFS.${r}-${R}
@@ -1347,12 +1347,13 @@ export -f pmerge
 					parallel --no-notice --link -j $NP "echo -n {1}, ;rainbow merge -o RBDIV.$CUTOFFS.$r-$R/rbasm.$CUTOFFS.out.{2} -a -i RBDIV.$CUTOFFS.$r-$R/rbdiv.$CUTOFFS.out.{1} -r $r -N $N -R $R -l 20 -f 0.75 " :::: preclusterID.$CUTOFFS :::: preclusterID.zeropad.$CUTOFFS
 					echo "";
 					cat RBDIV.$CUTOFFS.$r-$R/rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
-					#rm -rf RBDIV.$CUTOFFS.$r-$R
+					rm -rf RBDIV.$CUTOFFS.$r-$R
+			elif [ "$ATYPE" -eq "PE" ]; then
 				#parallel by pmerge
-					# echo "                              rbdiv$CUTOFFS.out is being split into $CLUST2 files for parallel processing"
-					# seq -w 1 $CLUST2 | parallel --no-notice -j $NP --env pmerge "pmerge {} $CUTOFFS $r $N $R"
-					# cat rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
-					# rm rbasm.$CUTOFFS.out.[0-9]* rbdiv.$CUTOFFS.out.[0-9]*
+					echo "                              rbdiv$CUTOFFS.out is being split into $CLUST2 files for parallel processing"
+					seq -w 1 $CLUST2 | parallel --no-notice -j $NP --env pmerge "pmerge {} $CUTOFFS $r $N $R"
+					cat rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
+					rm rbasm.$CUTOFFS.out.[0-9]* rbdiv.$CUTOFFS.out.[0-9]*
 			fi
 		else
 			echo ""; echo `date` "  The following file(s) will not be overwritten because it already exists: "
@@ -1591,6 +1592,8 @@ MAP2REF(){
 			samtools index $i.$CUTOFFS-RAW.bam
 		done
 	fi
+	
+	echo ""; echo `date` mkBAM completed!
 }
 
 ###############################################################################################
@@ -1663,7 +1666,7 @@ function FILTERBAM(){
 	# FILTER_ORPHANS=$(grep -A1 '^Remove_reads_orphaned_by_filters' $CONFIG | tail -1)
 
 	echo "";echo " "`date` "Filtering raw BAM Files"
-	if [ "$ATYPE" == "PE" ]; then 	#paired end alignments
+	# if [ "$ATYPE" == "PE" ] ; then 	#paired end alignments
 		#Filter 1: remove reads based on samtools flags
 			echo "";echo "  "`date` " Applying Filter 1: removing paired reads mapping to different contigs, secondary, and supplementary alignments"
 			BITS=$(($SAMTOOLS_VIEW_F+$SAMTOOLS_VIEW_f2))
@@ -1706,13 +1709,13 @@ function FILTERBAM(){
 			echo "";echo "  "`date` " Indexing the filtered BAM files"
 			ls *$CUTOFFS-RG.bam | parallel --no-notice -j $NUMProc "samtools index {}" 
 		
-	#elif [ "$ATYPE" == "OL" ]; then					#single end alignments, -f2 turned off
+	# elif [ "$ATYPE" == "OL" ]; then					#single end alignments, -f2 turned off
 		
 	# elif [ "$ATYPE" == "RPE" ]; then					#single end alignments
 		
 	# elif [ "$ATYPE" == "SE" ]; then					#single end alignments	
 		
-	fi
+	# fi
 }
 
 ###############################################################################################
