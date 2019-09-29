@@ -135,6 +135,8 @@ if [ -n "$2" ]; then
 	POOLS=$(grep 'freebayes -J --pooled-discrete (yes or no)' $CONFIG | awk '{print $1;}')
 	POOL_PLOIDY_FILE=$(grep 'freebayes -A --cnv-map (filename.bed or no)' $CONFIG | awk '{print $1;}')
 	PLOIDY=$(grep 'freebayes -p --ploidy (integer)' $CONFIG | awk '{print $1;}')
+	FREEBAYES_r=$(grep 'freebayes -r --region' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_r == "no" ]; then FREEBAYES_r=""; elif [ -s $FREEBAYES_r ]; then FREEBAYES_r="-r $FREEBAYES_r "; else FREEBAYES_r="", echo error loading freebayes -r setting, default set to no;fi
+	R1MaxBP=$(grep 'only genotype read 1' $CONFIG | awk '{print $1;}')
 	BEST_N_ALLELES=$(grep 'freebayes -n --use-best-n-alleles (integer)' $CONFIG | awk '{print $1;}')
 	MIN_MAPPING_QUAL=$(grep 'freebayes -m --min-mapping-quality (integer)' $CONFIG | awk '{print $1;}')
 	MIN_BASE_QUAL=$(grep 'freebayes -q --min-base-quality (integer)' $CONFIG | awk '{print $1;}')
@@ -156,6 +158,8 @@ if [ -n "$2" ]; then
 	FREEBAYES_V=$(grep 'freebayes -V --binomial-obs-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_V == "no" ]; then FREEBAYES_V=""; else FREEBAYES_V="-V "; fi
 	FREEBAYES_a=$(grep 'freebayes -a --allele-balance-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_a == "no" ]; then FREEBAYES_a=""; else FREEBAYES_a="-a "; fi
 	FREEBAYES_no_partial_observations=$(grep 'freebayes --no-partial-observations' $CONFIG | awk '{print $1;}'); if [ ${FREEBAYES_no_partial_observations} == "no" ]; then FREEBAYES_no_partial_observations=""; else FREEBAYES_no_partial_observations="--no-partial-observations "; fi
+	FREEBAYES_report_monomorphic=$(grep 'freebayes    --report-monomorphic' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_report_monomorphic == "no" ]; then FREEBAYES_report_monomorphic=""; else FREEBAYES_report_monomorphic="--report-monomorphic "; fi
+
 
 	MAIL=$(grep -A1 Email $CONFIG | tail -1)
 
@@ -561,11 +565,11 @@ main(){
 		#Create list of sample names
 		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
 			ls *.${CUTOFFS}-RAW.bam > namelist.$CUTOFFS
-			sed -i'' -e "s/*.${CUTOFFS}-RAW.bam//g" namelist.$CUTOFFS
+			sed -i -e "s/\.${CUTOFFS}-RAW.bam//g" namelist.$CUTOFFS
 		elif [ "$(grep -c '^' namelist.$CUTOFFS)" != "$NumInd" ]; then
 			echo "";echo " The existing namelist file does not match the present sample set and is being recreated. "
 			ls *.${CUTOFFS}-RAW.bam > namelist.$CUTOFFS
-			sed -i'' -e "s/*.${CUTOFFS}-RAW.bam//g" namelist.$CUTOFFS
+			sed -i -e "s/\.${CUTOFFS}-RAW.bam//g" namelist.$CUTOFFS
 		else
 			echo "";echo " The namelist file already exists and was not recreated. "
 			echo "  If you experience errors, you should delete the namelist file."
@@ -575,7 +579,7 @@ main(){
 		#Create list of sample names
 		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
 			ls *.${CUTOFFS}-RG.bam > namelist.$CUTOFFS
-			sed -i'' -e "s/*.${CUTOFFS}-RG.bam//g" namelist.$CUTOFFS
+			sed -i -e "s/\.${CUTOFFS}-RG.bam//g" namelist.$CUTOFFS
 		elif [ "$(grep -c '^' namelist.$CUTOFFS)" != "$NumInd" ]; then
 			echo "";echo " The existing namelist file does not match the present sample set and is being recreated. "
 			ls *.${CUTOFFS}-RG.bam > namelist.$CUTOFFS
@@ -1666,7 +1670,7 @@ function FILTERBAM(){
 	# FILTER_ORPHANS=$(grep -A1 '^Remove_reads_orphaned_by_filters' $CONFIG | tail -1)
 
 	echo "";echo " "`date` "Filtering raw BAM Files"
-	# if [ "$ATYPE" == "PE" ] ; then 	#paired end alignments
+	# if [ "$ATYPE" == "PE" ]; then 	#paired end alignments
 		#Filter 1: remove reads based on samtools flags
 			echo "";echo "  "`date` " Applying Filter 1: removing paired reads mapping to different contigs, secondary, and supplementary alignments"
 			BITS=$(($SAMTOOLS_VIEW_F+$SAMTOOLS_VIEW_f2))
@@ -1827,7 +1831,7 @@ function GENOTYPE(){
 			else
 				bedtools coverage -b cat.$CUTOFFS-RRG.bam -a mapped.$CUTOFFS.bed -counts -sorted > cov.$CUTOFFS.stats
 				#CEB need to figure out how to import files with cutoffs into gnuplot
-				paste $(seq 1 $(cat cov.$CUTOFFS.stats | wc -l)) $(cut -f4 cov.$CUTOFFS.stats | sort -r) > cov.dat
+				paste <(seq 1 $(cat cov.$CUTOFFS.stats | wc -l)) <(cut -f4 cov.$CUTOFFS.stats | sort -nr) > cov.dat
 gnuplot << \EOF 
 set terminal dumb size 120, 30
 set autoscale 
@@ -1897,6 +1901,12 @@ EOF
 			if ( cov < cutoff) {x="mapped."i"."x1".bed";print $1"\t"$2"\t"$3 > x}
 			else {i=i+1; x="mapped."i"."x1".bed"; print $1"\t"$2"\t"$3 > x; cov=0}
 		}' 
+		
+		#starter code to limit genotyping to read 1
+		if [ $R1MaxBP -gt 0 ]; then
+			ls mapped.*.$CUTOFFS.bed | parallel --no-notice -k -j $NUMProc "sort -u -k1,1 {} > R1.{}; mv R1.{} {}"
+			
+		fi
 	fi
 
 	if [ ! -s popmap.$CUTOFFS ]; then
@@ -1912,13 +1922,13 @@ EOF
 	if [ "$POOLS" == "no" ]; then
 		echo; echo " "`date` " Genotyping individuals of ploidy $PLOIDY using freebayes..."			
 		#ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -V -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS "
-		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS ${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}"
+		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS ${FREEBAYES_r}${FREEBAYES_report_monomorphic}${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}"
 	elif [ "$POOL_PLOIDY_FILE" == "no" ]; then
 		echo; echo " "`date` "Running freebayes on pools of cumulative ploidy ${PLOIDY}..."
-		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS ${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}"
+		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS ${FREEBAYES_r}${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}${FREEBAYES_report_monomorphic}"
 	elif [ "$POOL_PLOIDY_FILE" != "no" ]; then
 		echo; echo " "`date` "Running freebayes on pools with the following cnv file: ${POOL_PLOIDY_FILE}..."
-		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS --cnv-map $POOL_PLOIDY_FILE ${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}" 
+		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS --cnv-map $POOL_PLOIDY_FILE ${FREEBAYES_r}${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}${FREEBAYES_report_monomorphic}" 
 	fi
 
 	echo ""; echo "  "`date` "Cleaning up files..."
