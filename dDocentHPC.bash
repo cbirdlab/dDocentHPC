@@ -57,18 +57,12 @@ if [ -n "$2" ]; then
 	ASSEMBLY="RemoveThisVar"
 	ATYPE=$(grep 'Type of reads for assembly (PE, SE, OL, RPE)' $CONFIG | awk '{print $1;}')
 	simC=$(grep 'cdhit Clustering_Similarity_Pct (0-1)' $CONFIG | awk '{print $1;}')
-	HPC=$(grep 'Get graphs for cutoffs, then stop? (yes or no)' $CONFIG | awk '{print $1;}')
-	MANCUTOFF=$(grep 'Manually set cutoffs? (yes or no)' $CONFIG | awk '{print $1;}')
-	if [ "$MANCUTOFF" = "no" ]; then
-		CUTOFF=$(grep 'Cutoff1 (integer)' $CONFIG | awk '{print $1;}')
-		CUTOFF2=$(grep 'Cutoff2 (integer)' $CONFIG | awk '{print $1;}')
-		#echo ""; echo `date` " CUTOFF=" $CUTOFF
-		#echo ""; echo `date` " CUTOFF2=" $CUTOFF2
-	else
-		echo ""; echo `date` " ERROR: This is the HPC version of dDocent.  Manual cutoffs are not possible.  Please change config file settings."
-		echo "  Aborting dDocentHPC"
-		exit
-	fi
+	HPC="RemoveThisVar" #$(grep 'Get graphs for cutoffs, then stop? (yes or no)' $CONFIG | awk '{print $1;}')
+	MANCUTOFF="RemoveThisVar"    #$(grep 'Manually set cutoffs? (yes or no)' $CONFIG | awk '{print $1;}')
+	CUTOFF=$(grep 'Cutoff1 (integer)' $CONFIG | awk '{print $1;}')
+	CUTOFF2=$(grep 'Cutoff2 (integer)' $CONFIG | awk '{print $1;}')
+	rPERCENTILE=$(grep 'rainbow merge -r' $CONFIG | awk '{print $1;}')
+	RPERCENTILE=$(grep 'rainbow merge -R' $CONFIG | awk '{print $1;}')
 	MAP="RemoveThisVar"
 	optA=$(grep 'bwa mem -A Mapping_Match_Value (integer)' $CONFIG | awk '{print $1;}')
 	optB=$(grep 'bwa mem -B Mapping_MisMatch_Value (integer)' $CONFIG | awk '{print $1;}')
@@ -1330,8 +1324,8 @@ export -f pmerge
 			CLUST1=$(( ($CLUST - 1) / 100 ))
 			CLUST2=$(( $CLUST1 + 100 ))
 			#this is running out of memory, so trying to fix:  CEB
-			R=$(sort -n rbdiv.16.16.seqsPERprecluster.tsv | awk '{all[NR] = $0} END{print all[int(NR*0.95)]}' | cut -f1)
-			r=$(sort -n rbdiv.16.16.seqsPERprecluster.tsv | awk '{all[NR] = $0} END{print all[int(NR*0.05)]}' | cut -f1)
+			R=$(sort -n rbdiv.$CUTOFFS.readsPERprecluster.tsv | awk '{all[NR] = $0} END{print all[int(NR*0.95)]}' | cut -f1)
+			r=$(sort -n rbdiv.$CUTOFFS.readsPERprecluster.tsv | awk '{all[NR] = $0} END{print all[int(NR*0.05)]}' | cut -f1)
 			N=$R
 			if [ "$R" -le "2000" ]; then 
 				NP=$NUMProc
@@ -1345,12 +1339,13 @@ export -f pmerge
 				rainbow merge -i rbdiv.$CUTOFFS.out -a -o rbasm.$CUTOFFS.out -N $N -l 20 -f 0.75 -r $r -R $R
 			else
 				#parallel by each precluster
-					echo "                              rbdiv$CUTOFFS.out is being split into $CLUST files for parallel processing"
-					mkdir RBDIV.$CUTOFFS
+					echo "                              rbdiv$CUTOFFS.out is being split into $CLUST files by precluster for parallel processing"; echo " "
+					mkdir RBDIV.$CUTOFFS.${r}-${R}
 					awk -v CUTOFFS=$CUTOFFS '{print>"RBDIV."CUTOFFS"/rbdiv."CUTOFFS".out."$5}' rbdiv.$CUTOFFS.out
 					ls RBDIV.$CUTOFFS | sed "s/rbdiv\.$CUTOFFS\.out\.//g" > preclusterID.$CUTOFFS
-					parallel --no-notice -j $NUMProc -k 'printf "%06d\n"' ::: preclusterID.$CUTOFFS > preclusterID.zeropad.$CUTOFFS
-					parallel --no-notice --link -j $NP "rainbow merge -o RBDIV.$CUTOFFS/rbasm.$CUTOFFS.out.{2} -a -i RBDIV.$CUTOFFS/rbdiv.$CUTOFFS.out.{1} -r $r -N $N -R $R -l 20 -f 0.75 " :::: preclusterID.$CUTOFFS :::: preclusterID.zeropad.$CUTOFFS
+					parallel --no-notice -j $NUMProc -k 'printf "%06d\n"' :::: preclusterID.$CUTOFFS > preclusterID.zeropad.$CUTOFFS
+					parallel --no-notice --link -j $NP "echo -n {1}, ;rainbow merge -o RBDIV.$CUTOFFS/rbasm.$CUTOFFS.out.{2} -a -i RBDIV.$CUTOFFS/rbdiv.$CUTOFFS.out.{1} -r $r -N $N -R $R -l 20 -f 0.75 " :::: preclusterID.$CUTOFFS :::: preclusterID.zeropad.$CUTOFFS
+					echo "";
 					cat RBDIV.$CUTOFFS/rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
 					#rm -rf RBDIV.$CUTOFFS
 				#parallel by pmerge
