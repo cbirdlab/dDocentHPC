@@ -57,7 +57,7 @@ yes								Remove_reads_orphaned_by_filters? (yes,no)
 
 ----------mkVCF: Settings for variant calling/ genotyping---------------------------------------------------------
 no		freebayes -J --pooled-discrete (yes|no) 						If yes, a pool of individuals is assumed to be the statistical unit of observation. 
-no		freebayes -A --cnv-map (filename.bed or no)						If the pools have different numbers of individuals, then you should provide a copy number variation (cnv) *.bed file with the "ploidy" of each pool. the bed file should be in the working directory and formatted as follows: popmap_column_1 ploidy_of_pool
+no		freebayes -A --cnv-map (filename.bed or no)						If the pools have different numbers of individuals, then you should provide a copy number variation (cnv) *.bed file with the "ploidy" of each pool. the bed file should be in the working directory and formatted as follows: popmap_column_1 ploidy_of_pool.  If that doesn't work, try the basenames of the files in popmap column 1.
 2		freebayes -p --ploidy (integer)									Whether pooled or not, if no cnv-map file is provided, then what is the ploidy of the samples? for pools, this number should be the number of individuals * ploidy
 no		freebayes -r --region (filename.bed or no)						Limit analysis to specified region.  Bed file format: <chrom>:<start_position>-<end_position>
 0		only genotype read 1 (integer)									Limit analysis to only Read 1 positions, integer is maximum Read1 bp position
