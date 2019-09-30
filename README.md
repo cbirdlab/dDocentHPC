@@ -33,8 +33,10 @@ processing. The resulting vcf files can be filtered with [fltrVCF](https://githu
 	PopSamp_IndivID.R.fq.gz
 		
 2. Clone the dDocentHPC repository to your local directory, at the same hierarchical level as the project dir
-	git clone https://github.com/cbirdlab/dDocentHPC
-		
+  ```bash
+  git clone https://github.com/cbirdlab/dDocentHPC
+  ```
+  
 3. Either add the dDocentHPC repo to your PATH or copy the scripts and config file to the project directory
 	
 4. Run the functions (trimFQ, mkREF, mkBAM, fltrBAM, and mkVCF) in order, as they are listed above
