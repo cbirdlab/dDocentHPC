@@ -38,32 +38,34 @@ processing. The resulting vcf files can be filtered with [fltrVCF](https://githu
 3. Either add the dDocentHPC repo to your PATH or copy the scripts and config file to the project directory
 	
 4. Run the functions (trimFQ, mkREF, mkBAM, fltrBAM, and mkVCF) in order, as they are listed above
-		a. An example SLURM file, dDocentHPC.sbatch, is provided as a guide for how to run on an HPC
-		b. dDocentHPC.bash trimFQ is run from the project directory and creates two additional directories names: mkREF and mkBAM
-		c. dDocentHPC.bash mkREF should be run from inside the mkREF directory
-			i. you will want to run mkREF several times with different "cutoff" values to identify the best combo
-		d. mkBAM, fltrBAM, and mkVCF should be run from inside the mkBAM directory
-	5. I strongly recommend that you look at the resulting files and output to determine if things worked as you intended. I have
-		spent countless hours doing this on my projects and have adjusted the default settings in the config file accordingly. 
-		However, new projects can throw you a curve ball and the settings may need to be changed from the default values.
-		a. After every run, read through the output of dDocentHPC to check for errors.  On an hpc, this will be the slurm*.out
-			file. On a linux workstation, output will be printed to screen unless you add a redirect to a file when you run
-			the dDocentHPC.bash script
-		b. After filtering, run FASTQC and the cntREADS.sbatch script to visualize the results of the filtering
-		c. After making the reference genome, check the PEAR output for the proportion of overlapping reads. View the scatter
-			plots that help you to decide the cutoff values and adjust your cutoffs accordingly. View the fasta file in an 
-			alignment editor, such as seaview. If there are a lot of blocks of very similar sequences, increase the cutoff values.
-		d. After mapping the reads to the reference genome and filtering them, visualize a sampling of BAM files with IGV before and 
-			after the filtering.  If you don't like what you see, adjust the settings in the config file.  I also like to look
-			directly at the BAM files using samtools view.  If you don't understand what you're looking at in a BAM file, then
-			download the SAM format specification from https://github.com/samtools/hts-specs .  Make sure the reads that you want
-			to filter are being filtered.  Adjust the settings as neccessary.
-		e. After genotyping, visualize the VCF file.  The VCF file format specification can be downloaded from 
+
+	a. An example SLURM file, dDocentHPC.sbatch, is provided as a guide for how to run on an HPC
+		
+	b. dDocentHPC.bash trimFQ is run from the project directory and creates two additional directories names: mkREF and mkBAM
+	
+	c. dDocentHPC.bash mkREF should be run from inside the mkREF directory
+	
+		i. you will want to run mkREF several times with different "cutoff" values to identify the best combo
+		
+	d. mkBAM, fltrBAM, and mkVCF should be run from inside the mkBAM directory
+	
+5. I strongly recommend that you look at the resulting files and output to determine if things worked as you intended. I have spent countless hours doing this on my projects and have adjusted the default settings in the config file accordingly. However, new projects can throw you a curve ball and the settings may need to be changed from the default values.
+		
+	a. After every run, read through the output of dDocentHPC to check for errors.  On an hpc, this will be the slurm*.out file. On a linux workstation, output will be printed to screen unless you add a redirect to a file when you run the dDocentHPC.bash script
+	
+	b. After filtering, run FASTQC and the cntREADS.sbatch script to visualize the results of the filtering
+	
+	c. After making the reference genome, check the PEAR output for the proportion of overlapping reads. View the scatter plots that help you to decide the cutoff values and adjust your cutoffs accordingly. View the fasta file in an alignment editor, such as seaview. If there are a lot of blocks of very similar sequences, increase the cutoff values.
+	
+	d. After mapping the reads to the reference genome and filtering them, visualize a sampling of BAM files with IGV before and after the filtering.  If you don't like what you see, adjust the settings in the config file.  I also like to look directly at the BAM files using samtools view.  If you don't understand what you're looking at in a BAM file, then download the SAM format specification from https://github.com/samtools/hts-specs .  Make sure the reads that you want to filter are being filtered.  Adjust the settings as neccessary.
+	
+	e. After genotyping, visualize the VCF file.  The VCF file format specification can be downloaded from 
 			https://github.com/samtools/hts-specs.  I like to select a sampling of loci and cross reference the VCF against
 			the BAM files visualized in IGV.  Questions to ask: 
 			i. Are the positions that you think should be called when viewing the BAM file actually called in the VCF?
 			ii. Is indvididual n genotyped correctly at position k?
 			iii. Are there poorly mapped reads in the BAM that are causing erroneous variant calls in the VCF.
+			
 	5. Check out my fltrVCF script https://github.com/cbirdlab/fltrVCF to continue processing the VCF file.
 
 
