@@ -1,4 +1,4 @@
-# dDocentHPC.bash [function] [config file]   -   a wrapper script to process GBS and RAD data
+## dDocentHPC.bash [function] [config file]   -   a wrapper script to process GBS and RAD data
 
 dDocentHPC is a hard fork of [Dr. Jon Puritz's dDocent wrapper bash script](ddocent.com).  dDocentHPC is designed to be run
 without interaction and functions more like a typical unix/linux commandline program.  Settings are defined in a config file 
@@ -61,23 +61,25 @@ processing. The resulting vcf files can be filtered with [fltrVCF](https://githu
 	
 	d. After mapping the reads to the reference genome and filtering them, visualize a sampling of BAM files with IGV before and after the filtering.  If you don't like what you see, adjust the settings in the config file.  I also like to look directly at the BAM files using samtools view.  If you don't understand what you're looking at in a BAM file, then download the SAM format specification from https://github.com/samtools/hts-specs .  Make sure the reads that you want to filter are being filtered.  Adjust the settings as neccessary.
 	
-	e. After genotyping, visualize the VCF file.  The VCF file format specification can be downloaded from 
-			https://github.com/samtools/hts-specs.  I like to select a sampling of loci and cross reference the VCF against
-			the BAM files visualized in IGV.  Questions to ask: 
-			i. Are the positions that you think should be called when viewing the BAM file actually called in the VCF?
-			ii. Is indvididual n genotyped correctly at position k?
-			iii. Are there poorly mapped reads in the BAM that are causing erroneous variant calls in the VCF.
+	e. After genotyping, visualize the VCF file.  The VCF file format specification can be downloaded from https://github.com/samtools/hts-specs.  I like to select a sampling of loci and cross reference the VCF against the BAM files visualized in IGV.  Questions to ask: 
+		i. Are the positions that you think should be called when viewing the BAM file actually called in the VCF?
+		
+		ii. Is indvididual n genotyped correctly at position k?
+		
+		iii. Are there poorly mapped reads in the BAM that are causing erroneous variant calls in the VCF.
 			
-	5. Check out my fltrVCF script https://github.com/cbirdlab/fltrVCF to continue processing the VCF file.
+6. Check out my fltrVCF script https://github.com/cbirdlab/fltrVCF to continue processing the VCF file.
 
+---
 
-Example, running dDocentHPC.bash on a workstation:
-
+## Example, running dDocentHPC.bash on a workstation:
+	```bash
 	bash dDocentHPC.bash trimFQ config.4.all > trimFQ.out
-
+	```
+---
  
-Example SLURM script, running dDocentHPC.bash on a remote HPC:
-
+## Example SLURM script, running dDocentHPC.bash on a remote HPC:
+	```bash
 	#!/bin/bash
 
 	#SBATCH --job-name=trimFQ
@@ -103,4 +105,4 @@ Example SLURM script, running dDocentHPC.bash on a remote HPC:
 
 	cd mkREF
 	bash ../dDocentHPC.bash mkREF ../config.4.all
-
+	```
