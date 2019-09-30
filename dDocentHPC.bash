@@ -1331,6 +1331,7 @@ EOF
 			R=$(sort -n rbdiv.$CUTOFFS.readsPERprecluster.tsv | awk -v R=$RPERCENTILE '{all[NR] = $0} END{print all[int(NR*R)]}' | cut -f1)
 			r=$(sort -n rbdiv.$CUTOFFS.readsPERprecluster.tsv | awk -v r=$rPERCENTILE '{all[NR] = $0} END{print all[int(NR*r)]}' | cut -f1)
 			N=$R
+			if [ "$r" -le "2" ]; then r=2; fi
 			if [ "$R" -le "2000" ]; then 
 				NP=$NUMProc
 			elif [ "$R" -le "5000" ]; then 
