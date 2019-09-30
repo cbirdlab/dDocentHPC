@@ -1,9 +1,9 @@
-dDocentHPC.bash [function] [config file]   -   a wrapper script to process GBS and RAD data
+# dDocentHPC.bash [function] [config file]   -   a wrapper script to process GBS and RAD data
 
 dDocentHPC.bash is a hard fork of Dr. Jon Puritz's dDocent wrapper bash script (ddocent.com).  dDocentHPC is designed to be run
 without interaction and functions more like a typical unix/linux commandline program.  Settings are defined in a config file 
 and then dDocentHPC is run from the commandline.  dDocentHPC also includes updated algorithms to take advantage of parallel 
-processing. The resulting vcf files can be filtered with fltrVCF, a separate script.
+processing. The resulting vcf files can be filtered with [fltrVCF](https://github.com/cbirdlab/fltrVCF), a separate script.
 
 
 dDocentHPC Functions: trimFQ, mkREF, mkBAM, fltrBAM, mkVCF
