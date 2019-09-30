@@ -33,9 +33,9 @@ processing. The resulting vcf files can be filtered with [fltrVCF](https://githu
 	`PopSamp_IndivID.R.fq.gz`
 		
 2. Clone the dDocentHPC repository to your local directory, at the same hierarchical level as the project dir
-  ```bash
-  git clone https://github.com/cbirdlab/dDocentHPC
-  ```
+	```bash
+ 	git clone https://github.com/cbirdlab/dDocentHPC
+	```
   
 3. Either add the dDocentHPC repo to your PATH or copy the scripts and config file to the project directory
 	
