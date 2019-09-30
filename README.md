@@ -9,17 +9,17 @@ processing. The resulting vcf files can be filtered with [fltrVCF](https://githu
 
 ## dDocentHPC Functions: trimFQ, mkREF, mkBAM, fltrBAM, mkVCF
 
-  trimFQ uses trimmomatic to trim fastq files for de novo reference creation (mkREF) and mapping reads to the reference (mkBAM).
+  `trimFQ` uses trimmomatic to trim fastq files for de novo reference creation (mkREF) and mapping reads to the reference (mkBAM).
 		several fold speedup over 2.2.12
 		can also use trimFQref or trimFQmap to only trim fastq files for reference creation or mapping, respectively
 
-  mkREF follows description for de novo reference assembly on ddocent.com .  several fold speedup in dDocentHPC
+  `mkREF` follows description for de novo reference assembly on ddocent.com .  several fold speedup in dDocentHPC
 
-  mkBAM uses bwa mem to map reads to reference genome and outputs raw, unfiltered bam files.
+  `mkBAM` uses bwa mem to map reads to reference genome and outputs raw, unfiltered bam files.
   
-  fltrBAM uses samtools view to filter the BAM files.  This is only enabled in PE mode, presently.
+  `fltrBAM` uses samtools view to filter the BAM files.  This is only enabled in PE mode, presently.
   
-  mkVCF uses freebayes to genotype individuals or allelotype pools. By default, only SNPs and INDELS are called, not MNPs
+  `mkVCF` uses freebayes to genotype individuals or allelotype pools. By default, only SNPs and INDELS are called, not MNPs
 		when freebayes calls MNPs, it causes problems downstream with filtering the vcf files with vcftools and vcflib
 
 ---
@@ -29,8 +29,8 @@ processing. The resulting vcf files can be filtered with [fltrVCF](https://githu
 0. Install all dependencies, see ddocent.com
 	
 1. Create a project directory of any name that has zipped FASTQ files with following naming convention: 
-	PopSamp_IndivID.F.fq.gz
-	PopSamp_IndivID.R.fq.gz
+	`PopSamp_IndivID.F.fq.gz`
+	`PopSamp_IndivID.R.fq.gz`
 		
 2. Clone the dDocentHPC repository to your local directory, at the same hierarchical level as the project dir
   ```bash
@@ -59,16 +59,17 @@ processing. The resulting vcf files can be filtered with [fltrVCF](https://githu
 	
 	c. After making the reference genome, check the PEAR output for the proportion of overlapping reads. View the scatter plots that help you to decide the cutoff values and adjust your cutoffs accordingly. View the fasta file in an alignment editor, such as seaview. If there are a lot of blocks of very similar sequences, increase the cutoff values.
 	
-	d. After mapping the reads to the reference genome and filtering them, visualize a sampling of BAM files with IGV before and after the filtering.  If you don't like what you see, adjust the settings in the config file.  I also like to look directly at the BAM files using samtools view.  If you don't understand what you're looking at in a BAM file, then download the SAM format specification from https://github.com/samtools/hts-specs .  Make sure the reads that you want to filter are being filtered.  Adjust the settings as neccessary.
+	d. After mapping the reads to the reference genome and filtering them, visualize a sampling of BAM files with IGV before and after the filtering.  If you don't like what you see, adjust the settings in the config file.  I also like to look directly at the BAM files using samtools view.  If you don't understand what you're looking at in a BAM file, then download the [SAM format specification](https://github.com/samtools/hts-specs).  Make sure the reads that you want to filter are being filtered.  Adjust the settings as neccessary.
 	
-	e. After genotyping, visualize the VCF file.  The VCF file format specification can be downloaded from https://github.com/samtools/hts-specs.  I like to select a sampling of loci and cross reference the VCF against the BAM files visualized in IGV.  Questions to ask: 
+	e. After genotyping, visualize the VCF file.  [The VCF file format specification can be downloaded from here](https://github.com/samtools/hts-specs).  I like to select a sampling of loci and cross reference the VCF against the BAM files visualized in IGV.  Questions to ask: 
+	
 		i. Are the positions that you think should be called when viewing the BAM file actually called in the VCF?
 		
 		ii. Is indvididual n genotyped correctly at position k?
 		
 		iii. Are there poorly mapped reads in the BAM that are causing erroneous variant calls in the VCF.
 			
-6. Check out my fltrVCF script https://github.com/cbirdlab/fltrVCF to continue processing the VCF file.
+6. Check out [fltrVCF](https://github.com/cbirdlab/fltrVCF) to continue processing the VCF file.
 
 ---
 
