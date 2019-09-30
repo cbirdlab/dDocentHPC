@@ -107,3 +107,9 @@ processing. The resulting vcf files can be filtered with [fltrVCF](https://githu
 	cd mkREF
 	bash ../dDocentHPC.bash mkREF ../config.4.all
 	```
+
+## Tutorials
+
+1. ddRAD	coming soon
+
+2. tradRAD	coming soon 
