@@ -26,7 +26,7 @@ processing. The resulting vcf files can be filtered with [fltrVCF](https://githu
  
 ## Quick Start
 
-0. Install all dependencies, see ddocent.com
+0. [Install all dependencies](https://www.ddocent.com)
 	
 1. Create a project directory of any name that has zipped FASTQ files with following naming convention: 
 	`PopSamp_IndivID.F.fq.gz`
