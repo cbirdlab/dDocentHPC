@@ -6,7 +6,7 @@ and then dDocentHPC is run from the commandline.  dDocentHPC also includes updat
 processing. The resulting vcf files can be filtered with [fltrVCF](https://github.com/cbirdlab/fltrVCF), a separate script.
 
 
-dDocentHPC Functions: trimFQ, mkREF, mkBAM, fltrBAM, mkVCF
+## dDocentHPC Functions: trimFQ, mkREF, mkBAM, fltrBAM, mkVCF
 
   trimFQ uses trimmomatic to trim fastq files for de novo reference creation (mkREF) and mapping reads to the reference (mkBAM).
 		several fold speedup over 2.2.12
@@ -22,14 +22,19 @@ dDocentHPC Functions: trimFQ, mkREF, mkBAM, fltrBAM, mkVCF
 		when freebayes calls MNPs, it causes problems downstream with filtering the vcf files with vcftools and vcflib
 
  
-Quick Start
+## Quick Start
+
 	0. Install all dependencies, see ddocent.com
+	
 	1. Create a project directory of any name that has zipped FASTQ files with following naming convention: 
 		PopSamp_IndivID.F.fq.gz
 		PopSamp_IndivID.R.fq.gz
+		
 	2. Clone the dDocentHPC repository to your local directory, at the same hierarchical level as the project dir
 		git clone https://github.com/cbirdlab/dDocentHPC
+		
 	3. Either add the dDocentHPC repo to your PATH or copy the scripts and config file to the project directory
+	
 	4. Run the functions (trimFQ, mkREF, mkBAM, fltrBAM, and mkVCF) in order, as they are listed above
 		a. An example SLURM file, dDocentHPC.sbatch, is provided as a guide for how to run on an HPC
 		b. dDocentHPC.bash trimFQ is run from the project directory and creates two additional directories names: mkREF and mkBAM
