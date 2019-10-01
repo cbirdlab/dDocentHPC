@@ -10,7 +10,7 @@ processing. The resulting vcf files can be filtered with [fltrVCF](https://githu
 ## dDocentHPC Functions: trimFQ, mkREF, mkBAM, fltrBAM, mkVCF
 
   `trimFQ` uses trimmomatic to trim fastq files for de novo reference creation (mkREF) and mapping reads to the reference (mkBAM).
-		several fold speedup over 2.2.12
+		several fold speedup
 		can also use trimFQref or trimFQmap to only trim fastq files for reference creation or mapping, respectively
 
   `mkREF` follows description for de novo reference assembly on ddocent.com .  several fold speedup in dDocentHPC
