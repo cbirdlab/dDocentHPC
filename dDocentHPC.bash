@@ -53,10 +53,10 @@ if [ -n "$2" ]; then
 	TRAILING_MAPPING=$(grep 'trimmomatic TRAILING:<quality> (integer, mkBAM only)' $CONFIG | awk '{print $1;}')
 	HEADCROP=$(grep 'HEADCROP:<length> (integer, only Read1 for ezRAD)' $CONFIG | awk '{print $1;}')
 
-	FixStacks=$(grep 'FixStacks (yes,no)' $CONFIG | awk '{print $1;}')
+	FixStacks=$(grep 'FixStacks ' $CONFIG | awk '{print $1;}')
 	ASSEMBLY="RemoveThisVar"
 	ATYPE=$(grep 'Type of reads for assembly (PE, SE, OL, RPE)' $CONFIG | awk '{print $1;}')
-	simC=$(grep 'cdhit Clustering_Similarity_Pct (0-1)' $CONFIG | awk '{print $1;}')
+	simC=$(grep 'cdhit Clustering_Similarity_Pct' $CONFIG | awk '{print $1;}')
 	HPC="RemoveThisVar" #$(grep 'Get graphs for cutoffs, then stop? (yes or no)' $CONFIG | awk '{print $1;}')
 	MANCUTOFF="RemoveThisVar"    #$(grep 'Manually set cutoffs? (yes or no)' $CONFIG | awk '{print $1;}')
 	CUTOFF=$(grep 'Cutoff1 (integer)' $CONFIG | awk '{print $1;}')
@@ -64,21 +64,21 @@ if [ -n "$2" ]; then
 	rPERCENTILE=$(grep 'rainbow merge -r' $CONFIG | awk '{print $1;}')
 	RPERCENTILE=$(grep 'rainbow merge -R' $CONFIG | awk '{print $1;}')
 	MAP="RemoveThisVar"
-	optA=$(grep 'bwa mem -A Mapping_Match_Value (integer)' $CONFIG | awk '{print $1;}')
-	optB=$(grep 'bwa mem -B Mapping_MisMatch_Value (integer)' $CONFIG | awk '{print $1;}')
-	optO=$(grep 'bwa mem -O Mapping_GapOpen_Penalty (integer)' $CONFIG | awk '{print $1;}')
-	MAPPING_MIN_ALIGNMENT_SCORE=$(grep 'bwa mem -T Mapping_Minimum_Alignment_Score (integer)' $CONFIG | awk '{print $1;}')
-	MAPPING_CLIPPING_PENALTY=$(grep 'bwa mem -L Mapping_Clipping_Penalty (integer,integer)' $CONFIG | awk '{print $1;}')
+	optA=$(grep 'bwa mem -A Mapping_Match_Value' $CONFIG | awk '{print $1;}')
+	optB=$(grep 'bwa mem -B Mapping_MisMatch_Value)' $CONFIG | awk '{print $1;}')
+	optO=$(grep 'bwa mem -O Mapping_GapOpen_Penalty' $CONFIG | awk '{print $1;}')
+	MAPPING_MIN_ALIGNMENT_SCORE=$(grep 'bwa mem -T Mapping_Minimum_Alignment_Score' $CONFIG | awk '{print $1;}')
+	MAPPING_CLIPPING_PENALTY=$(grep 'bwa mem -L Mapping_Clipping_Penalty' $CONFIG | awk '{print $1;}')
 
 	FILTERMAP="RemoveThisVar"
-	MAPPING_MIN_QUALITY=$(grep 'Mapping_Min_Quality (integer)' $CONFIG | awk '{print $1;}')
-	SAMTOOLS_VIEW_F4=$(grep 'Remove_unmapped_reads? (yes,no)' $CONFIG | awk '{print $1;}')
-	SAMTOOLS_VIEW_F8=$(grep 'Remove_read_pair_if_one_is_unmapped? (yes,no)' $CONFIG | awk '{print $1;}')
-	SAMTOOLS_VIEW_F256=$(grep 'Remove_secondary_alignments? (yes,no)' $CONFIG | awk '{print $1;}')
-	SAMTOOLS_VIEW_F512=$(grep 'Remove_reads_not_passing_platform_vendor_filters (yes,no)' $CONFIG | awk '{print $1;}')
-	SAMTOOLS_VIEW_F1024=$(grep 'Remove_PCR_or_optical_duplicates? (yes,no)' $CONFIG | awk '{print $1;}')
-	SAMTOOLS_VIEW_F2048=$(grep 'Remove_supplementary_alignments? (yes,no)' $CONFIG | awk '{print $1;}')
-	SAMTOOLS_VIEW_f2=$(grep 'Keep_only_properly_aligned_read_pairs? (yes,no)' $CONFIG | awk '{print $1;}')
+	MAPPING_MIN_QUALITY=$(grep 'Mapping_Min_Quality' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_F4=$(grep 'Remove_unmapped_reads?' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_F8=$(grep 'Remove_read_pair_if_one_is_unmapped' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_F256=$(grep 'Remove_secondary_alignments' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_F512=$(grep 'Remove_reads_not_passing_platform_vendor_filters' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_F1024=$(grep 'Remove_PCR_or_optical_duplicates' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_F2048=$(grep 'Remove_supplementary_alignments' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_f2=$(grep 'Keep_only_properly_aligned_read_pairs' $CONFIG | awk '{print $1;}')
 
 	if [ "$SAMTOOLS_VIEW_F4" == "yes" ]; then
 		F4=4
@@ -124,25 +124,25 @@ if [ -n "$2" ]; then
 		SAMTOOLS_VIEW_f=0
 	fi
 
-	SAMTOOLS_VIEW_Fcustom=$(grep 'Custom_samtools_view_F_bit_value? (integer)' $CONFIG | awk '{print $1;}')
-	SAMTOOLS_VIEW_fcustom=$(grep 'Custom_samtools_view_f_bit_value? (integer)' $CONFIG | awk '{print $1;}')
-	SOFT_CLIP_CUT=$(grep 'Remove_reads_with_excessive_soft_clipping? (no, integers by 10s)' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_Fcustom=$(grep 'Custom_samtools_view_F_bit_value' $CONFIG | awk '{print $1;}')
+	SAMTOOLS_VIEW_fcustom=$(grep 'Custom_samtools_view_f_bit_value' $CONFIG | awk '{print $1;}')
+	SOFT_CLIP_CUT=$(grep 'Remove_reads_with_excessive_soft_clipping' $CONFIG | awk '{print $1;}')
 	SOFT_CLIP_CUTOFF=$((($SOFT_CLIP_CUT+9)/10))
-	FILTER_MIN_AS=$(grep 'Remove_reads_with_alignment_score_below (integers by 10s)' $CONFIG | awk '{print $1;}')
-	FILTER_ORPHANS=$(grep 'Remove_reads_orphaned_by_filters? (yes,no)' $CONFIG | awk '{print $1;}')
+	FILTER_MIN_AS=$(grep 'Remove_reads_with_alignment_score_below' $CONFIG | awk '{print $1;}')
+	FILTER_ORPHANS=$(grep 'Remove_reads_orphaned_by_filters' $CONFIG | awk '{print $1;}')
 
 	SNP="RemoveThisVar"
-	POOLS=$(grep 'freebayes -J --pooled-discrete (yes or no)' $CONFIG | awk '{print $1;}')
-	POOL_PLOIDY_FILE=$(grep 'freebayes -A --cnv-map (filename.bed or no)' $CONFIG | awk '{print $1;}')
-	PLOIDY=$(grep 'freebayes -p --ploidy (integer)' $CONFIG | awk '{print $1;}')
+	POOLS=$(grep 'freebayes -J --pooled-discrete' $CONFIG | awk '{print $1;}')
+	POOL_PLOIDY_FILE=$(grep 'freebayes -A --cnv-map' $CONFIG | awk '{print $1;}')
+	PLOIDY=$(grep 'freebayes -p --ploidy' $CONFIG | awk '{print $1;}')
 	FREEBAYES_r=$(grep 'freebayes -r --region' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_r == "no" ]; then FREEBAYES_r=""; elif [ -s $FREEBAYES_r ]; then FREEBAYES_r="-r $FREEBAYES_r "; else FREEBAYES_r="", echo error loading freebayes -r setting, default set to no;fi
 	R1MaxBP=$(grep 'only genotype read 1' $CONFIG | awk '{print $1;}')
-	BEST_N_ALLELES=$(grep 'freebayes -n --use-best-n-alleles (integer)' $CONFIG | awk '{print $1;}')
-	MIN_MAPPING_QUAL=$(grep 'freebayes -m --min-mapping-quality (integer)' $CONFIG | awk '{print $1;}')
-	MIN_BASE_QUAL=$(grep 'freebayes -q --min-base-quality (integer)' $CONFIG | awk '{print $1;}')
-	HAPLOTYPE_LENGTH=$(grep 'freebayes -E --haplotype-length (-1, 3, or integer)' $CONFIG | awk '{print $1;}')
-	MIN_REPEAT_ENTROPY=$(grep 'freebayes    --min-repeat-entropy (0, 1, or integer)' $CONFIG | awk '{print $1;}')
-	MIN_COVERAGE=$(grep 'freebayes    --min-coverage (integer)' $CONFIG | awk '{print $1;}')
+	BEST_N_ALLELES=$(grep 'freebayes -n --use-best-n-alleles' $CONFIG | awk '{print $1;}')
+	MIN_MAPPING_QUAL=$(grep 'freebayes -m --min-mapping-quality' $CONFIG | awk '{print $1;}')
+	MIN_BASE_QUAL=$(grep 'freebayes -q --min-base-quality' $CONFIG | awk '{print $1;}')
+	HAPLOTYPE_LENGTH=$(grep 'freebayes -E --haplotype-length' $CONFIG | awk '{print $1;}')
+	MIN_REPEAT_ENTROPY=$(grep 'freebayes    --min-repeat-entropy' $CONFIG | awk '{print $1;}')
+	MIN_COVERAGE=$(grep 'freebayes    --min-coverage' $CONFIG | awk '{print $1;}')
 	MIN_ALT_FRACTION=$(grep 'freebayes -F --min-alternate-fraction' $CONFIG | awk '{print $1;}')
 
 	FREEBAYES_z=$(grep 'freebayes -z --read-max-mismatch-fraction' $CONFIG | awk '{print $1;}')
