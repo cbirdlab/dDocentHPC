@@ -947,10 +947,10 @@ Assemble(){
 	SED2='s/\s/\t/g'
 	FRL=$(zcat ${NAMES[0]}.r1.fq.gz | mawk '{ print length() | "sort -rn" }' | head -1)
 
-	special_uniq(){
-		mawk -v x=$1 '$1 >= x' $2  |cut -f2 | sed -e 's/NNNNNNNNNN/\t/g' | cut -f1 | uniq
-	}
-	export -f special_uniq
+special_uniq(){
+	mawk -v x=$1 '$1 >= x' $2  |cut -f2 | sed -e 's/NNNNNNNNNN/\t/g' | cut -f1 | uniq
+}
+export -f special_uniq
 
 	if [ ! -s "namelistfr.$CUTOFFS" ];then
 		ls $Fwild > namelistfr.$CUTOFFS
@@ -1115,7 +1115,8 @@ EOF
 	if [ "$ATYPE" == "RPE" ]; then
 		if [ ! -s "uniqCperindv.$CUTOFF" ];then
 			echo "";echo `date` " make uniqCperindv.$CUTOFF  tradRAD, not ezRAD & ddRAD"
-			parallel --no-notice -j $NUMProc --env special_uniq special_uniq $CUTOFF {} ::: *.uniq.seqs  | $sort --parallel=$NUMProc -S 2G | uniq -c > uniqCperindv.$CUTOFF
+			parallel --record-env
+			parallel --no-notice -j $NUMProc --env _ special_uniq $CUTOFF {} ::: *.uniq.seqs  | $sort --parallel=$NUMProc -S 2G | uniq -c > uniqCperindv.$CUTOFF
 		fi
 	else
 		if [ ! -s "uniqCperindv.$CUTOFF" ];then
@@ -1176,7 +1177,8 @@ EOF
 		#NEED TO ADD A Config or Cmd line setting to overwrite these CEB
 		if [ ! -s "total.$CUTOFF.fr" ] || [ ! -s "total.$CUTOFF.f.uniq" ]; then
 			parallel --no-notice -j $NUMProc mawk -v x=$CUTOFF \''$1 >= x'\' ::: *.uniq.seqs | cut -f2 | sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/' | $sort -k1,1 --parallel=$NUMProc -S 2G > total.$CUTOFF.fr
-			parallel --no-notice --env special_uniq special_uniq $CUTOFF {} ::: *.uniq.seqs  | $sort --parallel=$NUMProc -S 2G | uniq -c > total.$CUTOFF.f.uniq
+			parallel --record-env
+			parallel --no-notice --env _ special_uniq $CUTOFF {} ::: *.uniq.seqs  | $sort --parallel=$NUMProc -S 2G | uniq -c > total.$CUTOFF.f.uniq
 		else
 			echo ""; echo `date` " The following file(s) will not be overwritten because they already exist: "
 			echo "                              total.$CUTOFF.fr"
@@ -1356,7 +1358,8 @@ EOF
 			elif [ "$ATYPE" == "PE" ]; then
 				#parallel by pmerge
 					echo "                              rbdiv$CUTOFFS.out is being split into $CLUST2 files for parallel processing"
-					seq -w 1 $CLUST2 | parallel --no-notice -j $NP --env pmerge "pmerge {} $CUTOFFS $r $N $R"
+					parallel --record-env
+					seq -w 1 $CLUST2 | parallel --no-notice -j $NP --env _ "pmerge {} $CUTOFFS $r $N $R"
 					cat rbasm.$CUTOFFS.out.[0-9]* > rbasm.$CUTOFFS.out
 					rm rbasm.$CUTOFFS.out.[0-9]* rbdiv.$CUTOFFS.out.[0-9]*
 			fi
