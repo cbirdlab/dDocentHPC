@@ -1077,7 +1077,8 @@ export -f special_uniq
 		export -f cntUniq
 
 		#subtract 1 from each number in pfile and feed to parallel to run function
-		awk '{$1 = $1 - 1; print}' pfile | parallel --no-notice -j $NUMProc cntUniq
+		parallel --record-env
+		awk '{$1 = $1 - 1; print}' pfile | parallel --no-notice --env _ -j $NUMProc cntUniq
 		$sort -nr grtrthans > greaterthans
 		paste pfile greaterthans > uniqseq.data
 
@@ -1582,7 +1583,8 @@ MAP2REF(){
 			samtools index $i.$CUTOFFS-RAW.bam
 		}
 		export -f runBWA
-		parallel --no-notice -j $NUMProc "runBWA {} $CUTOFFS $MAPPING_CLIPPING_PENALTY $INSERT $SD $INSERTH $INSERTL $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO" ::: "${NAMES[@]}"
+		parallel --record-env
+		parallel --no-notice --env _ -j $NUMProc "runBWA {} $CUTOFFS $MAPPING_CLIPPING_PENALTY $INSERT $SD $INSERTH $INSERTL $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO" ::: "${NAMES[@]}"
 		
 	else
 		echo " No. Expected insert length not modified for BWA"
@@ -1710,7 +1712,8 @@ function FILTERBAM(){
 				
 				echo "";echo "  "`date` " Applying Filter 2: removing excessively soft clipped reads (and their mates)"
 				echo "";echo "   "`date` " SOFT_CLIP_CUTOFF is $SOFT_CLIP_CUTOFF * 10"
-				ls *$CUTOFFS-RG.bam | parallel --no-notice -j $NUMProc "SoftClipOrphanFilter {} $SOFT_CLIP_CUTOFF $FILTER_ORPHANS reference.$CUTOFFS.fasta $FILTER_MIN_AS"
+				parallel --record-env
+				ls *$CUTOFFS-RG.bam | parallel --no-notice --env _ -j $NUMProc "SoftClipOrphanFilter {} $SOFT_CLIP_CUTOFF $FILTER_ORPHANS reference.$CUTOFFS.fasta $FILTER_MIN_AS"
 			fi
 		
 		#Index the filtered bam files 
@@ -1877,7 +1880,8 @@ EOF
 		}
 		export -f split_bam	
 		echo "  "`date` " Splitting BAM File"
-		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "split_bam {} $CUTOFFS"
+		parallel --record-env
+		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice --env _ -j $NUMProc "split_bam {} $CUTOFFS"
 	else
 		echo "";echo "  "`date` "Split BAM files detected and they will be genotyped."
 		#This code estimates the coverage of reference intervals and removes intervals in 0.01% of depth
