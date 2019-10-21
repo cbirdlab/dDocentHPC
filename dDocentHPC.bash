@@ -157,8 +157,8 @@ if [ -n "$2" ]; then
 	FREEBAYES_w=$(grep 'freebayes -w --hwe-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_w == "no" ]; then FREEBAYES_w=""; else FREEBAYES_w="-w "; fi
 	FREEBAYES_V=$(grep 'freebayes -V --binomial-obs-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_V == "no" ]; then FREEBAYES_V=""; else FREEBAYES_V="-V "; fi
 	FREEBAYES_a=$(grep 'freebayes -a --allele-balance-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_a == "no" ]; then FREEBAYES_a=""; else FREEBAYES_a="-a "; fi
-	FREEBAYES_no_partial_observations=$(grep 'freebayes --no-partial-observations' $CONFIG | awk '{print $1;}'); if [ ${FREEBAYES_no_partial_observations} == "no" ]; then FREEBAYES_no_partial_observations=""; else FREEBAYES_no_partial_observations="--no-partial-observations "; fi
-	FREEBAYES_report_monomorphic=$(grep 'freebayes    --report-monomorphic' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_report_monomorphic == "no" ]; then FREEBAYES_report_monomorphic=""; else FREEBAYES_report_monomorphic="--report-monomorphic "; fi
+	FREEBAYES_no_partial_observations=$(grep -P 'freebayes *\t* --no-partial-observations' $CONFIG | awk '{print $1;}'); if [ "${FREEBAYES_no_partial_observations}" == "no" ]; then FREEBAYES_no_partial_observations=""; else FREEBAYES_no_partial_observations="--no-partial-observations "; fi
+	FREEBAYES_report_monomorphic=$(grep -P 'freebayes *\t* --report-monomorphic' $CONFIG | awk '{print $1;}'); if [ "$FREEBAYES_report_monomorphic" == "no" ]; then FREEBAYES_report_monomorphic=""; else FREEBAYES_report_monomorphic="--report-monomorphic "; fi
 
 
 	MAIL=$(grep -A1 Email $CONFIG | tail -1)
