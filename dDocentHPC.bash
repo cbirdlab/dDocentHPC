@@ -65,7 +65,7 @@ if [ -n "$2" ]; then
 	RPERCENTILE=$(grep 'rainbow merge -R' $CONFIG | awk '{print $1;}')
 	MAP="RemoveThisVar"
 	optA=$(grep 'bwa mem -A Mapping_Match_Value' $CONFIG | awk '{print $1;}')
-	optB=$(grep 'bwa mem -B Mapping_MisMatch_Value)' $CONFIG | awk '{print $1;}')
+	optB=$(grep 'bwa mem -B Mapping_MisMatch_Value' $CONFIG | awk '{print $1;}')
 	optO=$(grep 'bwa mem -O Mapping_GapOpen_Penalty' $CONFIG | awk '{print $1;}')
 	MAPPING_MIN_ALIGNMENT_SCORE=$(grep 'bwa mem -T Mapping_Minimum_Alignment_Score' $CONFIG | awk '{print $1;}')
 	MAPPING_CLIPPING_PENALTY=$(grep 'bwa mem -L Mapping_Clipping_Penalty' $CONFIG | awk '{print $1;}')
