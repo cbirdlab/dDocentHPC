@@ -1926,6 +1926,7 @@ EOF
 		cat popmap.$CUTOFFS
 	fi
 
+	samtools faidx reference.$CUTOFFS.fasta
 	
 	if [ "$POOLS" == "no" ]; then
 		echo; echo " "`date` " Genotyping individuals of ploidy $PLOIDY using freebayes..."			
