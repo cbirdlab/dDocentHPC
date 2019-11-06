@@ -1263,7 +1263,7 @@ EOF
 			if [ ! -s "contig.cluster.totaluniqseq.$CUTOFFS" ] || [ ! -s "sort.contig.cluster.ids.$CUTOFFS" ] || \
 			   [ ! -s "xxx.$CUTOFFS" ] || [ ! -s "uniq.$CUTOFFS.F.fasta" ]; then
 				sed -e 's/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/\t/g' uniq.$CUTOFFS.fasta | cut -f1 > uniq.$CUTOFFS.F.fasta
-				CDHIT=$(python -c "print(max(${simC}- 0.1,0.8)")
+				CDHIT=$(python -c "print(max(${simC} - 0.1,0.8))")
 				cd-hit-est -i uniq.$CUTOFFS.F.fasta -o xxx.$CUTOFFS -c $CDHIT -T 0 -M 0 -g 1 -d 100 &>cdhit.$CUTOFFS.log
 				mawk '{if ($1 ~ /Cl/) clus = clus + 1; else  print $3 "\t" clus}' xxx.$CUTOFFS.clstr | sed 's/[>dDococent_Contig_,...]//g' | $sort -g -k1 --parallel=$NUMProc -S 50% > sort.contig.cluster.ids.$CUTOFFS
 				paste sort.contig.cluster.ids.$CUTOFFS totaluniqseq.$CUTOFFS > contig.cluster.totaluniqseq.$CUTOFFS
@@ -1925,7 +1925,7 @@ EOF
 		rm p.$CUTOFFS
 		cat popmap.$CUTOFFS
 	fi
-
+	
 	samtools faidx reference.$CUTOFFS.fasta
 	
 	if [ "$POOLS" == "no" ]; then
