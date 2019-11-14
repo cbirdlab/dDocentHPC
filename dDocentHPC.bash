@@ -1878,7 +1878,8 @@ EOF
 		fi
 
 		echo "  "`date` " Making the bed files..."
-		mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | sort -V -k1,1 -k2,2 | mawk -v x1="$CUTOFFS" -v cutoff=$CC 'BEGIN{i=1} 
+		#mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | sort -V -k1,1 -k2,2 | mawk -v x1="$CUTOFFS" -v cutoff=$CC 'BEGIN{i=1} 
+		mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | shuf | mawk -v x1="$CUTOFFS" -v cutoff=$CC 'BEGIN{i=1} 
 		{
 			len=$3-$2;lc=len*$4;cov = cov + lc
 			if ( cov < cutoff) {x="mapped."i"."x1".bed";print $1"\t"$2"\t"$3 > x}
@@ -1925,7 +1926,8 @@ EOF
 		fi
 
 		echo "  "`date` " Making the bed files..."
-		mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | sort -V -k1,1 -k2,2 | mawk -v x1="$CUTOFFS" -v cutoff=$CC 'BEGIN{i=1} 
+		# mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | sort -V -k1,1 -k2,2 | mawk -v x1="$CUTOFFS" -v cutoff=$CC 'BEGIN{i=1} 
+		mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | shuf | mawk -v x1="$CUTOFFS" -v cutoff=$CC 'BEGIN{i=1} 
 		{
 			len=$3-$2;lc=len*$4;cov = cov + lc
 			if ( cov < cutoff) {x="mapped."i"."x1".bed";print $1"\t"$2"\t"$3 > x}
@@ -1990,16 +1992,20 @@ EOF
 	mv raw.8.$CUTOFFS.vcf raw.08.$CUTOFFS.vcf
 	mv raw.9.$CUTOFFS.vcf raw.09.$CUTOFFS.vcf
 
-	echo ""; echo " "`date` "Assembling final VCF file..."
-	vcfcombine raw.*.$CUTOFFS.vcf | sed -e 's/	\.\:/	\.\/\.\:/g' > TotalRawSNPs.$CUTOFFS.vcf
+if [ ! -d "raw.$CUTOFFS.vcf" ]; then
+	mkdir raw.$CUTOFFS.vcf
+fi
+
+#sort the vcf
+ls raw.*.$CUTOFFS.vcf | parallel --no-notice -j $NUMProc "cat <(grep -v '^dDocent' {}) <(grep '^dDocent' {} | sort -V -k1,1 -k2,2) > ./raw.$CUTOFFS.vcf/{} "
+#rm raw.*.$CUTOFFS.vcf
+
+echo ""; echo " "`date` "Assembling final VCF file..."
+vcfcombine ./raw.$CUTOFFS.vcf/raw.*.$CUTOFFS.vcf | sed -e 's/	\.\:/	\.\/\.\:/g' > TotalRawSNPs.$CUTOFFS.vcf
 	bgzip -@ $NUMProc -c TotalRawSNPs.$CUTOFFS.vcf > TotalRawSNPs.$CUTOFFS.vcf.gz
 	tabix -p vcf TotalRawSNPs.$CUTOFFS.vcf.gz
 
-	if [ ! -d "raw.$CUTOFFS.vcf" ]; then
-		mkdir raw.$CUTOFFS.vcf
-	fi
-
-	mv raw.*.$CUTOFFS.vcf ./raw.$CUTOFFS.vcf
+	#mv raw.*.$CUTOFFS.vcf ./raw.$CUTOFFS.vcf
 
 }
 
