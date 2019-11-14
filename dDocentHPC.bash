@@ -1992,16 +1992,16 @@ EOF
 	mv raw.8.$CUTOFFS.vcf raw.08.$CUTOFFS.vcf
 	mv raw.9.$CUTOFFS.vcf raw.09.$CUTOFFS.vcf
 
-if [ ! -d "raw.$CUTOFFS.vcf" ]; then
-	mkdir raw.$CUTOFFS.vcf
-fi
+	if [ ! -d "raw.$CUTOFFS.vcf" ]; then
+		mkdir raw.$CUTOFFS.vcf
+	fi
 
-#sort the vcf
-ls raw.*.$CUTOFFS.vcf | parallel --no-notice -j $NUMProc "cat <(grep -v '^dDocent' {}) <(grep '^dDocent' {} | sort -V -k1,1 -k2,2) > ./raw.$CUTOFFS.vcf/{} "
-#rm raw.*.$CUTOFFS.vcf
+	#sort the vcf
+	ls raw.*.$CUTOFFS.vcf | parallel --no-notice -j $NUMProc "cat <(grep -v '^dDocent' {}) <(grep '^dDocent' {} | sort -V -k1,1 -k2,2) > ./raw.$CUTOFFS.vcf/{} "
+	#rm raw.*.$CUTOFFS.vcf
 
-echo ""; echo " "`date` "Assembling final VCF file..."
-vcfcombine ./raw.$CUTOFFS.vcf/raw.*.$CUTOFFS.vcf | sed -e 's/	\.\:/	\.\/\.\:/g' > TotalRawSNPs.$CUTOFFS.vcf
+	echo ""; echo " "`date` "Assembling final VCF file..."
+	vcfcombine ./raw.$CUTOFFS.vcf/raw.*.$CUTOFFS.vcf | sed -e 's/	\.\:/	\.\/\.\:/g' > TotalRawSNPs.$CUTOFFS.vcf
 	bgzip -@ $NUMProc -c TotalRawSNPs.$CUTOFFS.vcf > TotalRawSNPs.$CUTOFFS.vcf.gz
 	tabix -p vcf TotalRawSNPs.$CUTOFFS.vcf.gz
 
