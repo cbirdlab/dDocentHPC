@@ -61,6 +61,7 @@ no		freebayes -A --cnv-map (filename.bed or no)						If the pools have different
 2		freebayes -p --ploidy (integer)									Whether pooled or not, if no cnv-map file is provided, then what is the ploidy of the samples? for pools, this number should be the number of individuals * ploidy
 no		freebayes -r --region (filename.bed or no)						Limit analysis to specified region.  Bed file format: <chrom>:<start_position>-<end_position>
 0		only genotype read 1 (integer)									Limit analysis to only Read 1 positions, integer is maximum Read1 bp position
+2		Minimum Mean Depth of Coverage Per Individual					Limit analysis to contigs with at least the specified mean depth of coverage per individual
 0		freebayes -n --use-best-n-alleles (integer)						reduce the number of alleles considered to n, zero means all, set to 2 or more if you run out of memory
 30		freebayes -m --min-mapping-quality (integer) 
 20		freebayes -q --min-base-quality (integer) 
@@ -81,6 +82,7 @@ no		freebayes -V --binomial-obs-priors-off (no|yes)					Disable incorporation of
 no		freebayes -a --allele-balance-priors-off (no|yes)				Disable use of aggregate probability of observation balance between alleles as a component of the priors.
 no		freebayes    --no-partial-observations (no|yes)					Exclude observations which do not fully span the dynamically-determined detection window.  (default, use all observations, dividing partial support across matching haplotypes when generating haplotypes.)
 no		freebayes    --report-monomorphic (no|yes)						Report even loci which appear to be monomorphic, and report allconsidered alleles, even those which are not in called genotypes. Loci which do not have any potential alternates have '.' for ALT.
+
 ------------------------------------------------------------------------------------------------------------------
 
 

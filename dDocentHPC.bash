@@ -137,6 +137,7 @@ if [ -n "$2" ]; then
 	PLOIDY=$(grep 'freebayes -p --ploidy' $CONFIG | awk '{print $1;}')
 	FREEBAYES_r=$(grep 'freebayes -r --region' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_r == "no" ]; then FREEBAYES_r=""; elif [ -s $FREEBAYES_r ]; then FREEBAYES_r="-r $FREEBAYES_r "; else FREEBAYES_r="", echo error loading freebayes -r setting, default set to no;fi
 	R1MaxBP=$(grep 'only genotype read 1' $CONFIG | awk '{print $1;}')
+	MinGenoDepth=$(grep 'Minimum Mean Depth of Coverage Per Individual' $CONFIG | awk '{print $1;}')
 	BEST_N_ALLELES=$(grep 'freebayes -n --use-best-n-alleles' $CONFIG | awk '{print $1;}')
 	MIN_MAPPING_QUAL=$(grep 'freebayes -m --min-mapping-quality' $CONFIG | awk '{print $1;}')
 	MIN_BASE_QUAL=$(grep 'freebayes -q --min-base-quality' $CONFIG | awk '{print $1;}')
@@ -159,7 +160,6 @@ if [ -n "$2" ]; then
 	FREEBAYES_a=$(grep 'freebayes -a --allele-balance-priors-off' $CONFIG | awk '{print $1;}'); if [ $FREEBAYES_a == "no" ]; then FREEBAYES_a=""; else FREEBAYES_a="-a "; fi
 	FREEBAYES_no_partial_observations=$(grep -P 'freebayes *\t* --no-partial-observations' $CONFIG | awk '{print $1;}'); if [ "${FREEBAYES_no_partial_observations}" == "no" ]; then FREEBAYES_no_partial_observations=""; else FREEBAYES_no_partial_observations="--no-partial-observations "; fi
 	FREEBAYES_report_monomorphic=$(grep -P 'freebayes *\t* --report-monomorphic' $CONFIG | awk '{print $1;}'); if [ "$FREEBAYES_report_monomorphic" == "no" ]; then FREEBAYES_report_monomorphic=""; else FREEBAYES_report_monomorphic="--report-monomorphic "; fi
-
 
 	MAIL=$(grep -A1 Email $CONFIG | tail -1)
 
@@ -1863,7 +1863,7 @@ EOF
 		# filter contigs with low coverage from the cov.stats and ultimately the bed and vcf files downstream
 		# if there's not more than 1 read per allele per locus, then the contig is not worth evaluating
 		echo "  "`date` " Filtering contigs with low coverage..."
-		minCOV=$(echo $(($(wc -l namelist.$CUTOFFS | cut -d" " -f1) * 2 - 1)))
+		minCOV=$(echo $(($(wc -l namelist.$CUTOFFS | cut -d" " -f1) * $MinGenoDepth * - 1)))
 		mawk -v minCOV=$minCOV '$4 < minCOV {print $1}' cov.$CUTOFFS.stats | uniq > low.cov.$CUTOFFS.contigs
 		grep -f low.cov.$CUTOFFS.contigs -vF cov.$CUTOFFS.stats > low.cov.$CUTOFFS.stats
 		mv low.cov.$CUTOFFS.stats cov.$CUTOFFS.stats
@@ -1911,7 +1911,7 @@ EOF
 		
 		# filter contigs with low coverage from the cov.stats and ultimately the bed and vcf files downstream
 		# if there's not more than 1 read per allele per locus, then the contig is not worth evaluating
-		minCOV=$(echo $(($(wc -l namelist.$CUTOFFS | cut -d" " -f1) * 2 - 1)))
+		minCOV=$(echo $(($(wc -l namelist.$CUTOFFS | cut -d" " -f1) * $MinGenoDepth - 1)))
 		mawk -v minCOV=$minCOV '$4 < minCOV {print $1}' cov.$CUTOFFS.stats | uniq > low.cov.$CUTOFFS.contigs
 		grep -f low.cov.$CUTOFFS.contigs -vF cov.$CUTOFFS.stats > low.cov.$CUTOFFS.stats
 		mv low.cov.$CUTOFFS.stats cov.$CUTOFFS.stats
@@ -1934,11 +1934,12 @@ EOF
 			else {i=i+1; x="mapped."i"."x1".bed"; print $1"\t"$2"\t"$3 > x; cov=0}
 		}' 
 		
-		#starter code to limit genotyping to read 1
-		# if [ $R1MaxBP -gt 0 ]; then
-			# ls mapped.*.$CUTOFFS.bed | parallel --no-notice -k -j $NUMProc "sort -u -k1,1 {} > R1.{}; mv R1.{} {}"
-			
-		# fi
+	fi
+	
+	#limit genotyping to read 1
+	if [ $R1MaxBP -gt 0 ]; then
+		ls mapped.*.$CUTOFFS.bed | parallel --no-notice -k -j $NUMProc "sort -u -k1,1 {} > R1.{}; mv R1.{} {}"
+		
 	fi
 
 	if [ ! -s popmap.$CUTOFFS ]; then
