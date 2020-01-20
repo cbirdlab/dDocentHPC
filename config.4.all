@@ -17,6 +17,7 @@ These default settings assume ddRAD, no overlapping 151 bp reads
 10		trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)			specifies how accurate the match between any adapter etc. sequence must be against a read.
 20		trimmomatic SLIDINGWINDOW:<windowSize> (integer)				specifies the number of bases to average across
 20		trimmomatic SLIDINGWINDOW:<windowQuality> (integer)				specifies the average quality required.
+101   trimmomatic CROP:<bp to keep> (integer, mkBAM only)    Trim read sequences down to this length
 0		trimmomatic HEADCROP:<length> (integer, only Read1 for ezRAD)	The number of bases to remove from the start of the read. 0 for ddRAD, 5 for ezRAD
 no		FixStacks (yes,no)   											Demultiplexing with stacks introduces anomolies.  This removes them.  
 ------------------------------------------------------------------------------------------------------------------
