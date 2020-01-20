@@ -923,18 +923,19 @@ TrimReads () {
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | sort -r | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkBAM/{}.R1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
 	fi 
 	
-	if [[ $HEADCROP != 0 ]]; then
-		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 ./mkBAM/{}.R1.fq.gz ./mkBAM/{}.R1.fq.gz.headcropped HEADCROP:$HEADCROP &> ./mkBAM/logs/{}.trim.log"
-		mkdir ./mkBAM/unheadcropped
-		ls ./mkBAM/*R1.fq.gz | parallel --no-notice "mv {} ./mkBAM/unheadcropped"
-		rename .fq.gz.headcropped .fq.gz ./mkBAM/*.fq.gz.headcropped
-	fi
 	if [[ $CROP != 0 ]]; then
 		if [ ! -d "./mkBAM/unpaired_crop" ]; then mkdir ./mkBAM/unpaired_crop &>/dev/null; fi
 		if [ ! -d "./mkBAM/uncropped" ]; then mkdir ./mkBAM/uncropped &>/dev/null; fi
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC PE -threads 1 -phred33 ./mkBAM/{}.R1.fq.gz ./mkBAM/{}.R2.fq.gz ./mkBAM/{}.R1.fq.gz.cropped ./mkBAM/unpaired_crop/{}.unpairedF.fq.gz ./mkBAM/{}.R2.fq.gz.cropped ./mkBAM/unpaired_crop/{}.unpairedR.fq.gz CROP:$CROP &> ./mkBAM/logs/{}.trim.log"
 		ls ./mkBAM/*R[12].fq.gz | parallel --no-notice "mv {} ./mkBAM/uncropped"
 		rename .fq.gz.cropped .fq.gz ./mkBAM/*.fq.gz.cropped
+	fi
+
+	if [[ $HEADCROP != 0 ]]; then
+		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 ./mkBAM/{}.R1.fq.gz ./mkBAM/{}.R1.fq.gz.headcropped HEADCROP:$HEADCROP &> ./mkBAM/logs/{}.trim.log"
+		mkdir ./mkBAM/unheadcropped
+		ls ./mkBAM/*R1.fq.gz | parallel --no-notice "mv {} ./mkBAM/unheadcropped"
+		rename .fq.gz.headcropped .fq.gz ./mkBAM/*.fq.gz.headcropped
 	fi
 }
 
