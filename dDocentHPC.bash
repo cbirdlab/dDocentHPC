@@ -876,7 +876,7 @@ TrimReadsRef () {
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 ./mkREF/{}.r1.fq.gz ./mkREF/{}.ezRAD.r1.fq.gz HEADCROP:$HEADCROP &> ./mkREF/logs/{}.trim.log"
 		mkdir ./mkREF/unheadcropped
 		ls ./mkREF/*r1.fq.gz | grep -v 'ezRAD' | parallel --no-notice "mv {} ./mkREF/unheadcropped"
-		rename .ezRAD.fq.gz .fq.gz ./mkREF/*.ezRAD.fq.gz
+		rename .ezRAD.r1.fq.gz .r1.fq.gz ./mkREF/*.ezRAD.r1.fq.gz
 	fi
 	
 }
