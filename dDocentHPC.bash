@@ -873,10 +873,10 @@ TrimReadsRef () {
 	fi
 	
 	if [[ $HEADCROP != 0 ]]; then
-		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 ./mkREF/{}.r1.fq.gz ./mkREF/{}.ezRAD.r1.fq.gz HEADCROP:$HEADCROP &> ./mkREF/logs/{}.trim.log"
+		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 ./mkREF/{}.r1.fq.gz ./mkREF/{}.headcropped.r1.fq.gz HEADCROP:$HEADCROP &> ./mkREF/logs/{}.trim.log"
 		mkdir ./mkREF/unheadcropped
-		ls ./mkREF/*r1.fq.gz | grep -v 'ezRAD' | parallel --no-notice "mv {} ./mkREF/unheadcropped"
-		rename .ezRAD.r1.fq.gz .r1.fq.gz ./mkREF/*.ezRAD.r1.fq.gz
+		ls ./mkREF/*r1.fq.gz | grep -v 'headcropped' | parallel --no-notice "mv {} ./mkREF/unheadcropped"
+		rename .headcropped.r1.fq.gz .r1.fq.gz ./mkREF/*.headcropped.r1.fq.gz
 	fi
 	
 }
@@ -927,15 +927,16 @@ TrimReads () {
 		if [ ! -d "./mkBAM/unpaired_crop" ]; then mkdir ./mkBAM/unpaired_crop &>/dev/null; fi
 		if [ ! -d "./mkBAM/uncropped" ]; then mkdir ./mkBAM/uncropped &>/dev/null; fi
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC PE -threads 1 -phred33 ./mkBAM/{}.R1.fq.gz ./mkBAM/{}.R2.fq.gz ./mkBAM/{}.R1.cropped.fq.gz ./mkBAM/unpaired_crop/{}.unpairedF.fq.gz ./mkBAM/{}.R2.cropped.fq.gz ./mkBAM/unpaired_crop/{}.unpairedR.fq.gz CROP:$CROP &> ./mkBAM/logs/{}.trim.log"
-		ls ./mkBAM/*R[12].fq.gz | parallel --no-notice "mv {} ./mkBAM/uncropped"
-		rename .cropped.fq.gz .fq.gz ./mkBAM/*.cropped.fq.gz
+		ls ./mkBAM/*R[12].fq.gz | grep -v 'cropped' | parallel --no-notice "mv {} ./mkBAM/uncropped"
+		rename .cropped.R1.fq.gz .r1.fq.gz ./mkBAM/*.cropped.R1.fq.gz
+		rename .cropped.R2.fq.gz .r2.fq.gz ./mkBAM/*.cropped.R2.fq.gz
 	fi
 
 	if [[ $HEADCROP != 0 ]]; then
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 ./mkBAM/{}.R1.fq.gz ./mkBAM/{}.headcropped.R1.fq.gz HEADCROP:$HEADCROP &> ./mkBAM/logs/{}.trim.log"
 		mkdir ./mkBAM/unheadcropped
-		ls ./mkBAM/*R1.fq.gz | parallel --no-notice "mv {} ./mkBAM/unheadcropped"
-		rename .headcropped.fq.gz .fq.gz ./mkBAM/*.headcropped.fq.gz
+		ls ./mkBAM/*R1.fq.gz | grep -v 'headcropped' | parallel --no-notice "mv {} ./mkBAM/unheadcropped"
+		rename .headcropped.R1.fq.gz .R1.fq.gz ./mkBAM/*.headcropped.R1.fq.gz
 	fi
 }
 
