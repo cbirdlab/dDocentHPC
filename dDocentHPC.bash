@@ -928,8 +928,7 @@ TrimReads () {
 		if [ ! -d "./mkBAM/uncropped" ]; then mkdir ./mkBAM/uncropped &>/dev/null; fi
 		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC PE -threads 1 -phred33 ./mkBAM/{}.R1.fq.gz ./mkBAM/{}.R2.fq.gz ./mkBAM/{}.R1.cropped.fq.gz ./mkBAM/unpaired_crop/{}.unpairedF.fq.gz ./mkBAM/{}.R2.cropped.fq.gz ./mkBAM/unpaired_crop/{}.unpairedR.fq.gz CROP:$CROP &> ./mkBAM/logs/{}.trim.log"
 		ls ./mkBAM/*R[12].fq.gz | grep -v 'cropped' | parallel --no-notice "mv {} ./mkBAM/uncropped"
-		rename .cropped.R1.fq.gz .R1.fq.gz ./mkBAM/*.cropped.R1.fq.gz
-		rename .cropped.R2.fq.gz .R2.fq.gz ./mkBAM/*.cropped.R2.fq.gz
+		rename .cropped.fq.gz .fq.gz ./mkBAM/*.cropped.fq.gz
 	fi
 
 	if [[ $HEADCROP != 0 ]]; then
