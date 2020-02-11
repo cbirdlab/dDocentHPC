@@ -1973,6 +1973,9 @@ EOF
 		# echo; echo " "`date` "Running freebayes on pools with the following cnv file: ${POOL_PLOIDY_FILE}..."
 		# ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS --cnv-map $POOL_PLOIDY_FILE ${FREEBAYES_r}${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}${FREEBAYES_report_monomorphic}" 
 	# fi
+	
+	#if there are a lot of ref contigs, then this needs to be run so that freebayes won't choke
+	ulimit -s 81920
 
 	if [ "$POOLS" == "no" ]; then
 		echo; echo " "`date` " Genotyping individuals of ploidy $PLOIDY using freebayes..."			
