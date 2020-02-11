@@ -1871,7 +1871,7 @@ EOF
 		# filter contigs with low coverage from the cov.stats and ultimately the bed and vcf files downstream
 		# if there's not more than 1 read per allele per locus, then the contig is not worth evaluating
 		echo "  "`date` " Filtering contigs with low coverage..."
-		minCOV=$(echo $(($(wc -l namelist.$CUTOFFS | cut -d" " -f1) * $MinGenoDepth * - 1)))
+		minCOV=$(echo $(($(wc -l namelist.$CUTOFFS | cut -d" " -f1) * $MinGenoDepth - 1)))
 		mawk -v minCOV=$minCOV '$4 < minCOV {print $1}' cov.$CUTOFFS.stats | uniq > low.cov.$CUTOFFS.contigs
 		grep -f low.cov.$CUTOFFS.contigs -vF cov.$CUTOFFS.stats > low.cov.$CUTOFFS.stats
 		mv low.cov.$CUTOFFS.stats cov.$CUTOFFS.stats
