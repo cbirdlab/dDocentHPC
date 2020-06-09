@@ -52,7 +52,7 @@ yes		samtools view -f 2 		Keep_only_properly_aligned_read_pairs? (yes,no)						S
 0		samtools view -F 		Custom_samtools_view_F_bit_value? (integer)     					performed separately from the above, consult samtools man
 0		samtools view -f 		Custom_samtools_view_f_bit_value? (integer)     					performed separately from the above, consult samtools man
 20								Remove_reads_with_excessive_soft_clipping? (no, integers by 10s)	minimum number of soft clipped bases in a read that is unacceptable
-50								Remove_reads_with_alignment_score_below (integers by 10s)    		Not currently fuctional
+50								Remove_reads_with_alignment_score_below (integer)    		Should match bwa mem -T, which sometimes doesn't work
 yes								Remove_reads_orphaned_by_filters? (yes,no)
 ------------------------------------------------------------------------------------------------------------------
 
