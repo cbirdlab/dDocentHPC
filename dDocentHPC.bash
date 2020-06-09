@@ -1705,12 +1705,13 @@ function FILTERBAM(){
 			if [[ "$SOFT_CLIP_CUTOFF" != "no" || "$FILTER_ORPHANS" != "no" ]]; then
 				#Function for filtering BAM files
 				SoftClipOrphanFilter(){
+					FILTER_MIN_AS_=$5
 					if [[ "$2" != "no" && "$3" == "yes" ]]; then
-						samtools view $1 | mawk '!/(\t([$2-9].|[1-9][0-9][0-9])S|([$2-9].|[1-9][0-9][0-9])S\t)/' | awk 'BEGIN { FS="\t" } { c[$1]++; l[$1,c[$1]]=$0 } END { for (i in c) { if (c[i] > 1) for (j = 1; j <= c[i]; j++) print l[i,j] } }' | cat <(samtools view -H $1) - | samtools view -S1T $4 - | samtools sort - -o $1 
+						samtools view $1 | mawk '!/(\t([$2-9].|[1-9][0-9][0-9])S|([$2-9].|[1-9][0-9][0-9])S\t)/' | awk 'BEGIN { FS="\t" } { c[$1]++; l[$1,c[$1]]=$0 } END { for (i in c) { if (c[i] > 1) for (j = 1; j <= c[i]; j++) print l[i,j] } }' | awk -v AS=$FILTER_MIN_AS_ 'BEGIN { FS="[\t:]"} {if ($23 >= AS) {print}} ' | cat <(samtools view -H $1) - | samtools view -S1T $4 - | samtools sort - -o $1 
 					elif [[ "$2" != "no" && "$3" == "no" ]]; then
-						samtools view -h $1 | mawk '!/(\t([$2-9].|[1-9][0-9][0-9])S|([$2-9].|[1-9][0-9][0-9])S\t)/' | samtools view -S1 - -o $1
+						samtools view $1 | mawk '!/(\t([$2-9].|[1-9][0-9][0-9])S|([$2-9].|[1-9][0-9][0-9])S\t)/' | awk -v AS=$FILTER_MIN_AS_ 'BEGIN { FS="[\t:]"} {if ($23 >= AS) {print}} ' | cat <(samtools view -H $1) - | samtools view -S1T $4 - | samtools sort - -o $1 
 					elif [[ "$2" == "no" && "$3" == "yes" ]]; then
-						samtools view $1 | awk 'BEGIN { FS="\t" } { c[$1]++; l[$1,c[$1]]=$0 } END { for (i in c) { if (c[i] > 1) for (j = 1; j <= c[i]; j++) print l[i,j] } }' | cat <(samtools view -H $1) - | samtools view -S1T $4 - | samtools sort - -o $1
+						samtools view $1 | awk 'BEGIN { FS="\t" } { c[$1]++; l[$1,c[$1]]=$0 } END { for (i in c) { if (c[i] > 1) for (j = 1; j <= c[i]; j++) print l[i,j] } }' | awk -v AS=$FILTER_MIN_AS_ 'BEGIN { FS="[\t:]"} {if ($23 >= AS) {print}} ' | cat <(samtools view -H $1) - | samtools view -S1T $4 - | samtools sort - -o $1 
 					fi
 				}
 				export -f SoftClipOrphanFilter
@@ -1719,14 +1720,6 @@ function FILTERBAM(){
 				echo "";echo "   "`date` " SOFT_CLIP_CUTOFF is $SOFT_CLIP_CUTOFF * 10"
 				parallel --record-env
 				ls *$CUTOFFS-RG.bam | parallel --no-notice --env _ -j $NUMProc "SoftClipOrphanFilter {} $SOFT_CLIP_CUTOFF $FILTER_ORPHANS reference.$CUTOFFS.fasta $FILTER_MIN_AS"
-				# if [ $FILTER_MIN_AS < 100 ]; then
-				#	FILTER_MIN_AS_TENS=$((($FILTER_MIN_AS+9)/10-1))
-				# else
-				#	echo "";echo "  "`date` " Applying Filter 2: removing excessively soft clipped reads (and their mates)"
-				#	echo "";echo "   "`date` " SOFT_CLIP_CUTOFF is $SOFT_CLIP_CUTOFF * 10"
-				#	parallel --record-env
-				#	ls *$CUTOFFS-RG.bam | parallel --no-notice --env _ -j $NUMProc "SoftClipOrphanFilter {} $SOFT_CLIP_CUTOFF $FILTER_ORPHANS reference.$CUTOFFS.fasta $FILTER_MIN_AS"
-				# fi
 			fi
 		
 		#Index the filtered bam files 
