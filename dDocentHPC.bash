@@ -1689,8 +1689,7 @@ function FILTERBAM(){
 			echo "";echo "  "`date` " Applying Filter 1: removing paired reads mapping to different contigs, secondary, and supplementary alignments"
 			BITS=$(($SAMTOOLS_VIEW_F+$SAMTOOLS_VIEW_f2))
 			BITScustom=$(($SAMTOOLS_VIEW_Fcustom+$SAMTOOLS_VIEW_fcustom))
-			#if [ $FILTER_MIN_AS < 100 ]; then
-				#FILTER_MIN_AS_TENS=$((($FILTER_MIN_AS+9)/10))
+
 				if [[ "$BITS" != "0" && "$BITScustom" != "0" ]]; then
 					ls *$CUTOFFS-RAW.bam | sed 's/\-RAW.bam//g' | parallel --no-notice -j $NUMProc "samtools view -h -q $MAPPING_MIN_QUALITY -F $SAMTOOLS_VIEW_F -f $SAMTOOLS_VIEW_f2 {}-RAW.bam | samtools view -Sh1 -F $SAMTOOLS_VIEW_Fcustom -f SAMTOOLS_VIEW_fcustom - -o {}-RG.bam "
 				elif [[ "$BITS" != 0 && "$BITScustom" == 0 ]]; then
@@ -1700,9 +1699,7 @@ function FILTERBAM(){
 				elif [[ "$BITScustom" == 0 && "$BITS" == 0 ]]; then
 					ls *$CUTOFFS-RAW.bam | sed 's/\-RAW.bam//g' | parallel --no-notice -j $NUMProc "samtools view -h1 -q $MAPPING_MIN_QUALITY {}-RAW.bam -o {}-RG.bam "
 				fi
-			#else
-			
-			#fi
+
 		
 		#Filter 2: remove reads with excessive soft clipping and orphans
 			if [[ "$SOFT_CLIP_CUTOFF" != "no" || "$FILTER_ORPHANS" != "no" ]]; then
@@ -1722,6 +1719,14 @@ function FILTERBAM(){
 				echo "";echo "   "`date` " SOFT_CLIP_CUTOFF is $SOFT_CLIP_CUTOFF * 10"
 				parallel --record-env
 				ls *$CUTOFFS-RG.bam | parallel --no-notice --env _ -j $NUMProc "SoftClipOrphanFilter {} $SOFT_CLIP_CUTOFF $FILTER_ORPHANS reference.$CUTOFFS.fasta $FILTER_MIN_AS"
+				# if [ $FILTER_MIN_AS < 100 ]; then
+				#	FILTER_MIN_AS_TENS=$((($FILTER_MIN_AS+9)/10-1))
+				# else
+					echo "";echo "  "`date` " Applying Filter 2: removing excessively soft clipped reads (and their mates)"
+					echo "";echo "   "`date` " SOFT_CLIP_CUTOFF is $SOFT_CLIP_CUTOFF * 10"
+					parallel --record-env
+					ls *$CUTOFFS-RG.bam | parallel --no-notice --env _ -j $NUMProc "SoftClipOrphanFilter {} $SOFT_CLIP_CUTOFF $FILTER_ORPHANS reference.$CUTOFFS.fasta $FILTER_MIN_AS"
+				# fi
 			fi
 		
 		#Index the filtered bam files 
