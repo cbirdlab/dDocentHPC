@@ -1722,10 +1722,10 @@ function FILTERBAM(){
 				# if [ $FILTER_MIN_AS < 100 ]; then
 				#	FILTER_MIN_AS_TENS=$((($FILTER_MIN_AS+9)/10-1))
 				# else
-					echo "";echo "  "`date` " Applying Filter 2: removing excessively soft clipped reads (and their mates)"
-					echo "";echo "   "`date` " SOFT_CLIP_CUTOFF is $SOFT_CLIP_CUTOFF * 10"
-					parallel --record-env
-					ls *$CUTOFFS-RG.bam | parallel --no-notice --env _ -j $NUMProc "SoftClipOrphanFilter {} $SOFT_CLIP_CUTOFF $FILTER_ORPHANS reference.$CUTOFFS.fasta $FILTER_MIN_AS"
+				#	echo "";echo "  "`date` " Applying Filter 2: removing excessively soft clipped reads (and their mates)"
+				#	echo "";echo "   "`date` " SOFT_CLIP_CUTOFF is $SOFT_CLIP_CUTOFF * 10"
+				#	parallel --record-env
+				#	ls *$CUTOFFS-RG.bam | parallel --no-notice --env _ -j $NUMProc "SoftClipOrphanFilter {} $SOFT_CLIP_CUTOFF $FILTER_ORPHANS reference.$CUTOFFS.fasta $FILTER_MIN_AS"
 				# fi
 			fi
 		
