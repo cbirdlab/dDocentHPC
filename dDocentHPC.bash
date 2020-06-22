@@ -179,137 +179,110 @@ fi
 ###Function to check for the required software for dDocent
 ####################################################################################################
 
-CheckDependencies(){
-	echo ""; echo " Running CheckDependencies Function..."
-	DEP=$1
-	EXIT_IF_DEP_MISSING=$2
-	dDocentFUNCTION=$3
-	NUMDEP=0
-	for i in "${DEP[@]}"
-	do
-		
-		if which $i &> /dev/null; then
-			echo ""; echo "  The dependency $i is installed!"
-		else
-			echo ""; echo "  The dependency" $i "is not installed or is not in your" '$PATH'"."
-			NUMDEP=$(($NUMDEP + 1))
-		fi
-		
-		if [ "$i" == "freebayes" ]; then
-			FREEB=(`freebayes | grep -oh 'v[0-9].*' | cut -f1 -d "." | sed 's/v//' `)	
-			if [ "$FREEB" != "1" ]; then
-				echo "  The version of FreeBayes installed in your" '$PATH' "is not optimized for dDocent."
-				echo "  Please install at least version 1.0.0"
-				NUMDEP=$(($NUMDEP + 1))
-			fi  
-			
-		#elif [ "$i" == "mawk" ]; then
-			
-		elif [ "$i" == "bwa" ]; then
-			BWAV=$( bwa 2>&1 | mawk '/Versi/' | sed 's/Version: //g' | sed 's/0.7.//g' | sed 's/-.*//g' | cut -c 1-2 )
-			if [ "$BWAV" -lt "13" ]; then
-					echo "  The version of bwa installed in your" '$PATH' "is not optimized for dDocent."
-					echo "  Please install at least version 0.7.13"
-					NUMDEP=$(($NUMDEP + 1))
-			fi
-		
-		elif [ "$i" == "samtools" ]; then
-			SAMV1=$(samtools 2>&1 >/dev/null | grep Ver | sed -e 's/Version://' | cut -f2 -d " " | sed -e 's/-.*//' | cut -c1)
-			SAMV2=$(samtools 2>&1 >/dev/null | grep Ver | sed -e 's/Version://' | cut -f2 -d " " | sed -e 's/-.*//' | cut -c3)
-			if [ "$SAMV1"  -ge "1" ]; then
-				if [ "$SAMV2"  -lt "3" ]; then
-					echo "  The version of Samtools installed in your" '$PATH' "is not optimized for dDocent."
-					echo "  Please install at least version 1.3.0"
-				NUMDEP=$(($NUMDEP + 1))
-				fi
-			else
-				echo "  The version of Samtools installed in your" '$PATH' "is not optimized for dDocent."
-				echo "  Please install at least version 1.3.0"
-				NUMDEP=$(($NUMDEP + 1))
-			fi
-		
-		elif [ "$i" == "vcftools" ]; then
-			VCFTV=$(vcftools | grep 'VCF' | sed -e 's/VCFtools (//' | sed -e 's/)//')   
-			if [[ "$VCFTV" != 0.1.[1-9][0-9] ]]; then 
-				echo "  The version of VCFtools installed in your" '$PATH' "is not optimized for dDocent."
-				echo "  Please install only version 0.1.11"
-				NUMDEP=$(($NUMDEP + 1))
-			fi
+CheckVersion() {
+	lower="$1"
+	higher="$2"
 
-		elif [ "$i" == "rainbow" ]; then
-			RAINV=(`rainbow | head -1 | cut -f2 -d' ' `)	
-			if [[ "$RAINV" != "2.0.2" && "$RAINV" != "2.0.3" && "$RAINV" != "2.0.4" ]]; then
-				echo "  The version of Rainbow installed in your" '$PATH' "is not optimized for dDocent."
-				echo "  Please install a version newer than 2.0.2"
-				NUMDEP=$(($NUMDEP + 1))
-			fi
-		#elif [ "$i" == "gnuplot" ]; then
-		
-		#elif [ "$i" == "gawk" ]; then
-		
-		#elif [ "$i" == "seqtk" ]; then
-		
-		#elif [ "$i" == "cd-hit-est" ]; then
-		
-		#elif [ "$i" == "bamToBed" ]; then
-		
-		elif [ "$i" == "bedtools" ]; then
-			BTC=$(bedtools --version | mawk '{print $2}' | sed 's/v//g' | cut -f1,2 -d"." )
-			if [[ "$BTC" != 2.[2-9][0-9] ]]; then
-				echo "  The version of bedtools installed in your" '$PATH' "is not optimized for dDocent."
-				echo "  Please install only version 2.xx.0"
-				NUMDEP=$(($NUMDEP + 1))
-			fi
-			BTC=$( bedtools --version | mawk '{print $2}' | sed 's/v//g' | cut -f1,2 -d"." | sed 's/2\.//g' )
-			if [ "$BTC" -ge "26" ]; then
-				BEDTOOLSFLAG="NEW"
-				elif [ "$BTC" == "23" ]; then
-				BEDTOOLSFLAG="OLD"
-				elif [ "$BTC" != "23" ]; then
-				echo "  The version of bedtools installed in your" '$PATH' "is not optimized for dDocent."
-				echo "  Please install version 2.23.0 or version 2.26.0 and above"
-				NUMDEP=$(($NUMDEP + 1))	
-			fi
-		
-		#elif [ "$i" == "coverageBed" ]; then
-		
-		#elif [ "$i" == "parallel" ]; then
-		
-		#elif [ "$i" == "vcfcombine" ]; then
-		
-		#elif [ "$i" == "bamtools" ]; then
-		
-		#elif [ "$i" == "pearRM" ]; then
-		
-		elif [ "$i" == "trimmomatic" ]; then
-			if find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null| grep -q 'trim' ; then
+	real="$(echo -e "$lower\n$higher" | sort -V | head -1)"
+
+	[ ! "$lower" = "$real" ]
+}
+
+CheckDependencies(){
+	echo
+	echo " Running CheckDependencies Function..."
+
+	DEP=$1
+	missing_dep=""
+
+	for i in "${DEP[@]}"; do
+		echo
+
+		case "$i" in
+			trimmomatic)
+				found=0
 				TRIMMOMATIC=$(find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null | head -1)
-			else
-				echo " The dependency trimmomatic is not installed or is not in your" '$PATH'"."
-				NUMDEP=$(($NUMDEP + 1))
-			fi
-				
-			if find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | grep -q 'Tru' ; then
-				ADAPTERS=$(find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | head -1)
-			else
-				echo " The file listing adapters (included with trimmomatic) is not installed or is not in your" '$PATH'"."
-				NUMDEP=$(($NUMDEP + 1))
+				ADAPTERS=$(	 find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | head -1)
+				[ -z "$TRIMMOMATIC" ] && found=1
+				[ -z "$ADAPTERS" ] && found=1
+				;;
+			*)
+				hash $i 2> /dev/null
+				found=$?
+				;;
+		esac
+
+		if [ $found -ne 0 ]; then
+			echo "  The dependency $i is not installed or is not in your '\$PATH'."
+			missing_dep+="$i "
+			continue
+		fi
+		echo "  The dependency $i is installed!"
+
+		case "$i" in
+			freebayes)
+				real_version=$(freebayes | awk -F'[ v-]*' '/ersion/ {print $3}')
+				target_version="1.0.0"
+				;;
+			bwa)
+				real_version=$(bwa 2>&1 | awk -F'[ -]' '/Version/ {print $2}')
+				target_version="0.7.13"
+				;;
+			samtools)
+				real_version=$(samtools --help | awk '/Version/ {print $2}')
+				target_version="1.3"
+				;;
+			vcftools)
+				real_version=$(vcftools | awk -F'[()]' '/VCFtools/ {print $2}')
+				target_version="0.1.11"
+				;;
+			rainbow)
+				real_version=$(rainbow	| awk '/^rainbow/ {print $2}')
+				target_version="2.0.2"
+				;;
+			bedtools)
+				real_version=$(bedtools --version	| awk -F'[v ]' '{print $3}')
+				target_version="2.23.0"
+				;;
+			*)
+				continue
+				;;
+		esac
+		
+		if CheckVersion "$target_version" "$real_version" ; then
+			echo "  The version of $i installed in your \$PATH is not optimized for dDocent."
+			echo "  Please install a version newer than $real_version"
+			missing_dep+="$i "
+		fi
+
+		if [ "$i" = "bedtools" ]; then
+			CheckVersion "$real_version" "2.24.0" && BEDTOOLSFLAG="OLD"
+			CheckVersion "2.26.0" "$real_version" && BEDTOOLSFLAG="NEW"
+
+			if [ -z "$BEDTOOLSFLAG" ]; then
+				echo "  The version of bedtools installed in your \$PATH is not optimized for dDocent."
+				echo "  Please install version 2.23.0 or version 2.26.0 and above"
+				missing_dep+="$i "
 			fi
 		fi
 	done
-	
-	if [[ $NUMDEP -gt 0 && $EXIT_IF_DEP_MISSING == "TRUE" ]]; then
-		echo -e "\n ERROR: Please install all required software then try again."
-		exit 1
-	elif [[ $NUMDEP -gt 0 && $EXIT_IF_DEP_MISSING == "FALSE" ]]; then
-		echo -e "\n ERROR: Some software is not installed but $dDocentFUNCTION .  Please install all required software for full functionality"
-	else
-		echo -e "\n All dependencies are installed and up to date!"
+
+	echo
+	if [ -z "$missing_dep" ]; then
+		echo " All dependencies are installed and up to date!"
+		return
 	fi
+
+	echo " ERROR: Some software is not installed or not up to date but dDocentHPC"
+	echo "				will continue to run with limited functionality."
+	echo "        Please install all required software for full functionality"
 }
-echo ""; echo `date` "Checking for all required dDocent software..."
-DEP=(freebayes mawk bwa samtools vcftools rainbow gnuplot gawk seqtk cd-hit-est bamToBed bedtools coverageBed parallel vcfcombine bamtools pearRM)
-CheckDependencies $DEP "FALSE" "dDocentHPC will continue to run with limited functionality"
+
+echo
+echo `date` "Checking for all required dDocent software..."
+
+DEP=(trimmomatic freebayes mawk bwa samtools vcftools rainbow gnuplot gawk seqtk cd-hit-est bamToBed bedtools coverageBed parallel vcfcombine bamtools pearRM)
+CheckDependencies $DEP
 
 if ! awk --version | fgrep -v GNU &>/dev/null; then
 	 awk=gawk
