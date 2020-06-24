@@ -81,6 +81,16 @@ if [ -n "$2" ]; then
 	SAMTOOLS_VIEW_F2048=$(grep 'Remove_supplementary_alignments' $CONFIG | awk '{print $1;}')
 	SAMTOOLS_VIEW_f2=$(grep 'Keep_only_properly_aligned_read_pairs' $CONFIG | awk '{print $1;}')
 
+  # GNU parallel for running on single node
+  PARALLEL="parallel --no-notice -j $NUMProc"
+
+  # mpi_parallal over generic MPI
+  #PARALLEL="mpirun ./mpi_parallel"
+
+  # mpi_parallel for wahab & turing
+  #MPI_PARALLEL_INJECT_LD_PRELOAD=/opt/conda/lib/libjemalloc.so
+  #PARALLEL="srun crun ./mpi_parallel"
+
 	if [ "$SAMTOOLS_VIEW_F4" == "yes" ]; then
 		F4=4
 	else
@@ -1978,13 +1988,13 @@ EOF
 	if [ "$POOLS" == "no" ]; then
 		echo; echo " "`date` " Genotyping individuals of ploidy $PLOIDY using freebayes..."			
 		#ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "freebayes -b split.{}.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -V -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U --populations popmap.$CUTOFFS "
-		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice -j $NUMProc "freebayes -b cat.$CUTOFFS-RRG.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS ${FREEBAYES_r}${FREEBAYES_report_monomorphic}${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}"
+		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | $PARALLEL "freebayes -b cat.$CUTOFFS-RRG.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS ${FREEBAYES_r}${FREEBAYES_report_monomorphic}${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}"
 	elif [ "$POOL_PLOIDY_FILE" == "no" ]; then
 		echo; echo " "`date` "Running freebayes on pools of cumulative ploidy ${PLOIDY}..."
-		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b cat.$CUTOFFS-RRG.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS ${FREEBAYES_r}${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}${FREEBAYES_report_monomorphic}"
+		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | $PARALLEL "freebayes -b cat.$CUTOFFS-RRG.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -p $PLOIDY -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS ${FREEBAYES_r}${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}${FREEBAYES_report_monomorphic}"
 	elif [ "$POOL_PLOIDY_FILE" != "no" ]; then
 		echo; echo " "`date` "Running freebayes on pools with the following cnv file: ${POOL_PLOIDY_FILE}..."
-		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | parallel --no-notice "freebayes -b cat.$CUTOFFS-RRG.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS --cnv-map $POOL_PLOIDY_FILE ${FREEBAYES_r}${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}${FREEBAYES_report_monomorphic}" 
+		ls mapped.*.$CUTOFFS.bed | sed 's/mapped.//g' | sed 's/.bed//g' | shuf | $PARALLEL "freebayes -b cat.$CUTOFFS-RRG.bam -t mapped.{}.bed -v raw.{}.vcf -f reference.$CUTOFFS.fasta -J -n $BEST_N_ALLELES -m $MIN_MAPPING_QUAL -q $MIN_BASE_QUAL -E $HAPLOTYPE_LENGTH --min-repeat-entropy $MIN_REPEAT_ENTROPY --min-coverage $MIN_COVERAGE -F $MIN_ALT_FRACTION -C $FREEBAYES_C -G $FREEBAYES_G -3 $FREEBAYES_3 -e $FREEBAYES_e -z $FREEBAYES_z -Q $FREEBAYES_Q -U $FREEBAYES_U -$ $FREEBAYES_DOLLAR --populations popmap.$CUTOFFS --cnv-map $POOL_PLOIDY_FILE ${FREEBAYES_r}${FREEBAYES_w}${FREEBAYES_V}${FREEBAYES_a}${FREEBAYES_no_partial_observations}${FREEBAYES_report_monomorphic}"
 	fi
 
 
