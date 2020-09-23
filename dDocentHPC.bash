@@ -1339,8 +1339,16 @@ EOF
 			elif [ "$ATYPE" == "RPE" ]; then
 				#parallel by each precluster
 					echo "                              rbdiv$CUTOFFS.out is being split into $CLUST files by precluster for parallel processing"; echo " "
+					
+					# filter out clusters based on r and R
+					echo " "
+					echo `date`   begin filtering rbdiv.$CUTOFFS.out
+					awk -v r=$r -v R=$R '{ if (($1 >= r) && ($1 <= R)) { print } }' rbdiv.$CUTOFFS.readsPERprecluster.tsv | sort -nk2 | cut -f2 | sed -e "s/^/.*\t.*\t.*\t.*\t/" -e "s/$/\t/" > rbdiv.$CUTOFFS.readsPERprecluster.filtered
+					grep -f rbdiv.$CUTOFFS.readsPERprecluster.filtered rbdiv.$CUTOFFS.out > rbdiv.$CUTOFFS.out.filtered
+					echo `date`   end filtering rbdiv.$CUTOFFS.out
+					
 					mkdir RBDIV.$CUTOFFS.${r}-${R}
-					awk -v CUTOFFS=$CUTOFFS -v r=$r -v R=$R '{print>"RBDIV."CUTOFFS"."r"-"R"/rbdiv."CUTOFFS".out."$5}' rbdiv.$CUTOFFS.out
+					awk -v CUTOFFS=$CUTOFFS -v r=$r -v R=$R '{print>"RBDIV."CUTOFFS"."r"-"R"/rbdiv."CUTOFFS".out."$5}' rbdiv.$CUTOFFS.out.filtered
 					ls RBDIV.$CUTOFFS.$r-$R | sed "s/rbdiv\.$CUTOFFS\.out\.//g" > preclusterID.$CUTOFFS
 					parallel --no-notice -j $NUMProc -k 'printf "%06d\n"' :::: preclusterID.$CUTOFFS > preclusterID.zeropad.$CUTOFFS
 					parallel --no-notice --link -j $NP "echo -n {1}, ;rainbow merge -o RBDIV.$CUTOFFS.$r-$R/rbasm.$CUTOFFS.out.{2} -a -i RBDIV.$CUTOFFS.$r-$R/rbdiv.$CUTOFFS.out.{1} -r $r -N $N -R $R -l 20 -f 0.75 " :::: preclusterID.$CUTOFFS :::: preclusterID.zeropad.$CUTOFFS
