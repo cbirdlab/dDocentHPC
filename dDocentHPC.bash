@@ -1344,7 +1344,8 @@ EOF
 					echo " "
 					echo `date`   begin filtering rbdiv.$CUTOFFS.out
 					awk -v r=$r -v R=$R '{ if (($1 >= r) && ($1 <= R)) { print } }' rbdiv.$CUTOFFS.readsPERprecluster.tsv | sort -nk2 | cut -f2 | sed -e "s/^/.*\t.*\t.*\t.*\t/" -e "s/$/\t/" > rbdiv.$CUTOFFS.readsPERprecluster.filtered
-					grep -f rbdiv.$CUTOFFS.readsPERprecluster.filtered rbdiv.$CUTOFFS.out > rbdiv.$CUTOFFS.out.filtered
+					#grep -f rbdiv.$CUTOFFS.readsPERprecluster.filtered rbdiv.$CUTOFFS.out > rbdiv.$CUTOFFS.out.filtered
+					awk -F'\t' 'NR==FNR{c[$5]++;next};c[$5]' rbdiv.$CUTOFFS.readsPERprecluster.filtered rbdiv.$CUTOFFS.out > rbdiv.$CUTOFFS.out.filtered
 					echo `date`   end filtering rbdiv.$CUTOFFS.out
 					
 					mkdir RBDIV.$CUTOFFS.${r}-${R}
