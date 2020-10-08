@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION=4.3
+VERSION=4.5
 #This script serves as an interactive bash wrapper to QC, assemble, map, and call SNPs from double digest RAD (SE or PE), ezRAD (SE or PE) data, or SE RAD data.
 #It requires that your raw data are split up by tagged individual and follow the naming convention of:
 
@@ -42,6 +42,7 @@ if [ -n "$2" ]; then
 	#TRIM=$(grep -A1 Trim $CONFIG | tail -1)
 	TRIM="RemoveThisVar"
 	TRIM_LENGTH_ASSEMBLY=$(grep 'trimmomatic MINLEN (integer, mkREF only)' $CONFIG | awk '{print $1;}')
+	ADAPTERS_FILE=$(grep 'trimmomatic ILLUMINACLIP:<fasta>' $CONFIG | awk '{print $1;}')
 	SEED_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<seed mismatches> (integer)' $CONFIG | awk '{print $1;}')
 	PALIMDROME_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<palindrome clip thresh> (integer)' $CONFIG | awk '{print $1;}')
 	SIMPLE_ASSEMBLY=$(grep 'trimmomatic ILLUMINACLIP:<simple clip thresh> (integer)' $CONFIG | awk '{print $1;}')
@@ -212,9 +213,11 @@ CheckDependencies(){
 			trimmomatic)
 				found=0
 				TRIMMOMATIC=$(find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null | head -1)
-				ADAPTERS=$(	 find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | head -1)
+				if [ $ADAPTERS_FILE != 0 ]; then
+					ADAPTERS=$(	 find ${PATH//:/ } -maxdepth 2 -name $ADAPTERS_FILE 2> /dev/null | head -1)
+					[ -z "$ADAPTERS" ] && found=1
+				fi
 				[ -z "$TRIMMOMATIC" ] && found=1
-				[ -z "$ADAPTERS" ] && found=1
 				;;
 			*)
 				hash $i 2> /dev/null
@@ -826,8 +829,9 @@ TrimReadsRef () {
 	echo `date` "Trimming reads for reference genome"
 
 	TRIMMOMATIC=$(find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null | head -1)
-	ADAPTERS=$(find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | head -1)
-
+	if [ $ADAPTERS_FILE != 0 ]; then
+		ADAPTERS=$(find ${PATH//:/ } -maxdepth 2 -name $ADAPTERS_FILE 2> /dev/null | head -1)
+	fi
 	echo " TRIMMOMATIC=	$TRIMMOMATIC"
 	echo " ADAPTERS=	$ADAPTERS"
 #	echo " NUMProc=	$NUMProc"
@@ -850,9 +854,17 @@ TrimReadsRef () {
 	if [ -f "${NAMES[1]}".$R.fq.gz ]; then
 		THREADS=1  #CEB I tried different numbers here and 1 seems to be best
 		Proc=$(($NUMProc/$THREADS))  
-		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads $THREADS -phred33 {}.F.fq.gz {}.R.fq.gz ./mkREF/{}.r1.fq.gz ./mkREF/unpaired/{}.unpairedF.fq.gz ./mkREF/{}.r2.fq.gz ./mkREF/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY  &> ./mkREF/logs/{}.trim.log"
+		if [ $ADAPTERS_FILE == 0 ]; then
+			echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads $THREADS -phred33 {}.F.fq.gz {}.R.fq.gz ./mkREF/{}.r1.fq.gz ./mkREF/unpaired/{}.unpairedF.fq.gz ./mkREF/{}.r2.fq.gz ./mkREF/unpaired/{}.unpairedR.fq.gz TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY  &> ./mkREF/logs/{}.trim.log"
+		else
+			echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads $THREADS -phred33 {}.F.fq.gz {}.R.fq.gz ./mkREF/{}.r1.fq.gz ./mkREF/unpaired/{}.unpairedF.fq.gz ./mkREF/{}.r2.fq.gz ./mkREF/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY  &> ./mkREF/logs/{}.trim.log"
+		fi
 	else 
-		echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkREF/{}.r1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY &> ./mkREF/logs/{}.trim.log"
+		if [ $ADAPTERS_FILE == 0 ]; then
+			echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkREF/{}.r1.fq.gz TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY &> ./mkREF/logs/{}.trim.log"
+		else
+			echo "${NAMES[@]}" | sed 's/ /\n/g' | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkREF/{}.r1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY TRAILING:$TRAILING_ASSEMBLY SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_ASSEMBLY &> ./mkREF/logs/{}.trim.log"
+		fi
 	fi
 	
 	if [[ $HEADCROP != 0 ]]; then
@@ -877,7 +889,9 @@ TrimReads () {
 	echo; echo `date` "Trimming reads for mapping"
 
 	TRIMMOMATIC=$(find ${PATH//:/ } -maxdepth 1 -name trimmomatic*jar 2> /dev/null | head -1)
-	ADAPTERS=$(find ${PATH//:/ } -maxdepth 2 -name TruSeq3-PE-2.fa 2> /dev/null | head -1)
+	if [ $ADAPTERS_FILE != 0 ]; then
+		ADAPTERS=$(find ${PATH//:/ } -maxdepth 2 -name $ADAPTERS_FILE 2> /dev/null | head -1)
+	fi
 
 	echo " TRIMMOMATIC=	$TRIMMOMATIC"
 	echo " ADAPTERS=	$ADAPTERS"
@@ -901,9 +915,17 @@ TrimReads () {
 	if [ -f "${NAMES[1]}".$R.fq.gz ]; then
 		THREADS=1     #CEB I tried different numbers here and 1 seems to be best
 		Proc=$(($NUMProc/$THREADS))  
-		echo "${NAMES[@]}" | sed 's/ /\n/g' | sort -r | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads $THREADS -phred33 {}.F.fq.gz {}.R.fq.gz ./mkBAM/{}.R1.fq.gz ./mkBAM/unpaired/{}.unpairedF.fq.gz ./mkBAM/{}.R2.fq.gz ./mkBAM/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
+		if [ $ADAPTERS_FILE == 0 ]; then
+			echo "${NAMES[@]}" | sed 's/ /\n/g' | sort -r | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads $THREADS -phred33 {}.F.fq.gz {}.R.fq.gz ./mkBAM/{}.R1.fq.gz ./mkBAM/unpaired/{}.unpairedF.fq.gz ./mkBAM/{}.R2.fq.gz ./mkBAM/unpaired/{}.unpairedR.fq.gz LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
+		else
+			echo "${NAMES[@]}" | sed 's/ /\n/g' | sort -r | parallel --no-notice -j $Proc "java -jar $TRIMMOMATIC PE -threads $THREADS -phred33 {}.F.fq.gz {}.R.fq.gz ./mkBAM/{}.R1.fq.gz ./mkBAM/unpaired/{}.unpairedF.fq.gz ./mkBAM/{}.R2.fq.gz ./mkBAM/unpaired/{}.unpairedR.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
+		fi
 	else 
-		echo "${NAMES[@]}" | sed 's/ /\n/g' | sort -r | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkBAM/{}.R1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
+		if [ $ADAPTERS_FILE == 0 ]; then
+			echo "${NAMES[@]}" | sed 's/ /\n/g' | sort -r | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkBAM/{}.R1.fq.gz LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
+		else
+			echo "${NAMES[@]}" | sed 's/ /\n/g' | sort -r | parallel --no-notice -j $NUMProc "java -jar $TRIMMOMATIC SE -threads 1 -phred33 {}.F.fq.gz ./mkBAM/{}.R1.fq.gz ILLUMINACLIP:$ADAPTERS:$SEED_ASSEMBLY:$PALIMDROME_ASSEMBLY:$SIMPLE_ASSEMBLY LEADING:$LEADING_MAPPING TRAILING:$TRAILING_MAPPING SLIDINGWINDOW:$windowSize_ASSEMBLY:$windowQuality_ASSEMBLY MINLEN:$TRIM_LENGTH_MAPPING &> ./mkBAM/logs/{}.trim.log"
+		fi
 	fi 
 	
 	if [[ $CROP != 0 ]]; then

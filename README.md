@@ -1,5 +1,11 @@
 ## dDocentHPC.bash [function] [config file]   -   a wrapper script to process GBS and RAD data
 
+---
+
+### !!! _*new configuration file format `config.5.all` must be used*_ !!!
+
+---
+
 dDocentHPC is a hard fork of [Dr. Jon Puritz's dDocent wrapper bash script](ddocent.com).  dDocentHPC is designed to be run
 without interaction and functions more like a typical unix/linux commandline program.  Settings are defined in a config file 
 and then dDocentHPC is run from the commandline.  dDocentHPC also includes updated algorithms to take advantage of parallel 
@@ -11,7 +17,7 @@ processing. The resulting vcf files can be filtered with [fltrVCF](https://githu
 
   `trimFQ` uses trimmomatic to trim fastq files for de novo reference creation (mkREF) and mapping reads to the reference (mkBAM).
 		several fold speedup
-		can also use trimFQref or trimFQmap to only trim fastq files for reference creation or mapping, respectively
+		can also use `trimFQref` or `trimFQmap` to only trim fastq files for reference creation or mapping, respectively
 
   `mkREF` follows description for de novo reference assembly on ddocent.com .  several fold speedup in dDocentHPC
 
