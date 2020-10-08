@@ -4,6 +4,12 @@
 
 ### !!! _*new configuration file format `config.5.all` must be used*_ !!!
 
+To make `config.4.all` compatible with newest version, then add the following line:
+
+```
+TruSeq3-PE-2.fa	trimmomatic ILLUMINACLIP:<fasta> (0, fasta file name)			Specifies the trimmomatic adapter file to use. entering a 0 (zero) will turn off adapter trimming. Options are: TruSeq3-PE-2.fa, TruSeq3-PE.fa, TruSeq3-SE.fa, TruSeq2-PE.fa, TruSeq2-SE.fa, any other files included with trimmomatic.  Entering a custom path here will break the script. If you want a customized file, you have to put it where the default trimmomatic files are located on your computer.  If you have trouble finding this location, run dDocentHPC trimREF and it will be included in the output.
+```
+
 ---
 
 dDocentHPC is a hard fork of [Dr. Jon Puritz's dDocent wrapper bash script](ddocent.com).  dDocentHPC is designed to be run
