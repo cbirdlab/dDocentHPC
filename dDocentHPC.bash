@@ -269,8 +269,8 @@ CheckDependencies(){
 		fi
 
 		if [ "$i" = "bedtools" ]; then
-			CheckVersion "$real_version" "2.24.0" && BEDTOOLSFLAG="OLD"
-			CheckVersion "2.26.0" "$real_version" && BEDTOOLSFLAG="NEW"
+			CheckVersion "2.24.0" "$real_version" && BEDTOOLSFLAG="OLD"
+			CheckVersion "$real_version" "2.26.0" && BEDTOOLSFLAG="NEW"
 
 			if [ -z "$BEDTOOLSFLAG" ]; then
 				echo "  The version of bedtools installed in your \$PATH is not optimized for dDocent."
