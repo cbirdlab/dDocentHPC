@@ -1,4 +1,4 @@
-## dDocentHPC.bash [function] [config file]   -   a wrapper script to process GBS and RAD data
+## dDocentHPC.bash [function] [config file]   -   a wrapper script to process reduced representation genomic data
 
 ---
 
