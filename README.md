@@ -1,4 +1,4 @@
-## dDocentHPC.bash [function] [config file]   -   a wrapper script to process reduced representation genomic data
+## dDocentHPC: A wrapper script to trim, assemble, map, and genotype reduced representation genomic data
 
 ---
 
@@ -128,7 +128,7 @@ If you use `dDocentHPC` in a publication, please cite the following sources:
 
 Biesack, E. E., Dang, B. T., Ackiss, A. S., Bird, C. E., Chheng, P., Phounvisouk, L., Truong, O.T. & Carpenter, K. E. (2020). Evidence for population genetic structure in two exploited Mekong River fishes across a natural riverine barrier. Journal of Fish Biology, 1-12. 
 
-Bird, C.E. (InsertYearCloned) dDocentHPC. https://github.com/cbirdlab/dDocentHPC
+Bird, C.E. (InsertYearCloned) dDocentHPC. A wrapper script to trim, assemble, map, and genotype reduced representation genomic data.  https://github.com/cbirdlab/dDocentHPC
 
 Puritz, J., Hollenbeck, C. M. & Gold, J. R. (2014). dDocent: a RADseq, variant-calling pipeline designed for population genomics of non-model organisms. PeerJ, 2, e314v1.
 
