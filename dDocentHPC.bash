@@ -1891,15 +1891,15 @@ EOF
 
 		if head -1 reference.$CUTOFFS.fasta | grep -e 'dDocent' reference.$CUTOFFS.fasta 1>/dev/null; then
 			DP=$(mawk '{print $4}' cov.$CUTOFFS.stats | sort -rn | perl -e '$d=.001;@l=<>;print $l[int($d*@l)]')
-			CC=$( mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | mawk '{len=$3-$2;lc=len*$4;tl=tl+lc} END {OFMT = "%.0f";print tl/"'$NUMProc'"}')
+			CC=$( mawk -v x=$DP '$4 <= x' cov.$CUTOFFS.stats | mawk '{len=$3-$2;lc=len*$4;tl=tl+lc} END {OFMT = "%.0f";print tl/"'$NUMProc'"}')
 		else
 			DP=$(mawk '{print $4}' cov.$CUTOFFS.stats | sort -rn | perl -e '$d=.00005;@l=<>;print $l[int($d*@l)]')
-			CC=$( mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | mawk '{len=$3-$2;lc=len*$4;tl=tl+lc} END {OFMT = "%.0f";print tl/"'$NUMProc'"}')
+			CC=$( mawk -v x=$DP '$4 <= x' cov.$CUTOFFS.stats | mawk '{len=$3-$2;lc=len*$4;tl=tl+lc} END {OFMT = "%.0f";print tl/"'$NUMProc'"}')
 		fi
 
 		echo "  "`date` " Making the bed files..."
 		#mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | sort -V -k1,1 -k2,2 | mawk -v x1="$CUTOFFS" -v cutoff=$CC 'BEGIN{i=1} 
-		mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | shuf | mawk -v x1="$CUTOFFS" -v cutoff=$CC 'BEGIN{i=1} 
+		mawk -v x=$DP '$4 <= x' cov.$CUTOFFS.stats | shuf | mawk -v x1="$CUTOFFS" -v cutoff=$CC 'BEGIN{i=1} 
 		{
 			len=$3-$2;lc=len*$4;cov = cov + lc
 			if ( cov < cutoff) {x="mapped."i"."x1".bed";print $1"\t"$2"\t"$3 > x}
@@ -1939,15 +1939,15 @@ EOF
 		
 		if head -1 reference.$CUTOFFS.fasta | grep -e 'dDocent' reference.$CUTOFFS.fasta 1>/dev/null; then
 			DP=$(mawk '{print $4}' cov.$CUTOFFS.stats | sort -rn | perl -e '$d=.001;@l=<>;print $l[int($d*@l)]')
-			CC=$( mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | mawk '{len=$3-$2;lc=len*$4;tl=tl+lc} END {OFMT = "%.0f";print tl/"'$NUMProc'"}')
+			CC=$( mawk -v x=$DP '$4 <= x' cov.$CUTOFFS.stats | mawk '{len=$3-$2;lc=len*$4;tl=tl+lc} END {OFMT = "%.0f";print tl/"'$NUMProc'"}')
 		else
 			DP=$(mawk '{print $4}' cov.$CUTOFFS.stats | sort -rn | perl -e '$d=.00005;@l=<>;print $l[int($d*@l)]')
-			CC=$( mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | mawk '{len=$3-$2;lc=len*$4;tl=tl+lc} END {OFMT = "%.0f";print tl/"'$NUMProc'"}')
+			CC=$( mawk -v x=$DP '$4 <= x' cov.$CUTOFFS.stats | mawk '{len=$3-$2;lc=len*$4;tl=tl+lc} END {OFMT = "%.0f";print tl/"'$NUMProc'"}')
 		fi
 
 		echo "  "`date` " Making the bed files..."
 		# mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | sort -V -k1,1 -k2,2 | mawk -v x1="$CUTOFFS" -v cutoff=$CC 'BEGIN{i=1} 
-		mawk -v x=$DP '$4 < x' cov.$CUTOFFS.stats | shuf | mawk -v x1="$CUTOFFS" -v cutoff=$CC 'BEGIN{i=1} 
+		mawk -v x=$DP '$4 <= x' cov.$CUTOFFS.stats | shuf | mawk -v x1="$CUTOFFS" -v cutoff=$CC 'BEGIN{i=1} 
 		{
 			len=$3-$2;lc=len*$4;cov = cov + lc
 			if ( cov < cutoff) {x="mapped."i"."x1".bed";print $1"\t"$2"\t"$3 > x}
