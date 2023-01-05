@@ -11,12 +11,18 @@ echo; echo -e "\n* dDocentHPC v$VERSION Forked by cbird@tamucc.edu * \n"
 
 #Determine which functions to run
 #demultiplexFQ trimFQ	mkREF	mkBAM		fltrBAM		mkVCF	fltrVCF
-if [ -n "$1" ]; then
+if [ -n "$3" ]; then
 	#getting functions from command line
-	FUNKTION=$(echo $1)
-	echo; echo "Running dDocentHPC $FUNKTION..."
+	FUNKTION=$1
+	OVERWRITE=FALSE
+	echo; echo "Running dDocentHPC $FUNKTION in PRESERVATION mode. \n          Sample names, file indexing, etc will be preserved to increase speed..."
+elif [ -n "$1" ]; then
+	#getting functions from command line
+	FUNKTION=$1
+	OVERWRITE=TRUE
+	echo; echo "Running dDocentHPC $FUNKTION in OVERWRITE mode. \n          Sample names, file indexing, etc will be overwritten to clear errors..."
 else
-	echo ""; echo `date` "ERROR:		dDocentHPC must be run with 2 arguments, "
+	echo ""; echo `date` "ERROR:		dDocentHPC must be run with at least 2 arguments, "
 	echo "			dDocentHPC.bash [function] [config file]"
 	echo "			functions: trimFQ, mkREF, mkBAM, fltrBAM, mkVCF, fltrVCF"
 	exit
@@ -39,6 +45,7 @@ if [ -n "$2" ]; then
 	CONFIG=$2
 	NUMProc=$(grep 'Number of Processors (Auto, 1, 2, 3,' $CONFIG | awk '{print $1;}')
 	MAXMemory=$(grep 'Maximum Memory (1G,2G,' $CONFIG | awk '{print $1;}')
+	freeMEM=$(free | tr -s " " "\t" | cut -f4 | tail -n+2 | head -n1)
 	#TRIM=$(grep -A1 Trim $CONFIG | tail -1)
 	TRIM="RemoveThisVar"
 	TRIM_LENGTH_ASSEMBLY=$(grep 'trimmomatic MINLEN (integer, mkREF only)' $CONFIG | awk '{print $1;}')
@@ -550,7 +557,7 @@ main(){
 	if [ "$FUNKTION" == "fltrBAM" ]; then
 		NumInd=$(ls *.${CUTOFFS}-RAW.bam | wc -l)
 		#Create list of sample names
-		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
+		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ] || [ "$OVERWRITE" == "TRUE" ];then
 			ls *.${CUTOFFS}-RAW.bam > namelist.$CUTOFFS
 			sed -i -e "s/\.${CUTOFFS}-RAW.bam//g" namelist.$CUTOFFS
 		elif [ "$(grep -c '^' namelist.$CUTOFFS)" != "$NumInd" ]; then
@@ -564,7 +571,7 @@ main(){
 	elif [ "$FUNKTION" == "mkVCF" ]; then
 		NumInd=$(ls *.${CUTOFFS}-RG.bam | wc -l)
 		#Create list of sample names
-		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
+		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ] || [ "$OVERWRITE" == "TRUE" ];then
 			ls *.${CUTOFFS}-RG.bam > namelist.$CUTOFFS
 			sed -i -e "s/\.${CUTOFFS}-RG.bam//g" namelist.$CUTOFFS
 		elif [ "$(grep -c '^' namelist.$CUTOFFS)" != "$NumInd" ]; then
@@ -579,7 +586,7 @@ main(){
 		NumInd=$(ls $Fwild | wc -l)
 		NumInd=$(($NumInd - 0))
 		#Create list of sample names
-		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
+		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ] || [ "$OVERWRITE" == "TRUE" ];then
 			ls $Fwild > namelist.$CUTOFFS
 			sed -i'' -e "s/$Fsed//g" namelist.$CUTOFFS
 		elif [ "$(grep -c '^' namelist.$CUTOFFS)" != "$NumInd" ]; then
@@ -683,6 +690,8 @@ main(){
 	echo $NUMProc >> dDocent.runs
 	echo "Maximum Memory" >> dDocent.runs
 	echo $MAXMemory >> dDocent.runs
+	echo "Free Memory" >> dDocent.runs
+	echo $freeMEM >> dDocent.runs
 	echo "Trimming" >> dDocent.runs
 	echo $TRIM >> dDocent.runs
 	echo "TRIM_LENGTH_ASSEMBLY" >> dDocent.runs
@@ -1351,7 +1360,8 @@ EOF
 			if [ "$R" -le "2000" ]; then 
 				NP=$NUMProc
 			elif [ "$R" -le "5000" ]; then 
-				NP=$(($(echo $MAXMemory | sed "s/.$//g") / 20))
+				#NP=$((${MAXMemory%G} / 20))
+				NP=$((${freeMEM} / 20000000))
 			else
 				NP=1
 			fi
@@ -1504,19 +1514,34 @@ findREF(){
 }
 
 indexREF(){
-	if [ reference.$CUTOFFS.fasta -nt reference.$CUTOFFS.fasta.fai ]; then
+	if [ reference.$CUTOFFS.fasta -nt reference.$CUTOFFS.fasta.fai ] || [ "$OVERWRITE" == "TRUE" ]; then
 		echo " ";echo `date` "  Indexing ref genome..."
 		samtools faidx reference.$CUTOFFS.fasta
-		bwa-meme index -a meme reference.$CUTOFFS.fasta -t $NUMProc &> index.$CUTOFFS.log
-		build_rmis_dna.sh reference.$CUTOFFS.fasta
+		
+		if [ ${freeMEM} -gt 38000000 ]; then 
+			echo " ";echo `date` "  Indexing for bwa-meme because there are $freeMEM bytes of RAM avail..."
+			bwa-meme index -a meme reference.$CUTOFFS.fasta -t $NUMProc &> index.$CUTOFFS.log
+			echo " ";echo `date` "  BWA-MEME training P-RMI..."
+			build_rmis_dna.sh reference.$CUTOFFS.fasta
+		else
+			echo " ";echo `date` "  Indexing for bwa-mem2 because there are $freeMEM bytes of RAM avail..."
+			bwa-meme index -a mem2 reference.$CUTOFFS.fasta -t $NUMProc &> index.$CUTOFFS.log
+		fi
 	else
-		echo " ";echo `date` "  Reference genome is indexed."
+		echo " ";echo `date` "  Reference genome is indexed and won't be overwritten for speed."
 	fi
 }
 
+
 findFQs(){
 	#dDocent now checks for trimmed read files before attempting mapping
-	if [ ! -f "${NAMES[@]:(-1)}"$Rsed ]; then
+	if [ ! -f "${NAMES[@]:(-1)}"$Fsed ]; then
+		echo " ";echo `date` "  dDocent cannot locate all of the trimmed reads files"
+		echo "          FASTQ files to be mapped must end with the following suffix: ${Fsed}"
+		exit 1
+	fi
+	
+	if [ "$ATYPE" != "SE" ] && [ ! -f "${NAMES[@]:(-1)}"$Rsed ]; then
 		echo " ";echo `date` "  dDocent cannot locate all of the trimmed reads files"
 		echo "          FASTQ files to be mapped must end with the following suffix: ${Rsed}"
 		exit 1
@@ -1574,62 +1599,114 @@ runBWA(){
 	i=$1
 	CUTOFFS=$2
 	MAPPING_CLIPPING_PENALTY=$3
-	INSERT=$4
-	SD=$5
-	INSERTH=$6
-	INSERTL=$7
-	MAPPING_MIN_ALIGNMENT_SCORE=$8
-	optA=$9
-	optB=${10}
-	optO=${11}
+	MAPPING_MIN_ALIGNMENT_SCORE=$4
+	optA=$5
+	optB=$6
+	optO=$7
+	freeMEM=$8
+	INSERT=$9
+	SD=${10}
+	INSERTH=${11}
+	INSERTL=${12}
 	
 	echo FILE=$i
 	echo CUTOFFS=$CUTOFFS
 	echo MAPPING_CLIPPING_PENALTY=$MAPPING_CLIPPING_PENALTY 
-	echo INSERT_MEAN=$INSERT
-	echo INSERT_SD=$SD
-	echo INSERT_MAX=$INSERTH
-	echo INSERT_MIN=$INSERTL
 	echo MAPPING_MIN_ALIGNMENT_SCORE=$MAPPING_MIN_ALIGNMENT_SCORE
 	echo optA=$optA
 	echo optB=$optB
 	echo optO=$optO
+	echo freeMEM=$freeMEM
+	echo INSERT_MEAN=$INSERT
+	echo INSERT_SD=$SD
+	echo INSERT_MAX=$INSERTH
+	echo INSERT_MIN=$INSERTL
 	#threads=$NUMProc
 	threads=1
 	
 	# paired or single end
 	if [ -f "$i.R2.fq.gz" ]; then
-		inputFILES="$i.R1.fq.gz $i.R2.fq.gz"
+		inputFILES="reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz"
 	else
-		inputFILES="$i.R1.fq.gz"
+		inputFILES="reference.$CUTOFFS.fasta $i.R1.fq.gz"
 	fi
 	
 	# set bwa-meme mode https://github.com/kaist-ina/BWA-MEME#changing-memory-requirement-for-index-in-bwa-meme
-	if [ ${MAXMemory%G} -gt 188 ]; then 
+	if [[ ${freeMEM} > 188000000 ]]; then 
+		echo "";echo `date` " Running bwa-meme (RAM: 188G, Free Memory: $freeMEM)"
 		bwaCMD="bwa-meme mem -7"
-	elif [ ${MAXMemory%G} -gt 88 ]; then 
+	elif [[ ${freeMEM} > 88000000 ]]; then 
+		echo "";echo `date` " Running bwa-meme_mode2 (RAM: 88G, Free Memory: $freeMEM)"
 		bwaCMD="bwa-meme_mode2 mem -7"
-	elif [ ${MAXMemory%G} -gt 38 ]; then 
+	elif [[ ${freeMEM} > 38000000 ]]; then 
+		echo "";echo `date` " Running bwa-meme_mode1 (RAM: 38G, Free Memory: $freeMEM)"
 		bwaCMD="bwa-meme_mode1 mem -7"
 	else
+		echo "";echo `date` " Running bwa-mem2 (RAM: <38G, Free Memory: $freeMEM)"
 		bwaCMD="bwa-meme mem"
 	fi
 	
 	#run bwa-meme
 	if [ ! -z $INSERT ]; then
 		echo "      $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log"
-		$bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+		# $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+		$bwaCMD \
+				$inputFILES \
+				-L $MAPPING_CLIPPING_PENALTY \
+				-I $INSERT,$SD,$INSERTH,$INSERTL \
+				-t $threads \
+				-a \
+				-M \
+				-T $MAPPING_MIN_ALIGNMENT_SCORE \
+				-A $optA \
+				-B $optB \
+				-O $optO \
+				-R "@RG\tID:$i\tSM:$i\tPL:Illumina" \
+			2> bwa.$i.$CUTOFFS.log \
+			| mbuffer -m 8G \
+			| samtools sort \
+				-m 1G \
+				--output-fmt bam,level=1 \
+				-T ./sorttmp \
+				-@ 8 \
+			> $i.$CUTOFFS-RAW.bam \
+			2>samtools.sort.bam.$i.$CUTOFFS.log
+
 	else
 		echo "      $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log"
-		$bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+		# $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+		$bwaCMD \
+				$inputFILES \
+				-L $MAPPING_CLIPPING_PENALTY \
+				-t $threads \
+				-a \
+				-M \
+				-T $MAPPING_MIN_ALIGNMENT_SCORE \
+				-A $optA \
+				-B $optB \
+				-O $optO \
+				-R "@RG\tID:$i\tSM:$i\tPL:Illumina" \
+			2> bwa.$i.$CUTOFFS.log \
+			| mbuffer -m 8G \
+			| samtools sort \
+				-m 1G \
+				--output-fmt bam,level=1 \
+				-T ./sorttmp \
+				-@ 8 \
+			> $i.$CUTOFFS-RAW.bam \
+			2>samtools.sort.bam.$i.$CUTOFFS.log
 	fi
 	
-	echo "";echo `date` " run samtools sort" $i
-	samtools sort -@$threads $i.$CUTOFFS.bam -o $i.$CUTOFFS.bam 
-	mv $i.$CUTOFFS.bam $i.$CUTOFFS-RAW.bam
-	echo ""
-	echo `date` " run samtools index" $i
-	samtools index $i.$CUTOFFS-RAW.bam
+	# echo "";echo `date` " run samtools sort" $i
+	# samtools sort -@$threads $i.$CUTOFFS.bam -o $i.$CUTOFFS.bam 2> samtools.sort.bam.$i.$CUTOFFS.log
+	
+	# mv $i.$CUTOFFS.bam $i.$CUTOFFS-RAW.bam 
+	
+	echo "";echo `date` " run samtools index" $i
+	samtools index \
+		$i.$CUTOFFS-RAW.bam \
+		-@8 \
+		2> samtools.index.bam.$i.$CUTOFFS.log
 }
 export -f runBWA
 
@@ -1641,11 +1718,12 @@ MAP2REF(){
 	indexREF
 	findFQs
 	checkRefORIGIN
-		
+	
 	# BWA-MEME for mapping for all samples.  As of version 2.0 can handle SE or PE reads by checking for PE read files
+	freeMEM=$(free | tr -s " " "\t" | cut -f4 | tail -n+2 | head -n1)
 	echo "";echo `date` " Run bwa mem on dDocent files"
 	parallel --record-env
-	parallel --no-notice --env _ -j $NUMProc "runBWA {} $CUTOFFS $MAPPING_CLIPPING_PENALTY $INSERT $SD $INSERTH $INSERTL $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO" ::: "${NAMES[@]}"
+	parallel --no-notice --env _ -j 1 "runBWA {} $CUTOFFS $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO $freeMEM $INSERT $SD $INSERTH $INSERTL " ::: "${NAMES[@]}"
 
 	echo ""; echo `date` mkBAM completed!
 }
