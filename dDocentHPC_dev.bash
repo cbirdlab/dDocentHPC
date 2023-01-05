@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION=4.5
+VERSION=4.6
 #This script serves as an interactive bash wrapper to QC, assemble, map, and call SNPs from double digest RAD (SE or PE), ezRAD (SE or PE) data, or SE RAD data.
 #It requires that your raw data are split up by tagged individual and follow the naming convention of:
 
@@ -1485,147 +1485,168 @@ EOF
 #Map Reads 2 Reference
 ###############################################################################################
 
-MAP2REF(){
-	echo " ";echo `date` " Using BWA to map reads."
+## Functions Used in Mapping Reads to the ref genome
+
+findREF(){
+	# check for presence of properly named ref or symlink to one, if can't find then exit
 	if [ ! -f reference.$CUTOFFS.fasta ]; then
 		echo " ";echo `date` "  Reference genome not found in working directory..."
 		if [ ! -f ../mkREF/reference.$CUTOFFS.fasta ]; then
 			echo " ";echo `date` "  ERROR: Reference genome not found in mkREF directory. Please copy reference genome to working directory. ex: reference.10.10.fasta"
 			exit 1
 		else
-			echo " ";echo `date` "  Reference genome found in mkREF directory, copying to working directory..."
-			cp ../mkREF/reference.$CUTOFFS.fasta .
+			echo " ";echo `date` "  Reference genome found in mkREF directory, creating a symbolic link here in the working directory..."
+			ln ../mkREF/reference.$CUTOFFS.fasta .
 		fi
+	else
+		echo " ";echo `date` "  Reference genome found in working directory."
 	fi
+}
+
+indexREF(){
 	if [ reference.$CUTOFFS.fasta -nt reference.$CUTOFFS.fasta.fai ]; then
+		echo " ";echo `date` "  Indexing ref genome..."
 		samtools faidx reference.$CUTOFFS.fasta
-		bwa index reference.$CUTOFFS.fasta &> index.$CUTOFFS.log
+		bwa-meme index -a meme reference.$CUTOFFS.fasta -t $NUMProc &> index.$CUTOFFS.log
+		build_rmis_dna.sh reference.$CUTOFFS.fasta
+	else
+		echo " ";echo `date` "  Reference genome is indexed."
 	fi
+}
+
+findFQs(){
 	#dDocent now checks for trimmed read files before attempting mapping
 	if [ ! -f "${NAMES[@]:(-1)}"$Rsed ]; then
-		echo "dDocent cannot locate trimmed reads files"
-		echo "Please rerun dDocent with quality trimming"
+		echo " ";echo `date` "  dDocent cannot locate all of the trimmed reads files"
+		echo "          FASTQ files to be mapped must end with the following suffix: ${Rsed}"
 		exit 1
 	fi
+}
+
+getInsertINFO(){
+	# modifies the expected insert length distribution for BWA's metric for proper pairing
+	# assumes dDocent processed RAD data
+	rm lengths.$CUTOFFS.txt &> /dev/null
+	
+	for i in "${NAMES[@]}"; do
+		if [ -f "$i.$R.fq.gz" ]; then
+			zcat $i.$R.fq.gz | \
+				head -2 | \
+				tail -1 >> lengths.$CUTOFFS.txt
+		fi
+	done
+	
+	if [ -f "lengths.$CUTOFFS.txt" ]; then
+		#MaxLen=$(mawk '{ print length() | "sort -rn" }' lengths.$CUTOFFS.txt| head -1)
+		#INSERT=$(($MaxLen * 2 ))
+		#calculate mean contig length in ref
+		INSERT=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | awk '{ sum += $1; n++ } END { print sum / n}')
+		#SD=$(($INSERT / 5))
+		#calculate SD of contig lengths in ref
+		SD=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | awk '{sum+=$1; sumsq+=$1*$1}END{print sqrt(sumsq/NR - (sum/NR)**2)}')
+		#INSERTH=$(($INSERT + 100 ))
+		#longest contig in ref
+		INSERTH=$(awk '{ print length($0); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | tail -1)
+		#INSERTL=$(($INSERT - 100 ))
+		#shortest contig in ref
+		INSERTL=$(awk '{ print length($0); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | head -1)
+	fi
+}
+
+checkRefORIGIN(){
 	#This next section of code checks to see if the reference was assembled by dDocent 
 	#and if so, modifies the expected insert length distribution for BWA's metric for proper pairing
-	echo ""
-	echo -n `date` " was ref assembled by dDocent?"
+	echo "";echo -n `date` " was ref assembled by dDocent?"
 	if head -1 reference.$CUTOFFS.fasta | grep -e 'dDocent' reference.$CUTOFFS.fasta 1>/dev/null; then
-		echo " Yes. Modifying expected insert length for bwa"
-		rm lengths.$CUTOFFS.txt &> /dev/null
-		for i in "${NAMES[@]}";
-			do
-			if [ -f "$i.$R.fq.gz" ]; then
-				#echo ""
-				#echo troubleshooting
-				#echo $i
-				#echo $R
-				#echo $i.$R.fq.gz
-				zcat $i.$R.fq.gz | head -2 | tail -1 >> lengths.$CUTOFFS.txt
-			fi
-		done	
-		if [ -f "lengths.$CUTOFFS.txt" ]; then
-			#MaxLen=$(mawk '{ print length() | "sort -rn" }' lengths.$CUTOFFS.txt| head -1)
-			#INSERT=$(($MaxLen * 2 ))
-			#calculate mean contig length in ref
-			INSERT=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | awk '{ sum += $1; n++ } END { print sum / n}')
-			#SD=$(($INSERT / 5))
-			#calculate SD of contig lengths in ref
-			SD=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | awk '{sum+=$1; sumsq+=$1*$1}END{print sqrt(sumsq/NR - (sum/NR)**2)}')
-			#INSERTH=$(($INSERT + 100 ))
-			#longest contig in ref
-			INSERTH=$(awk '{ print length($0); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | tail -1)
-			#INSERTL=$(($INSERT - 100 ))
-			#shortest contig in ref
-			INSERTL=$(awk '{ print length($0); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | head -1)
-		fi
 		
-		#BWA for mapping for all samples.  As of version 2.0 can handle SE or PE reads by checking for PE read files
-		echo ""
-		echo `date` " Run bwa mem on dDocent files"
-		
-		# for i in "${NAMES[@]}"
-		# do
-			# if [ -f "$i.R2.fq.gz" ]; then
-				# #bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $NUMProc -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | mawk '!/\t[2-9].[SH].*/' | mawk '!/[2-9].[SH]\t/' | samtools view -@$NUMProc -q $MAPPING_MIN_QUALITY -f 3 -F $SAMTOOLS_VIEW_F -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
-				# #CEB: updated to output minimially-filtered bamfiles here
-				# bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $NUMProc -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$NUMProc -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
-				
-			# else
-				# bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz -L $MAPPING_CLIPPING_PENALTY -t $NUMProc -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$NUMProc -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
-			# fi
-			# echo ""
-			# echo `date` " run samtools sort" $i
-			# samtools sort -@$NUMProc $i.$CUTOFFS.bam -o $i.$CUTOFFS.bam 
-			# mv $i.$CUTOFFS.bam $i.$CUTOFFS-RAW.bam
-			# echo ""
-			# echo `date` " run samtools index" $i
-			# samtools index $i.$CUTOFFS-RAW.bam
-		# done
-		
-		runBWA() {
-			i=$1
-			CUTOFFS=$2
-			MAPPING_CLIPPING_PENALTY=$3
-			INSERT=$4
-			SD=$5
-			INSERTH=$6
-			INSERTL=$7
-			MAPPING_MIN_ALIGNMENT_SCORE=$8
-			optA=$9
-			optB=${10}
-			optO=${11}
-			
-			echo FILE=$i
-			echo CUTOFFS=$CUTOFFS
-			echo MAPPING_CLIPPING_PENALTY=$MAPPING_CLIPPING_PENALTY 
-			echo INSERT_MEAN=$INSERT
-			echo INSERT_SD=$SD
-			echo INSERT_MAX=$INSERTH
-			echo INSERT_MIN=$INSERTL
-			echo MAPPING_MIN_ALIGNMENT_SCORE=$MAPPING_MIN_ALIGNMENT_SCORE
-			echo optA=$optA
-			echo optB=$optB
-			echo optO=$optO
-			#threads=$NUMProc
-			threads=1
-			if [ -f "$i.R2.fq.gz" ]; then
-				#bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $NUMProc -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | mawk '!/\t[2-9].[SH].*/' | mawk '!/[2-9].[SH]\t/' | samtools view -@$NUMProc -q $MAPPING_MIN_QUALITY -f 3 -F $SAMTOOLS_VIEW_F -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
-				#CEB: updated to output minimially-filtered bamfiles here
-				bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
-			else
-				bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
-			fi
-			echo ""
-			echo `date` " run samtools sort" $i
-			samtools sort -@$threads $i.$CUTOFFS.bam -o $i.$CUTOFFS.bam 
-			mv $i.$CUTOFFS.bam $i.$CUTOFFS-RAW.bam
-			echo ""
-			echo `date` " run samtools index" $i
-			samtools index $i.$CUTOFFS-RAW.bam
-		}
-		export -f runBWA
-		parallel --record-env
-		parallel --no-notice --env _ -j $NUMProc "runBWA {} $CUTOFFS $MAPPING_CLIPPING_PENALTY $INSERT $SD $INSERTH $INSERTL $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO" ::: "${NAMES[@]}"
+		echo " Yes. Modifying expected insert length for bwa - assumes RAD data"
+		getInsertINFO
 		
 	else
-		echo " No. Expected insert length not modified for BWA"
+		echo " No. BWA will estimate insert length stats"
 		echo ""
-		echo `date` " Run bwa mem on non-dDocent files"
-		for i in "${NAMES[@]}"
-		do
-			if [ -f "$i.R2.fq.gz" ]; then
-				bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz -L $MAPPING_CLIPPING_PENALTY -t $NUMProc -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$NUMProc -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
-			else
-				bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz -L $MAPPING_CLIPPING_PENALTY -t $NUMProc -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$NUMProc -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
-			fi
-			samtools sort -@$NUMProc $i.$CUTOFFS.bam -o $i.$CUTOFFS.bam 
-			mv $i.$CUTOFFS.bam $i.$CUTOFFS-RAW.bam
-			samtools index $i.$CUTOFFS-RAW.bam
-		done
+
+	fi
+}
+
+runBWA(){
+
+	i=$1
+	CUTOFFS=$2
+	MAPPING_CLIPPING_PENALTY=$3
+	INSERT=$4
+	SD=$5
+	INSERTH=$6
+	INSERTL=$7
+	MAPPING_MIN_ALIGNMENT_SCORE=$8
+	optA=$9
+	optB=${10}
+	optO=${11}
+	
+	echo FILE=$i
+	echo CUTOFFS=$CUTOFFS
+	echo MAPPING_CLIPPING_PENALTY=$MAPPING_CLIPPING_PENALTY 
+	echo INSERT_MEAN=$INSERT
+	echo INSERT_SD=$SD
+	echo INSERT_MAX=$INSERTH
+	echo INSERT_MIN=$INSERTL
+	echo MAPPING_MIN_ALIGNMENT_SCORE=$MAPPING_MIN_ALIGNMENT_SCORE
+	echo optA=$optA
+	echo optB=$optB
+	echo optO=$optO
+	#threads=$NUMProc
+	threads=1
+	
+	# paired or single end
+	if [ -f "$i.R2.fq.gz" ]; then
+		inputFILES="$i.R1.fq.gz $i.R2.fq.gz"
+	else
+		inputFILES="$i.R1.fq.gz"
 	fi
 	
+	# set bwa-meme mode https://github.com/kaist-ina/BWA-MEME#changing-memory-requirement-for-index-in-bwa-meme
+	if [ ${MAXMemory%G} -gt 188 ]; then 
+		bwaCMD="bwa-meme mem -7"
+	elif [ ${MAXMemory%G} -gt 88 ]; then 
+		bwaCMD="bwa-meme_mode2 mem -7"
+	elif [ ${MAXMemory%G} -gt 38 ]; then 
+		bwaCMD="bwa-meme_mode1 mem -7"
+	else
+		bwaCMD="bwa-meme mem"
+	fi
+	
+	#run bwa-meme
+	if [ ! -z $INSERT ]; then
+		echo "      $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log"
+		$bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+	else
+		echo "      $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log"
+		$bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+	fi
+	
+	echo "";echo `date` " run samtools sort" $i
+	samtools sort -@$threads $i.$CUTOFFS.bam -o $i.$CUTOFFS.bam 
+	mv $i.$CUTOFFS.bam $i.$CUTOFFS-RAW.bam
+	echo ""
+	echo `date` " run samtools index" $i
+	samtools index $i.$CUTOFFS-RAW.bam
+}
+export -f runBWA
+
+MAP2REF(){
+
+	echo " ";echo `date` " Checking files for mapping..."
+		
+	findREF
+	indexREF
+	findFQs
+	checkRefORIGIN
+		
+	# BWA-MEME for mapping for all samples.  As of version 2.0 can handle SE or PE reads by checking for PE read files
+	echo "";echo `date` " Run bwa mem on dDocent files"
+	parallel --record-env
+	parallel --no-notice --env _ -j $NUMProc "runBWA {} $CUTOFFS $MAPPING_CLIPPING_PENALTY $INSERT $SD $INSERTH $INSERTL $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO" ::: "${NAMES[@]}"
+
 	echo ""; echo `date` mkBAM completed!
 }
 
