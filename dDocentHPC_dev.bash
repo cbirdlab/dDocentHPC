@@ -43,8 +43,9 @@ if [ -n "$2" ]; then
 	
 	echo ""; echo `date` "Reading in variables from config file..."
 	CONFIG=$2
-	NUMProc=$(grep 'Number of Processors (Auto, 1, 2, 3,' $CONFIG | awk '{print $1;}')
-	MAXMemory=$(grep 'Maximum Memory (1G,2G,' $CONFIG | awk '{print $1;}')
+	# NUMProc=$(grep 'Number of Processors (Auto, 1, 2, 3,' $CONFIG | awk '{print $1;}')
+	NUMProc=$(nproc)
+	# MAXMemory=$(grep 'Maximum Memory (1G,2G,' $CONFIG | awk '{print $1;}')
 	freeMEM=$(free | tr -s " " "\t" | cut -f4 | tail -n+2 | head -n1)
 	#TRIM=$(grep -A1 Trim $CONFIG | tail -1)
 	TRIM="RemoveThisVar"
@@ -1514,11 +1515,12 @@ findREF(){
 }
 
 indexREF(){
+	# index the ref genome with bwa-meme
 	if [ reference.$CUTOFFS.fasta -nt reference.$CUTOFFS.fasta.fai ] || [ "$OVERWRITE" == "TRUE" ]; then
 		echo " ";echo `date` "  Indexing ref genome..."
 		samtools faidx reference.$CUTOFFS.fasta
 		
-		if [ ${freeMEM} -gt 38000000 ]; then 
+		if [[ ${freeMEM} -gt 38000000 ]]; then 
 			echo " ";echo `date` "  Indexing for bwa-meme because there are $freeMEM bytes of RAM avail..."
 			bwa-meme index -a meme reference.$CUTOFFS.fasta -t $NUMProc &> index.$CUTOFFS.log
 			echo " ";echo `date` "  BWA-MEME training P-RMI..."
@@ -1594,8 +1596,32 @@ checkRefORIGIN(){
 	fi
 }
 
-runBWA(){
+bwaALLOC(){
+	# calculate num parallel processes, RAM allocation, etc
+	freeMEM=$(free | tr -s " " "\t" | cut -f4 | tail -n+2 | head -n1)
+	numPARALLEL=$((${freeMEM}/188000000))
+	if [[ ${numPARALLEL} < 2 ]]; then
+		numPARALLEL=1
+	fi
+	memPerPARALLEL=$((${freeMEM}/${numPARALLEL}))
+	threadsPerPARALLEL=$((${NUMProc}/${numPARALLEL}))
+	if [[ ${memPerPARALLEL} -gt 20000000 ]]; then
+		memSortPerPARALLEL=20000000
+	else
+		memSortPerPARALLEL=${memPerPARALLEL}
+	fi
+	
+	memPerTHREAD=$((${memSortPerPARALLEL}/${threadsPerPARALLEL}))
+	if [[ ${memPerTHREAD} -lt 2000000 ]]; then
+		memPerTHREAD=2000000
+		threadsSortPerPARALLEL=$((${freeMEM}/${memPerTHREAD}))
+	else
+		threadsSortPerPARALLEL=${threadsPerPARALLEL}
+	fi
+}
 
+runBWA(){
+	# map reads with bwa-meme
 	i=$1
 	CUTOFFS=$2
 	MAPPING_CLIPPING_PENALTY=$3
@@ -1604,10 +1630,15 @@ runBWA(){
 	optB=$6
 	optO=$7
 	freeMEM=$8
-	INSERT=$9
-	SD=${10}
-	INSERTH=${11}
-	INSERTL=${12}
+	memSortPerPARALLEL=$9
+	threadsPerPARALLEL=${10}
+	threadsSortPerPARALLEL=${11}
+	memPerTHREAD=${12}
+	ATYPE=${13}
+	INSERT=${14}
+	SD=${15}
+	INSERTH=${16}
+	INSERTL=${17}
 	
 	echo FILE=$i
 	echo CUTOFFS=$CUTOFFS
@@ -1617,28 +1648,31 @@ runBWA(){
 	echo optB=$optB
 	echo optO=$optO
 	echo freeMEM=$freeMEM
+	echo memSortPerPARALLEL=$memSortPerPARALLEL
+	echo threadsPerPARALLEL=$threadsPerPARALLEL
+	echo threadsSortPerPARALLEL=$threadsSortPerPARALLEL
+	echo memPerTHREAD=$memPerTHREAD
+	echo ATYPE=$ATYPE
 	echo INSERT_MEAN=$INSERT
 	echo INSERT_SD=$SD
 	echo INSERT_MAX=$INSERTH
 	echo INSERT_MIN=$INSERTL
-	#threads=$NUMProc
-	threads=1
 	
 	# paired or single end
-	if [ -f "$i.R2.fq.gz" ]; then
+	if [ -f "$i.R2.fq.gz" ] && [ "${ATYPE}" != "SE" ]; then
 		inputFILES="reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz"
 	else
 		inputFILES="reference.$CUTOFFS.fasta $i.R1.fq.gz"
 	fi
 	
 	# set bwa-meme mode https://github.com/kaist-ina/BWA-MEME#changing-memory-requirement-for-index-in-bwa-meme
-	if [[ ${freeMEM} > 188000000 ]]; then 
+	if [[ ${freeMEM} -gt 188000000 ]]; then 
 		echo "";echo `date` " Running bwa-meme (RAM: 188G, Free Memory: $freeMEM)"
 		bwaCMD="bwa-meme mem -7"
-	elif [[ ${freeMEM} > 88000000 ]]; then 
+	elif [[ ${freeMEM} -gt 88000000 ]]; then 
 		echo "";echo `date` " Running bwa-meme_mode2 (RAM: 88G, Free Memory: $freeMEM)"
 		bwaCMD="bwa-meme_mode2 mem -7"
-	elif [[ ${freeMEM} > 38000000 ]]; then 
+	elif [[ ${freeMEM} -gt 38000000 ]]; then 
 		echo "";echo `date` " Running bwa-meme_mode1 (RAM: 38G, Free Memory: $freeMEM)"
 		bwaCMD="bwa-meme_mode1 mem -7"
 	else
@@ -1648,13 +1682,13 @@ runBWA(){
 	
 	#run bwa-meme
 	if [ ! -z $INSERT ]; then
-		echo "      $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log"
+		echo "      $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | mbuffer -m ${memSortPerPARALLEL} | samtools sort -m ${memPerTHREAD} --output-fmt bam,level=1 -@ ${threadsPerPARALLEL} > $i.$CUTOFFS-RAW.bam 2>samtools.sort.bam.$i.$CUTOFFS.log"
 		# $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
 		$bwaCMD \
 				$inputFILES \
-				-L $MAPPING_CLIPPING_PENALTY \
 				-I $INSERT,$SD,$INSERTH,$INSERTL \
-				-t $threads \
+				-L $MAPPING_CLIPPING_PENALTY \
+				-t $threadsPerPARALLEL \
 				-a \
 				-M \
 				-T $MAPPING_MIN_ALIGNMENT_SCORE \
@@ -1663,22 +1697,20 @@ runBWA(){
 				-O $optO \
 				-R "@RG\tID:$i\tSM:$i\tPL:Illumina" \
 			2> bwa.$i.$CUTOFFS.log \
-			| mbuffer -m 8G \
+			| mbuffer -m ${memSortPerPARALLEL} \
 			| samtools sort \
-				-m 1G \
+				-m ${memPerTHREAD} \
 				--output-fmt bam,level=1 \
-				-T ./sorttmp \
-				-@ 8 \
+				-@ ${threadsSortPerPARALLEL} \
 			> $i.$CUTOFFS-RAW.bam \
 			2>samtools.sort.bam.$i.$CUTOFFS.log
-
 	else
-		echo "      $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log"
+		echo "      $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | mbuffer -m ${memSortPerPARALLEL} | samtools sort -m ${memPerTHREAD} --output-fmt bam,level=1 -@ ${threadsPerPARALLEL} > $i.$CUTOFFS-RAW.bam 2>samtools.sort.bam.$i.$CUTOFFS.log"
 		# $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
 		$bwaCMD \
 				$inputFILES \
 				-L $MAPPING_CLIPPING_PENALTY \
-				-t $threads \
+				-t $threadsPerPARALLEL \
 				-a \
 				-M \
 				-T $MAPPING_MIN_ALIGNMENT_SCORE \
@@ -1687,12 +1719,11 @@ runBWA(){
 				-O $optO \
 				-R "@RG\tID:$i\tSM:$i\tPL:Illumina" \
 			2> bwa.$i.$CUTOFFS.log \
-			| mbuffer -m 8G \
+			| mbuffer -m ${memSortPerPARALLEL} \
 			| samtools sort \
-				-m 1G \
+				-m ${memPerTHREAD} \
 				--output-fmt bam,level=1 \
-				-T ./sorttmp \
-				-@ 8 \
+				-@ ${threadsSortPerPARALLEL} \
 			> $i.$CUTOFFS-RAW.bam \
 			2>samtools.sort.bam.$i.$CUTOFFS.log
 	fi
@@ -1705,7 +1736,7 @@ runBWA(){
 	echo "";echo `date` " run samtools index" $i
 	samtools index \
 		$i.$CUTOFFS-RAW.bam \
-		-@8 \
+		-@ ${threadsPerPARALLEL} \
 		2> samtools.index.bam.$i.$CUTOFFS.log
 }
 export -f runBWA
@@ -1720,11 +1751,13 @@ MAP2REF(){
 	checkRefORIGIN
 	
 	# BWA-MEME for mapping for all samples.  As of version 2.0 can handle SE or PE reads by checking for PE read files
-	freeMEM=$(free | tr -s " " "\t" | cut -f4 | tail -n+2 | head -n1)
+	bwaALLOC
 	echo "";echo `date` " Run bwa mem on dDocent files"
 	parallel --record-env
-	parallel --no-notice --env _ -j 1 "runBWA {} $CUTOFFS $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO $freeMEM $INSERT $SD $INSERTH $INSERTL " ::: "${NAMES[@]}"
-
+	parallel --no-notice --env _ -j ${numPARALLEL} "runBWA {} $CUTOFFS $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO $freeMEM $memSortPerPARALLEL $threadsPerPARALLEL $threadsSortPerPARALLEL $memPerTHREAD $ATYPE $INSERT $SD $INSERTH $INSERTL " ::: "${NAMES[@]}"
+	# for i in "${NAMES[@]}"; do
+		# runBWA $i $CUTOFFS $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO $freeMEM $INSERT $SD $INSERTH $INSERTL
+	# done
 	echo ""; echo `date` mkBAM completed!
 }
 

@@ -3,12 +3,12 @@ Settings for dDocentHPC
 
 These default settings assume ddRAD, no overlapping 151 bp reads
 
-10		Number of Processors (Auto, 1, 2, 3, ..., n threads) cbirdq=40 normal=20
-230G	Maximum Memory (1G,2G,..., 256G)  G=gigabytes
+All		Number of Processors (Not Adjustable)
+All		Free Memory (Not Adjustable)
 
 ----------trimFQ: Settings for Trimming FASTQ Files---------------------------------------------------------------
 146		trimmomatic MINLEN (integer, mkREF only)						Drop the read if it is below a specified length. Set to the length of the Read1 reads.
-33		trimmomatic MINLEN (integer, mkBAM only)						Drop the read if it is below a specified length. Set to the minimum frag length you want mapped to the reference.
+75		trimmomatic MINLEN (integer, mkBAM only)						Drop the read if it is below a specified length. Set to the minimum frag length you want mapped to the reference.
 20		trimmomatic LEADING:<quality> (integer, mkBAM only)				Specifies the minimum quality required to keep a base.
 15		trimmomatic TRAILING:<quality> (integer, mkREF only)			Specifies the minimum quality required to keep a base.
 20		trimmomatic TRAILING:<quality> (integer, mkBAM only)			Specifies the minimum quality required to keep a base.
@@ -24,10 +24,10 @@ no		FixStacks (yes,no)   											Demultiplexing with stacks introduces anomol
 ------------------------------------------------------------------------------------------------------------------
 
 ----------mkREF: Settings for de novo assembly of the reference genome--------------------------------------------
-SE		Type of reads for assembly (PE, SE, OL, RPE)					PE=ddRAD & ezRAD pairedend, non-overlapping reads; SE=singleend reads; OL=ddRAD & ezRAD overlapping reads, miseq; RPE=oregonRAD, restriction site + random shear
+PE		Type of reads for assembly (PE, SE, OL, RPE)					PE=ddRAD & ezRAD pairedend, non-overlapping reads; SE=singleend reads; OL=ddRAD & ezRAD overlapping reads, miseq; RPE=oregonRAD, restriction site + random shear
 0.9		cdhit Clustering_Similarity_Pct (0-1)							Use cdhit to cluster and collapse uniq reads by similarity threshold
-test		Cutoff1 (integer)												Use unique reads that have at least this much coverage for making the reference	genome
-basic		Cutoff2 (integer)												Use unique reads that occur in at least this many individuals for making the reference genome
+2		Cutoff1 (integer)												Use unique reads that have at least this much coverage for making the reference	genome
+2		Cutoff2 (integer)												Use unique reads that occur in at least this many individuals for making the reference genome
 0.05	rainbow merge -r <percentile> (decimal 0-1)						Percentile-based minimum number of seqs to assemble in a precluster
 0.95	rainbow merge -R <percentile> (decimal 0-1)						Percentile-based maximum number of seqs to assemble in a precluster
 ------------------------------------------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ Make sure the cutoffs above match the reference*fasta!
 1		bwa mem -A Mapping_Match_Value (integer) 
 6		bwa mem -B Mapping_MisMatch_Value (integer) 
 10		bwa mem -O Mapping_GapOpen_Penalty (integer) 
-0		bwa mem -T Mapping_Minimum_Alignment_Score (integer) 			Remove reads that have an alignment score less than this. 
+50		bwa mem -T Mapping_Minimum_Alignment_Score (integer) 			Remove reads that have an alignment score less than this. 
 30,5	bwa mem -L Mapping_Clipping_Penalty (integer,integer) 
 ------------------------------------------------------------------------------------------------------------------
 

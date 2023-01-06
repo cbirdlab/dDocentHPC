@@ -26,28 +26,35 @@ Executing in AVX2 mode!!
 * Done reading reference genome !!
 
 ------------------------------------------
-1. Memory pre-allocation for Chaining: 142.0078 MB
-2. Memory pre-allocation for BSW: 239.6170 MB
-3. Memory pre-allocation for BWT: 77.3142 MB
+1. Memory pre-allocation for Chaining: 1703.8604 MB
+2. Memory pre-allocation for BSW: 2875.4043 MB
+3. Memory pre-allocation for BWT: 927.7701 MB
 ------------------------------------------
-* Threads used (compute): 1
+* Threads used (compute): 12
 * No. of pipeline threads: 2
 
-[0000] read_chunk: 10000000, work_chunk_size: 373, nseq: 6
-	[0000][ M::kt_pipeline] read 6 sequences (373 bp)...
+[W::bseq_read_orig] the 2nd file has fewer sequences.
+[0000] read_chunk: 120000000, work_chunk_size: 613, nseq: 10
+	[0000][ M::kt_pipeline] read 10 sequences (613 bp)...
 [0000] Calling mem_process_seqs.., task: 0
 [0000] 1. Calling kt_for - worker_bwt
-[0000] read_chunk: 10000000, work_chunk_size: 0, nseq: 0
+[0000] read_chunk: 120000000, work_chunk_size: 0, nseq: 0
 [0000] 2. Calling kt_for - worker_aln
+[0000] Inferring insert size distribution of PE reads from data, l_pac: 73, n: 10
+[0000][PE] # candidate unique pairs for (FF, FR, RF, RR): (0, 0, 0, 0)
+[0000][PE] skip orientation FF as there are not enough pairs
+[0000][PE] skip orientation FR as there are not enough pairs
+[0000][PE] skip orientation RF as there are not enough pairs
+[0000][PE] skip orientation RR as there are not enough pairs
 [0000] 3. Calling kt_for - worker_sam
-	[0000][ M::mem_process_seqs] Processed 6 reads in 0.003 CPU sec, 0.004 real sec
-[0000] read_chunk: 10000000, work_chunk_size: 0, nseq: 0
+	[0000][ M::mem_process_seqs] Processed 10 reads in 0.007 CPU sec, 0.005 real sec
+[0000] read_chunk: 120000000, work_chunk_size: 0, nseq: 0
 [0000] Computation ends..
-No. of OMP threads: 1
-Processor is running @2592.344503 MHz
+No. of OMP threads: 12
+Processor is running @2592.584162 MHz
 Runtime profile:
 
-	Time taken for main_mem function: 0.04 sec
+	Time taken for main_mem function: 0.27 sec
 
 	IO times (sec) :
 	Reading IO time (reads) avg: 0.00, (0.00, 0.00)
@@ -56,8 +63,8 @@ Runtime profile:
 	Index read time avg: 0.00, (0.00, 0.00)
 
 	Overall time (sec) (Excluding Index reading time):
-	PROCESS() (Total compute time + (read + SAM) IO time) : 0.04
-	MEM_PROCESS_SEQ() (Total compute time (Kernel + SAM)), avg: 0.00, (0.00, 0.00)
+	PROCESS() (Total compute time + (read + SAM) IO time) : 0.27
+	MEM_PROCESS_SEQ() (Total compute time (Kernel + SAM)), avg: 0.01, (0.01, 0.01)
 
 	 SAM Processing time (sec):
 	--WORKER_SAM avg: 0.00, (0.00, 0.00)
