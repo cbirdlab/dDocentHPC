@@ -47,7 +47,8 @@ processing. The resulting vcf files can be filtered with [fltrVCF](https://githu
  
 ## Quick Start
 
-0. [Install all dependencies](https://www.ddocent.com/downloads/)
+0. [Install all dependencies here](https://github.com/jpuritz/dDocent#installing) or try [here](https://www.ddocent.com/downloads/)
+	* [you also need bwa-meme](https://github.com/kaist-ina/BWA-MEME#install-option-1-bioconda)
 	
 1. Create a project directory of any name that has zipped FASTQ files with following naming convention: 
 	`PopSamp_IndivID.F.fq.gz`
