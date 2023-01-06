@@ -1,8 +1,17 @@
 ## dDocentHPC: A pipeline to trim, assemble, map, and genotype reduced representation genomic data
 
 ---
-
-### !!! _*new configuration file format `config.5.all` must be used*_ !!!
+### !!! _*new configuration file format `config.6.*` must be used with `dDocentHPC_dev.bash`*_ !!!
+	* all fltrBAM options work now
+		* remove mapped reads orphaned by fltrBAM after mapping
+		* remove mapped reads with excessive soft clipping
+		* filter mapped reads by an alignment score threshold that varies with read length for each and every read
+	* fltrBAM speed should be increased
+	* mkBAM updated to use bwa-meme and automatically adjust to the amount of ram and number of threads on your system
+		* this should increase speed
+		* if you have <16GB of ram, you might get a memory error
+	
+### !!! _*new configuration file format `config.5.*` must be used with `dDocentHPC.bash`*_ !!!
 
 To make `config.4.all` compatible with newest version, then add the following line:
 
