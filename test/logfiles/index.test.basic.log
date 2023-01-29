@@ -2,10 +2,10 @@ Looking to launch executable "/home/cbird/anaconda3/envs/bwa-meme/bin/bwa-meme_m
 Launching executable "/home/cbird/anaconda3/envs/bwa-meme/bin/bwa-meme_mode3.avx2"
 [bwa_index] Pack FASTA... 0.00 sec
 * Entering FMI_search
-init ticks = 156206
+init ticks = 138634
 ref seq len = 146
-binary seq ticks = 12962
-build suffix-array ticks = 23096
+binary seq ticks = 11722
+build suffix-array ticks = 19474
 ref_seq_len = 146
 count = 0, 36, 73, 110, 146
 BWT[35] = 4
@@ -13,5 +13,5 @@ CP_SHIFT = 6, CP_MASK = 63
 sizeof CP_OCC = 64
 pos: 19, ref_seq_len__: 18
 max_occ_ind = 2
-build fm-index ticks = 139186
-Total time taken: 0.0115
+build fm-index ticks = 174724
+Total time taken: 0.0112

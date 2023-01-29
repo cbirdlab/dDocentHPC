@@ -47,11 +47,11 @@ Executing in AVX2 mode!!
 [0000][PE] skip orientation RF as there are not enough pairs
 [0000][PE] skip orientation RR as there are not enough pairs
 [0000] 3. Calling kt_for - worker_sam
-	[0000][ M::mem_process_seqs] Processed 10 reads in 0.007 CPU sec, 0.005 real sec
+	[0000][ M::mem_process_seqs] Processed 10 reads in 0.005 CPU sec, 0.005 real sec
 [0000] read_chunk: 120000000, work_chunk_size: 0, nseq: 0
 [0000] Computation ends..
 No. of OMP threads: 12
-Processor is running @2592.584162 MHz
+Processor is running @2592.534694 MHz
 Runtime profile:
 
 	Time taken for main_mem function: 0.27 sec
@@ -64,7 +64,7 @@ Runtime profile:
 
 	Overall time (sec) (Excluding Index reading time):
 	PROCESS() (Total compute time + (read + SAM) IO time) : 0.27
-	MEM_PROCESS_SEQ() (Total compute time (Kernel + SAM)), avg: 0.01, (0.01, 0.01)
+	MEM_PROCESS_SEQ() (Total compute time (Kernel + SAM)), avg: 0.00, (0.00, 0.00)
 
 	 SAM Processing time (sec):
 	--WORKER_SAM avg: 0.00, (0.00, 0.00)

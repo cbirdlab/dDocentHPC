@@ -9,4 +9,7 @@ sed -i -e 's/^2\(\t\+Cutoff1\)/test\1/' \
 	-e 's/^40\(\t\+Number of Processors\)/10\1/' \
 	-e 's/^50\(\t\+bwa mem \-T\)/0\1/' config.6.rad_test
 wait
-bash ../dDocentHPC_dev.bash fltrBAM config.6.rad_test
+bash ../dDocentHPC_dev fltrBAM \
+	-c config.6.rad_test \
+	-r reference.test.basic.fasta \
+	-i *RAW.bam

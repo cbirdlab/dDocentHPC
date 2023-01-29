@@ -1,0 +1,19 @@
+cli vars:
+OVERWRITE
+DEPENDENCIES
+fq1FilePATTERN
+fq2FilePATTERN
+bamFilePATTERN
+CONFIG
+refGENOME
+
+mkBAM vars:
+
+
+fltrBAM vars:
+bamFilePATTERN
+NumInd
+bamFileEXT
+bamFileExtPATTERN
+NAMES
+outFileEXT
