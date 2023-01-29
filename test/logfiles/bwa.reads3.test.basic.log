@@ -1,0 +1,92 @@
+Looking to launch executable "/home/cbird/anaconda3/envs/bwa-meme/bin/bwa-meme_mode3.avx2", simd = _mode3.avx2
+Launching executable "/home/cbird/anaconda3/envs/bwa-meme/bin/bwa-meme_mode3.avx2"
+-----------------------------
+Executing in AVX2 mode!!
+-----------------------------
+* SA compression enabled with xfactor: 8
+* Ref file: reference.test.basic.fasta
+* Entering FMI_search
+* Index file found. Loading index from reference.test.basic.fasta.bwt.2bit.64
+* Reference seq len for bi-index = 147
+* sentinel-index: 35
+* Count:
+0,	1
+1,	37
+2,	74
+3,	111
+4,	147
+
+* Reading other elements of the index from files reference.test.basic.fasta
+* Index prefix: reference.test.basic.fasta
+* Read 0 ALT contigs
+* Done reading Index!!
+* Reading reference genome..
+* Binary seq file = reference.test.basic.fasta.0123
+* Reference genome size: 146 bp
+* Done reading reference genome !!
+
+------------------------------------------
+1. Memory pre-allocation for Chaining: 1703.8604 MB
+2. Memory pre-allocation for BSW: 2875.4043 MB
+3. Memory pre-allocation for BWT: 927.7701 MB
+------------------------------------------
+* Threads used (compute): 12
+* No. of pipeline threads: 2
+
+[W::bseq_read_orig] the 2nd file has fewer sequences.
+[0000] read_chunk: 120000000, work_chunk_size: 613, nseq: 10
+	[0000][ M::kt_pipeline] read 10 sequences (613 bp)...
+[0000] Calling mem_process_seqs.., task: 0
+[0000] 1. Calling kt_for - worker_bwt
+[0000] read_chunk: 120000000, work_chunk_size: 0, nseq: 0
+[0000] 2. Calling kt_for - worker_aln
+[0000] Inferring insert size distribution of PE reads from data, l_pac: 73, n: 10
+[0000][PE] # candidate unique pairs for (FF, FR, RF, RR): (0, 0, 0, 0)
+[0000][PE] skip orientation FF as there are not enough pairs
+[0000][PE] skip orientation FR as there are not enough pairs
+[0000][PE] skip orientation RF as there are not enough pairs
+[0000][PE] skip orientation RR as there are not enough pairs
+[0000] 3. Calling kt_for - worker_sam
+	[0000][ M::mem_process_seqs] Processed 10 reads in 0.005 CPU sec, 0.005 real sec
+[0000] read_chunk: 120000000, work_chunk_size: 0, nseq: 0
+[0000] Computation ends..
+No. of OMP threads: 12
+Processor is running @2592.534694 MHz
+Runtime profile:
+
+	Time taken for main_mem function: 0.27 sec
+
+	IO times (sec) :
+	Reading IO time (reads) avg: 0.00, (0.00, 0.00)
+	Writing IO time (SAM) avg: 0.00, (0.00, 0.00)
+	Reading IO time (Reference Genome) avg: 0.00, (0.00, 0.00)
+	Index read time avg: 0.00, (0.00, 0.00)
+
+	Overall time (sec) (Excluding Index reading time):
+	PROCESS() (Total compute time + (read + SAM) IO time) : 0.27
+	MEM_PROCESS_SEQ() (Total compute time (Kernel + SAM)), avg: 0.00, (0.00, 0.00)
+
+	 SAM Processing time (sec):
+	--WORKER_SAM avg: 0.00, (0.00, 0.00)
+
+	Kernels' compute time (sec):
+	Total kernel (smem+sal+bsw) time avg: 0.00, (0.00, 0.00)
+		MEM_ALN_CHAIN_FLT avg: 0.00, (0.00, 0.00)
+		MEM_ALN_CHAIN_SEED avg: 0.00, (0.00, 0.00)
+		ERT_SEED_CHAIN avg: 0.00, (0.00, 0.00)
+	LEARNED_SEED_CHAIN avg: 0.00, (0.00, 0.00)
+		SMEM compute avg: 0.00, (0.00, 0.00)
+		SAL compute avg: 0.00, (0.00, 0.00)
+				MEM_SA avg: 0.00, (0.00, 0.00)
+
+		BSW time, avg: 0.00, (0.00, 0.00)
+
+Important parameter settings: 
+	BATCH_SIZE: 512
+	MAX_SEQ_LEN_REF: 256
+	MAX_SEQ_LEN_QER: 128
+	MAX_SEQ_LEN8: 128
+	SEEDS_PER_READ: 500
+	SIMD_WIDTH8 X: 32
+	SIMD_WIDTH16 X: 16
+	AVG_SEEDS_PER_READ: 64
