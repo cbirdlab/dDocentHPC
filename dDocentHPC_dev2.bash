@@ -1837,21 +1837,14 @@ filterAS(){
 		read_name = $1
 		#read_length = length($10)
 
-		# Extract the read length from CIGAR so that hard clipping can't make a read appear shorter than it is to the filter
+		# Extract the read length from CIGAR so that hard clipping cant make a read appear shorter than it is to the filter
 		read_length = 0
-                n = split($6,a,"[MIDNSHP=X]");
+                n = split($6,a,"[MIDNSHP=X]")
     		for(i=1; i <= n; i++) {
       			if(a[i]~/[0-9]+/) {
         			read_length += a[i];
       			}
     		}
-
-		#split($6,a,"[MIDNSHP=X]")
-                #for(i in a) {
-                #        if(i~/^[0-9]+$/) {
-                #                read_length += (a[i])
-                #        }
-                #}
 
 		# Search for the "AS:i:" field and extract the alignment score
 		alignment_score = 0
