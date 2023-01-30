@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 VERSION=4.6
 #This script serves as an interactive bash wrapper to QC, assemble, map, and call SNPs from double digest RAD (SE or PE), ezRAD (SE or PE) data, or SE RAD data.
 #It requires that your raw data are split up by tagged individual and follow the naming convention of:
@@ -1522,7 +1521,7 @@ EOF
 
 findREF(){
 	# check for presence of properly named ref or symlink to one, if can't find then exit
-	if [ ! -e reference.$CUTOFFS.fasta ]; then
+	if [ ! -e $refGENOME ]; then
 		echo " ";echo `date` "  Reference genome not found in working directory..."
 		if [ ! -f ../mkREF/reference.$CUTOFFS.fasta ]; then
 			echo " ";echo `date` "  ERROR: Reference genome not found in mkREF directory. Please copy reference genome to working directory. ex: reference.10.10.fasta"
@@ -1559,15 +1558,13 @@ indexREF(){
 
 findFQs(){
 	#dDocent now checks for trimmed read files before attempting mapping
-	if [ ! -e "${NAMES[@]:(-1)}"$Fsed ]; then
-		#if [ ! -L "${NAMES[@]:(-1)}"$Fsed ]; then
-			echo " ";echo `date` "  dDocent cannot locate all of the trimmed reads files"
-			echo "          FASTQ files to be mapped must end with the following suffix: ${Fsed}"
-			exit 1
-		#fi
+	if [ ! -f "${NAMES[@]:(-1)}"$Fsed ]; then
+		echo " ";echo `date` "  dDocent cannot locate all of the trimmed reads files"
+		echo "          FASTQ files to be mapped must end with the following suffix: ${Fsed}"
+		exit 1
 	fi
 	
-	if [ "$ATYPE" != "SE" ] && [ ! -e "${NAMES[@]:(-1)}"$Rsed ]; then
+	if [ "$ATYPE" != "SE" ] && [ ! -f "${NAMES[@]:(-1)}"$Rsed ]; then
 		echo " ";echo `date` "  dDocent cannot locate all of the trimmed reads files"
 		echo "          FASTQ files to be mapped must end with the following suffix: ${Rsed}"
 		exit 1
@@ -1580,14 +1577,14 @@ getInsertINFO(){
 	rm lengths.$CUTOFFS.txt &> /dev/null
 	
 	for i in "${NAMES[@]}"; do
-		if [ -e "$i.$R.fq.gz" ]; then
+		if [ -f "$i.$R.fq.gz" ]; then
 			zcat $i.$R.fq.gz | \
 				head -2 | \
 				tail -1 >> lengths.$CUTOFFS.txt
 		fi
 	done
 	
-	if [ -e "lengths.$CUTOFFS.txt" ]; then
+	if [ -f "lengths.$CUTOFFS.txt" ]; then
 		#MaxLen=$(mawk '{ print length() | "sort -rn" }' lengths.$CUTOFFS.txt| head -1)
 		#INSERT=$(($MaxLen * 2 ))
 		#calculate mean contig length in ref
@@ -1629,38 +1626,19 @@ bwaALLOC(){
 	fi
 	memPerPARALLEL=$((${freeMEM}/${numPARALLEL}))
 	threadsPerPARALLEL=$((${NUMProc}/${numPARALLEL}))
-
-	memPerThreadPerPARALLEL=$((${memPerPARALLEL}/${threadsPerPARALLEL}))
-	if [[ ${memPerThreadPerPARALLEL} -lt 1000000 ]]; then
-		memSortPerThreadPerPARALLEL=1000000
-		threadsSortPerPARALLEL=$((${memPerPARALLEL}/${memSortPerThreadPerPARALLEL}))
+	if [[ ${memPerPARALLEL} -gt 20000000 ]]; then
+		memSortPerPARALLEL=20000000
 	else
-		memSortPerThreadPerPARALLEL=${memPerThreadPerPARALLEL}
-		threadsSortPerPARALLEL=${threadsPerPARALLEL}
-	fi 
-	memSortPerPARALLEL=$((${threadsSortPerPARALLEL}*${memSortPerThreadPerPARALLEL}))
-
-	#if [[ ${memPerPARALLEL} -gt 20000000 ]]; then
-	#	memSortPerPARALLEL=20000000
-	#else
-	#	memSortPerPARALLEL=${memPerPARALLEL}
-	#fi
+		memSortPerPARALLEL=${memPerPARALLEL}
+	fi
 	
-	#memPerTHREAD=$((${memSortPerPARALLEL}/${threadsPerPARALLEL}))
-	#if [[ ${memPerTHREAD} -lt 2000000 ]]; then
-	#	memPerTHREAD=2000000
-	#	threadsSortPerPARALLEL=$((${freeMEM}/${memPerTHREAD}))
-	#else
-	#	threadsSortPerPARALLEL=${threadsPerPARALLEL}
-	#fi
-	echo numPARALLEL=$numPARALLEL
-	echo memPerPARALLEL=$memPerPARALLEL
-	echo freeMEM=$freeMEM
-        echo memSortPerPARALLEL=$memSortPerPARALLEL
-        echo threadsPerPARALLEL=$threadsPerPARALLEL
-        echo threadsSortPerPARALLEL=$threadsSortPerPARALLEL
-        echo memPerThreadPerPARALLEL=$memPerThreadPerPARALLEL
-	echo memSortPerThreadPerPARALLEL=$memSortPerThreadPerPARALLEL
+	memPerTHREAD=$((${memSortPerPARALLEL}/${threadsPerPARALLEL}))
+	if [[ ${memPerTHREAD} -lt 2000000 ]]; then
+		memPerTHREAD=2000000
+		threadsSortPerPARALLEL=$((${freeMEM}/${memPerTHREAD}))
+	else
+		threadsSortPerPARALLEL=${threadsPerPARALLEL}
+	fi
 }
 
 runBWA(){
@@ -1676,8 +1654,7 @@ runBWA(){
 	memSortPerPARALLEL=$9
 	threadsPerPARALLEL=${10}
 	threadsSortPerPARALLEL=${11}
-	memSortPerThreadPerPARALLEL=${12}
-	#memPerTHREAD=${12}
+	memPerTHREAD=${12}
 	ATYPE=${13}
 	INSERT=${14}
 	SD=${15}
@@ -1695,34 +1672,34 @@ runBWA(){
 	echo memSortPerPARALLEL=$memSortPerPARALLEL
 	echo threadsPerPARALLEL=$threadsPerPARALLEL
 	echo threadsSortPerPARALLEL=$threadsSortPerPARALLEL
-	echo memSortPerThreadPerPARALLEL=$memSortPerThreadPerPARALLEL
+	echo memPerTHREAD=$memPerTHREAD
 	echo ATYPE=$ATYPE
 	echo INSERT_MEAN=$INSERT
 	echo INSERT_SD=$SD
 	echo INSERT_MAX=$INSERTH
 	echo INSERT_MIN=$INSERTL
-
+	
 	# paired or single end
-	if [ -e "$i.R2.fq.gz" ] && [ "${ATYPE}" != "SE" ]; then
+	if [ -f "$i.R2.fq.gz" ] && [ "${ATYPE}" != "SE" ]; then
 		inputFILES="reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz"
 	else
 		inputFILES="reference.$CUTOFFS.fasta $i.R1.fq.gz"
 	fi
 	
 	# set bwa-meme mode https://github.com/kaist-ina/BWA-MEME#changing-memory-requirement-for-index-in-bwa-meme
-	#if [[ ${freeMEM} -gt 188000000 ]]; then 
-	#	echo "";echo `date` " Running bwa-meme (RAM: 188G, Free Memory: $freeMEM)"
-	#	bwaCMD="bwa-meme mem -7"
-	#elif [[ ${freeMEM} -gt 88000000 ]]; then 
-	#	echo "";echo `date` " Running bwa-meme_mode2 (RAM: 88G, Free Memory: $freeMEM)"
-	#	bwaCMD="bwa-meme_mode2 mem -7"
-	#elif [[ ${freeMEM} -gt 38000000 ]]; then 
-	#	echo "";echo `date` " Running bwa-meme_mode1 (RAM: 38G, Free Memory: $freeMEM)"
-	#	bwaCMD="bwa-meme_mode1 mem -7"
-	#else
+	if [[ ${freeMEM} -gt 188000000 ]]; then 
+		echo "";echo `date` " Running bwa-meme (RAM: 188G, Free Memory: $freeMEM)"
+		bwaCMD="bwa-meme mem -7"
+	elif [[ ${freeMEM} -gt 88000000 ]]; then 
+		echo "";echo `date` " Running bwa-meme_mode2 (RAM: 88G, Free Memory: $freeMEM)"
+		bwaCMD="bwa-meme_mode2 mem -7"
+	elif [[ ${freeMEM} -gt 38000000 ]]; then 
+		echo "";echo `date` " Running bwa-meme_mode1 (RAM: 38G, Free Memory: $freeMEM)"
+		bwaCMD="bwa-meme_mode1 mem -7"
+	else
 		echo "";echo `date` " Running bwa-mem2 (RAM: <38G, Free Memory: $freeMEM)"
 		bwaCMD="bwa-meme mem"
-	#fi
+	fi
 	
 	#run bwa-meme
 	if [ ! -z $INSERT ]; then
@@ -1743,11 +1720,11 @@ runBWA(){
 			2> bwa.$i.$CUTOFFS.log \
 			| mbuffer -m ${memSortPerPARALLEL} \
 			| samtools sort \
-				-m ${memSortPerThreadPerPARALLEL} \
+				-m ${memPerTHREAD} \
 				--output-fmt bam,level=1 \
 				-@ ${threadsSortPerPARALLEL} \
 			> $i.$CUTOFFS-RAW.bam \
-			2> samtools.sort.bam.$i.$CUTOFFS.log
+			2>samtools.sort.bam.$i.$CUTOFFS.log
 	else
 		echo "      $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | mbuffer -m ${memSortPerPARALLEL} | samtools sort -m ${memPerTHREAD} --output-fmt bam,level=1 -@ ${threadsPerPARALLEL} > $i.$CUTOFFS-RAW.bam 2>samtools.sort.bam.$i.$CUTOFFS.log"
 		# $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
@@ -1763,19 +1740,13 @@ runBWA(){
 				-O $optO \
 				-R "@RG\tID:$i\tSM:$i\tPL:Illumina" \
 			2> bwa.$i.$CUTOFFS.log \
+			| mbuffer -m ${memSortPerPARALLEL} \
 			| samtools sort \
-                                --output-fmt bam,level=1 \
-                                -@ ${threadsSortPerPARALLEL} \
-                        1> $i.$CUTOFFS-RAW.bam \
-                        2> samtools.sort.bam.$i.$CUTOFFS.log
-
-			#| mbuffer -m ${memSortPerPARALLEL} \
-			#| samtools sort \
-			#	-m ${memSortPerThreadPerPARALLEL} \
-			#	--output-fmt bam,level=1 \
-			#	-@ ${threadsSortPerPARALLEL} \
-			#1> $i.$CUTOFFS-RAW.bam \
-			#2>samtools.sort.bam.$i.$CUTOFFS.log
+				-m ${memPerTHREAD} \
+				--output-fmt bam,level=1 \
+				-@ ${threadsSortPerPARALLEL} \
+			> $i.$CUTOFFS-RAW.bam \
+			2>samtools.sort.bam.$i.$CUTOFFS.log
 	fi
 	
 	# echo "";echo `date` " run samtools sort" $i
@@ -1804,7 +1775,7 @@ MAP2REF(){
 	bwaALLOC
 	echo "";echo `date` " Run bwa mem on dDocent files"
 	parallel --record-env
-	parallel --no-notice --env _ -j ${numPARALLEL} "runBWA {} $CUTOFFS $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO $freeMEM $memSortPerPARALLEL $threadsPerPARALLEL $threadsSortPerPARALLEL $memSortPerThreadPerPARALLEL $ATYPE $INSERT $SD $INSERTH $INSERTL " ::: "${NAMES[@]}"
+	parallel --no-notice --env _ -j ${numPARALLEL} "runBWA {} $CUTOFFS $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO $freeMEM $memSortPerPARALLEL $threadsPerPARALLEL $threadsSortPerPARALLEL $memPerTHREAD $ATYPE $INSERT $SD $INSERTH $INSERTL " ::: "${NAMES[@]}"
 	# for i in "${NAMES[@]}"; do
 		# runBWA $i $CUTOFFS $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO $freeMEM $INSERT $SD $INSERTH $INSERTL
 	# done
@@ -1856,16 +1827,7 @@ filterAS(){
 	  {
 		# Extract the read name and read length
 		read_name = $1
-		#read_length = length($10)
-
-                # Extract the read length from CIGAR so that hard clipping cannot make a read appear shorter than it
-                read_length=0
-		n = split($6,a,"[MIDNSHP=X]")
-                for (i=1; i <= n; i++) {
-                        if (a[i]~/[0-9]+/) {
-                                read_length += a[i];
-                        }
-                }
+		read_length = length($10)
 
 		# Search for the "AS:i:" field and extract the alignment score
 		alignment_score = 0
