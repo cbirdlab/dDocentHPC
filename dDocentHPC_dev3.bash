@@ -1818,22 +1818,22 @@ filterSamFLAGS(){
 	local INFILE=$1
 	local MAPPING_MIN_QUALITY=$2
 	local SAMTOOLS_VIEW_F=$3
-	local SAMTOOLS_VIEW_f2=$4
+	local SAMTOOLS_VIEW_f=$4
 	local SAMTOOLS_VIEW_Fcustom=$5
 	local SAMTOOLS_VIEW_fcustom=$6
 	
-	# echo  $INFILE $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f2 $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom
+	# echo  $INFILE $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom
 	
 	#Filter 1: remove reads based on samtools flags
 	# echo "";echo "  "`date` " Applying Filter 1: removing paired reads mapping to different contigs, secondary, and supplementary alignments"
 	
 	# MAPPING_MIN_QUALITY=1
 	# SAMTOOLS_VIEW_F=0
-	# SAMTOOLS_VIEW_f2=0
+	# SAMTOOLS_VIEW_f=0
 	# SAMTOOLS_VIEW_Fcustom=0
 	# SAMTOOLS_VIEW_fcustom=1
 	filterMapQUAL="-q $MAPPING_MIN_QUALITY"
-	filterSamFLAGS="-F $SAMTOOLS_VIEW_F -f $SAMTOOLS_VIEW_f2"
+	filterSamFLAGS="-F $SAMTOOLS_VIEW_F -f $SAMTOOLS_VIEW_f"
 	filterCustomSamFLAGS="-F $SAMTOOLS_VIEW_Fcustom -f $SAMTOOLS_VIEW_fcustom"
 	# echo " ";echo "          samtools view -h1 $filterMapQUAL $filterSamFLAGS $filterCustomSamFLAGS"
 	# samtools view -h $filterMapQUAL $filterSamFLAGS $filterCustomSamFLAGS reads3.test.basic-RAW.bam | less -S
@@ -1940,22 +1940,22 @@ function FILTERBAM(){
 		echo "";echo "  "`date` " Filtering bam files by Samtools Flags, Soft Clipped Bases, Alignment Scores relative to Read Length, and Orphans..."
 		ls *$CUTOFFS-RAW.bam | \
 			sed 's/\-RAW.bam//g' | \
-			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f2 $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterSoftClipTOTAL $SOFT_CLIP_CUT | filterORPHANS | samtools view -b -o {}-RG.bam "
+			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterSoftClipTOTAL $SOFT_CLIP_CUT | filterORPHANS | samtools view -b -o {}-RG.bam "
 	elif [[ "$SOFT_CLIP_CUT" == "no" && "$FILTER_ORPHANS" != "no" ]]; then
 		echo "";echo "  "`date` " Filtering bam files by Samtools Flags, Alignment Scores relative to Read Length, and Orphans..."
 		ls *$CUTOFFS-RAW.bam | \
 			sed 's/\-RAW.bam//g' | \
-			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f2 $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterORPHANS | samtools view -b -o {}-RG.bam "
+			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterORPHANS | samtools view -b -o {}-RG.bam "
 	elif [[ "$SOFT_CLIP_CUT" != "no" && "$FILTER_ORPHANS" == "no" ]]; then
 		echo "";echo "  "`date` " Filtering bam files by Samtools Flags, Soft Clipped Bases, and Alignment Scores relative to Read Length..."
 		ls *$CUTOFFS-RAW.bam | \
 			sed 's/\-RAW.bam//g' | \
-			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f2 $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterSoftClipTOTAL $SOFT_CLIP_CUT | samtools view -b -o {}-RG.bam "
+			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterSoftClipTOTAL $SOFT_CLIP_CUT | samtools view -b -o {}-RG.bam "
 	elif [[ "$SOFT_CLIP_CUT" == "no" && "$FILTER_ORPHANS" == "no" ]]; then
 		echo "";echo "  "`date` " Filtering bam files by Samtools Flags and Alignment Scores relative to Read Length..."
 		ls *$CUTOFFS-RAW.bam | \
 			sed 's/\-RAW.bam//g' | \
-			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f2 $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | samtools view -b -o {}-RG.bam "
+			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | samtools view -b -o {}-RG.bam "
 	fi
 		
 	#Index the filtered bam files 
@@ -1973,22 +1973,22 @@ function FILTERBAM2(){
 		echo "";echo "  "`date` " Filtering bam files by Samtools Flags, Soft Clipped Bases, Alignment Scores relative to Read Length, and Orphans..."
 		echo ${NAMES[@]} | \
 			tr " " "\n" | \
-			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}${bamFileEXT} $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f2 $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterSoftClipTOTAL $SOFT_CLIP_CUT | filterORPHANS | samtools view -b -o {}$outFileEXT "
+			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}${bamFileEXT} $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterSoftClipTOTAL $SOFT_CLIP_CUT | filterORPHANS | samtools view -b -o {}$outFileEXT "
 	elif [[ "$SOFT_CLIP_CUT" == "no" && "$FILTER_ORPHANS" != "no" ]]; then
 		echo "";echo "  "`date` " Filtering bam files by Samtools Flags, Alignment Scores relative to Read Length, and Orphans..."
 		echo ${NAMES[@]} | \
 			tr " " "\n" | \
-			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}${bamFileEXT} $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f2 $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterORPHANS | samtools view -b -o {}$outFileEXT "
+			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}${bamFileEXT} $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterORPHANS | samtools view -b -o {}$outFileEXT "
 	elif [[ "$SOFT_CLIP_CUT" != "no" && "$FILTER_ORPHANS" == "no" ]]; then
 		echo "";echo "  "`date` " Filtering bam files by Samtools Flags, Soft Clipped Bases, and Alignment Scores relative to Read Length..."
 		echo ${NAMES[@]} | \
 			tr " " "\n" | \
-			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}${bamFileEXT} $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f2 $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterSoftClipTOTAL $SOFT_CLIP_CUT | samtools view -b -o {}$outFileEXT "
+			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}${bamFileEXT} $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterSoftClipTOTAL $SOFT_CLIP_CUT | samtools view -b -o {}$outFileEXT "
 	elif [[ "$SOFT_CLIP_CUT" == "no" && "$FILTER_ORPHANS" == "no" ]]; then
 		echo "";echo "  "`date` " Filtering bam files by Samtools Flags and Alignment Scores relative to Read Length..."
 		echo ${NAMES[@]} | \
 			tr " " "\n" | \
-			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}${bamFileEXT} $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f2 $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | samtools view -b -o {}$outFileEXT "
+			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}${bamFileEXT} $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | samtools view -b -o {}$outFileEXT "
 	fi
 		
 	#Index the filtered bam files 

@@ -38,24 +38,24 @@ Make sure the cutoffs above match the reference*fasta!
 4		bwa mem -B Mapping_MisMatch_Value (integer) 					bwa mem default is 4
 6		bwa mem -O Mapping_GapOpen_Penalty (integer) 					bwa mem default is 6
 25		bwa mem -T Mapping_Minimum_Alignment_Score (integer) 			bwa mem default is 30. Remove reads that have an alignment score less than this. don't go lower than 1 or else the resulting file will be huge. NOTE! in fltrBAM settings (below) there is an alignment score filter that uses a threshold relative to read length.  This -T setting here affects which reads the relative alignment score threshold will be applied to.
-5	bwa mem -L Mapping_Clipping_Penalty (integer,integer) 			bwa mem default is 5
+5		bwa mem -L Mapping_Clipping_Penalty (integer,integer) 			bwa mem default is 5
 ------------------------------------------------------------------------------------------------------------------
 
 ----------fltrBAM: Settings for filtering mapping alignments in the *bam files---------------
 20		samtools view -q 		Mapping_Min_Quality (integer)    									Remove reads with mapping qual less than this value
-no		samtools view -F 4 		Remove_unmapped_reads? (yes,no)   									Since the reads aren't mapped, we generally don't need to filter them
-yes		samtools view -F 8 		Remove_read_pair_if_one_is_unmapped? (yes,no)    					If either read in a pair does not map, then the other is also removed
+yes		samtools view -F 4 		Remove_unmapped_reads? (yes,no)   									Since the reads aren't mapped, we generally don't need to filter them
+no		samtools view -F 8 		Remove_read_pair_if_one_is_unmapped? (yes,no)    					If either read in a pair does not map, then the other is also removed
 yes		samtools view -F 256 	Remove_secondary_alignments? (yes,no)     							Secondary alignments are reads that also map to other contigs in the reference genome
 no		samtools view -F 512 	Remove_reads_not_passing_platform_vendor_filters (yes,no)     		We generally don't see any of these
 no		samtools view -F 1024 	Remove_PCR_or_optical_duplicates? (yes,no)     						You probably don't want to set this to yes
 no		samtools view -F 2048 	Remove_supplementary_alignments? (yes,no)     						We generally don't see any of these
-yes		samtools view -f 2 		Keep_only_properly_aligned_read_pairs? (yes,no)						Set to no if OL mode 
+no		samtools view -f 2 		Keep_only_properly_aligned_read_pairs? (yes,no)						Set to no if OL mode 
 0		samtools view -F 		Custom_samtools_view_F_bit_value? (integer)     					performed separately from the above, consult samtools man
 0		samtools view -f 		Custom_samtools_view_f_bit_value? (integer)     					performed separately from the above, consult samtools man
-20								Remove_reads_with_excessive_soft_clipping? (no, integers)			minimum number of soft clipped bases in a read, summed between the beginning and end, that are unacceptable
+30								Remove_reads_with_excessive_soft_clipping? (no, integers)			minimum number of soft clipped bases in a read, summed between the beginning and end, that are unacceptable
 50								Remove_reads_with_alignment_score_below_relative_threshold (integer)	Alignment score thresholds are calculated based on this value adjusted by a factor (actual read length relative the assumed read length value in next setting). RelativeThreshold = as_threshold * actual_read_length / assumed_read_length, where this setting controls as_threshold. NOTE! bwa mem -T affects which reads are mapped based on alignment score, and therefore this filter cannot save reads elimated by bwa mem -T, but if the -T setting is too low then the RAW bam files can be huge.
 100								Read_length_assumed_by_relative_alignment_score_threshold (integer)	Alignment score thresholds are calculated based on the threshold in the previous setting adjusted by a factor (actual read length relative the assumed read length value here). RelativeThreshold= as_threshold * actual_read_length / assumed_read_length, where this setting controls assumed_read_length
-yes								Remove_reads_orphaned_by_filters? (yes,no)
+no								Remove_reads_orphaned_by_filters? (yes,no)
 ------------------------------------------------------------------------------------------------------------------
 
 ----------mkVCF: Settings for variant calling/ genotyping---------------------------------------------------------
