@@ -1521,15 +1521,15 @@ indexREF(){
 		echo " ";echo `date` "  Indexing ref genome..."
 		samtools faidx reference.$CUTOFFS.fasta
 		
-		if [[ ${freeMEM} -gt 38000000 ]]; then 
-			echo " ";echo `date` "  Indexing for bwa-meme because there are $freeMEM bytes of RAM avail..."
-			bwa-meme index -a meme reference.$CUTOFFS.fasta -t $NUMProc &> index.$CUTOFFS.log
-			echo " ";echo `date` "  BWA-MEME training P-RMI..."
-			build_rmis_dna.sh reference.$CUTOFFS.fasta
-		else
+		#if [[ ${freeMEM} -gt 38000000 ]]; then 
+		#	echo " ";echo `date` "  Indexing for bwa-meme because there are $freeMEM bytes of RAM avail..."
+		#	bwa-meme index -a meme reference.$CUTOFFS.fasta -t $NUMProc &> index.$CUTOFFS.log
+		#	echo " ";echo `date` "  BWA-MEME training P-RMI..."
+		#	build_rmis_dna.sh reference.$CUTOFFS.fasta
+		#else
 			echo " ";echo `date` "  Indexing for bwa-mem2 because there are $freeMEM bytes of RAM avail..."
 			bwa-meme index -a mem2 reference.$CUTOFFS.fasta -t $NUMProc &> index.$CUTOFFS.log
-		fi
+		#fi
 	else
 		echo " ";echo `date` "  Reference genome is indexed and won't be overwritten for speed."
 	fi
