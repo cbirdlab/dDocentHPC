@@ -1806,7 +1806,7 @@ filterSamFLAGS(){
 	# echo  $INFILE $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom
 	
 	#Filter 1: remove reads based on samtools flags
-	echo "";echo "  "`date` " Applying Filter 1: removing paired reads mapping to different contigs, secondary, and supplementary alignments"
+	#echo "";echo "  "`date` " Applying Filter 1: removing paired reads mapping to different contigs, secondary, and supplementary alignments"
 	
 	# MAPPING_MIN_QUALITY=1
 	# SAMTOOLS_VIEW_F=0
@@ -1816,7 +1816,7 @@ filterSamFLAGS(){
 	filterMapQUAL="-q $MAPPING_MIN_QUALITY"
 	filterSamFLAGS="-F $SAMTOOLS_VIEW_F -f $SAMTOOLS_VIEW_f"
 	filterCustomSamFLAGS="-F $SAMTOOLS_VIEW_Fcustom -f $SAMTOOLS_VIEW_fcustom"
-	echo " ";echo "          samtools view -h1 $filterMapQUAL $filterSamFLAGS $filterCustomSamFLAGS"
+	#echo " ";echo "          samtools view -h1 $filterMapQUAL $filterSamFLAGS $filterCustomSamFLAGS"
 	# samtools view -h $filterMapQUAL $filterSamFLAGS $filterCustomSamFLAGS reads3.test.basic-RAW.bam | less -S
 	# ls *$CUTOFFS-RAW.bam | sed 's/\-RAW.bam//g' | parallel --no-notice -j $NUMProc "samtools view -h1 $filterMapQUAL $filterSamFLAGS $filterCustomSamFLAGS {}-RAW.bam "
 	samtools view -h $filterMapQUAL $filterSamFLAGS $filterCustomSamFLAGS $INFILE 2>/dev/null
@@ -1827,7 +1827,10 @@ filterAS(){
 	local FILTER_MIN_AS=$1
 	local FILTER_MIN_AS_LEN=$2
 	
-	# filter bam files by alignment score with respect to read length
+	# Filter 2: remove reads based on alignment score relative to read length
+	# echo "";echo "  "`date` " Applying Filter 2: removing reads with low alignment score relative to read length..."
+
+        # filter bam files by alignment score with respect to read length
 	# should be run after other filters
 	awk -v as_threshold="$FILTER_MIN_AS" -v as_length="$FILTER_MIN_AS_LEN" '
 	  BEGIN { FS="\t"; OFS="\t" }  # Set the field separator and output field separator
@@ -1839,7 +1842,7 @@ filterAS(){
 
 		# Extract the read length from CIGAR so that hard clipping cant make a read appear shorter than it is to the filter
 		read_length = 0
-                n = split($6,a,"[MIDNSHP=X]")
+                n = split($6,a,"[MIDNSHP=X]");
     		for(i=1; i <= n; i++) {
       			if(a[i]~/[0-9]+/) {
         			read_length += a[i];
