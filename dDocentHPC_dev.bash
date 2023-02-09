@@ -1521,7 +1521,7 @@ indexREF(){
 		echo " ";echo `date` "  Indexing ref genome..."
 		samtools faidx reference.$CUTOFFS.fasta
 		
-		#if [[ ${freeMEM} -gt 38000000 ]]; then 
+		#if [[ ${freeMEM} -gt 39000000 ]]; then 
 		#	echo " ";echo `date` "  Indexing for bwa-meme because there are $freeMEM bytes of RAM avail..."
 		#	bwa-meme index -a meme reference.$CUTOFFS.fasta -t $NUMProc &> index.$CUTOFFS.log
 		#	echo " ";echo `date` "  BWA-MEME training P-RMI..."
@@ -1602,7 +1602,7 @@ checkRefORIGIN(){
 bwaALLOC(){
 	# calculate num parallel processes, RAM allocation, etc
 	freeMEM=$(free | tr -s " " "\t" | cut -f4 | tail -n+2 | head -n1)
-	numPARALLEL=$((${freeMEM}/188000000))
+	numPARALLEL=$((${freeMEM}/189000000))
 	if [[ ${numPARALLEL} < 2 ]]; then
 		numPARALLEL=1
 	fi
@@ -1689,13 +1689,13 @@ runBWA(){
 	fi
 	
 	# set bwa-meme mode https://github.com/kaist-ina/BWA-MEME#changing-memory-requirement-for-index-in-bwa-meme
-	# if [[ ${freeMEM} -gt 188000000 ]]; then 
+	# if [[ ${freeMEM} -gt 189000000 ]]; then 
 		# echo "";echo `date` " Running bwa-meme (RAM: 188G, Free Memory: $freeMEM)"
 		# bwaCMD="bwa-meme mem -7"
-	# elif [[ ${freeMEM} -gt 88000000 ]]; then 
+	# elif [[ ${freeMEM} -gt 89000000 ]]; then 
 		# echo "";echo `date` " Running bwa-meme_mode2 (RAM: 88G, Free Memory: $freeMEM)"
 		# bwaCMD="bwa-meme_mode2 mem -7"
-	# elif [[ ${freeMEM} -gt 38000000 ]]; then 
+	# elif [[ ${freeMEM} -gt 39000000 ]]; then 
 		# echo "";echo `date` " Running bwa-meme_mode1 (RAM: 38G, Free Memory: $freeMEM)"
 		# bwaCMD="bwa-meme_mode1 mem -7"
 	# else
