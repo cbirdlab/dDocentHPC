@@ -1953,11 +1953,11 @@ FILTERBAM(){
 			sed 's/\-RAW.bam//g' | \
 			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | samtools view -b -o {}-RG.bam "
 	fi
-		
+
 	#Index the filtered bam files 
 	echo "";echo "  "`date` " Indexing the filtered BAM files..."
 	ls *$CUTOFFS-RG.bam | parallel --no-notice -j $NUMProc "samtools index {}" 
-	
+
 	echo "";echo "  "`date` " Filtering complete!"
 
 }
