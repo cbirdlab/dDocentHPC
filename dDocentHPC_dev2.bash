@@ -1806,7 +1806,7 @@ filterSamFLAGS(){
 	# echo  $INFILE $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom
 	
 	#Filter 1: remove reads based on samtools flags
-	#echo "";echo "  "`date` " Applying Filter 1: removing paired reads mapping to different contigs, secondary, and supplementary alignments"
+	#echo "";echo "  "`date` " Applying Filter 1: removing paired reads mapping to different contigs, secondary, and supplementary alignments..."
 	
 	# MAPPING_MIN_QUALITY=1
 	# SAMTOOLS_VIEW_F=0
@@ -1830,7 +1830,7 @@ filterAS(){
 	# Filter 2: remove reads based on alignment score relative to read length
 	# echo "";echo "  "`date` " Applying Filter 2: removing reads with low alignment score relative to read length..."
 
-        # filter bam files by alignment score with respect to read length
+    # filter bam files by alignment score with respect to read length
 	# should be run after other filters
 	awk -v as_threshold="$FILTER_MIN_AS" -v as_length="$FILTER_MIN_AS_LEN" '
 	  BEGIN { FS="\t"; OFS="\t" }  # Set the field separator and output field separator
@@ -1842,14 +1842,14 @@ filterAS(){
 
 		# Extract the read length from CIGAR so that hard clipping cant make a read appear shorter than it is to the filter
 		read_length = 0
-                n = split($6,a,"[MIDNSHP=X]");
-    		for(i=1; i <= n; i++) {
-      			if(a[i]~/[0-9]+/) {
-        			read_length += a[i];
-      			}
-    		}
+		n = split($6,a,"[MIDNSHP=X]");
+		for(i=1; i <= n; i++) {
+			if(a[i]~/[0-9]+/) {
+				read_length += a[i];
+			}
+		}
 
-		# Search for the "AS:i:" field and extract the alignment score
+		# Search for the AS field and extract the alignment score
 		alignment_score = 0
 		for (i = 2; i <= NF; i++) {
 		  if (match($i, "AS:i:")) {
@@ -1874,9 +1874,10 @@ filterAS(){
 }
 export -f filterAS
 
-
 filterSoftClipTOTAL(){
 	local SOFT_CLIP_CUT=$1
+	# Filter 3: remove reads with too many soft clipped bases...
+	# echo "";echo "  "`date` " Applying Filter 3: removing reads with too many soft clipped bases..."
 	awk -v soft_clip_cut="$SOFT_CLIP_CUT" '
 	  {
 		modified_cigar = $6;
@@ -1899,13 +1900,13 @@ filterORPHANS(){
 	awk '
 		BEGIN {FS="\t"; OFS="\t"} # Set the field separator and output field separator
 		{
-		 if($1 ~ /^@/) {print; next}
-         else {
-			c[$1]++;
-			l[$1,c[$1]]=$0
-		 }
-		}
-		END {
+			if($1 ~ /^@/) {
+				print; next
+			} else {
+				c[$1]++;
+				l[$1,c[$1]]=$0
+			}
+		} END {
 			for (i in c) {
 				if (c[i] > 1) {
 					for (j = 1; j <= c[i]; j++) {
@@ -1919,8 +1920,17 @@ filterORPHANS(){
 export -f filterORPHANS
 
 
-function FILTERBAM(){
+FILTERBAM(){
 	#Function for filtering BAM files
+	echo SOFT_CLIP_CUT=$SOFT_CLIP_CUT
+	echo FILTER_ORPHANS=$FILTER_ORPHANS
+	echo MAPPING_MIN_QUALITY=$MAPPING_MIN_QUALITY
+	echo SAMTOOLS_VIEW_F=$SAMTOOLS_VIEW_F
+	echo SAMTOOLS_VIEW_f=$SAMTOOLS_VIEW_f
+	echo SAMTOOLS_VIEW_Fcustom=$SAMTOOLS_VIEW_Fcustom
+	echo SAMTOOLS_VIEW_fcustom=$SAMTOOLS_VIEW_fcustom
+	echo FILTER_MIN_AS=$FILTER_MIN_AS
+	echo FILTER_MIN_AS_LEN=$FILTER_MIN_AS_LEN
 	parallel --record-env
 	if [[ "$SOFT_CLIP_CUT" != "no" && "$FILTER_ORPHANS" != "no" ]]; then
 		echo "";echo "  "`date` " Filtering bam files by Samtools Flags, Soft Clipped Bases, Alignment Scores relative to Read Length, and Orphans..."
@@ -1956,7 +1966,7 @@ function FILTERBAM(){
 #Call SNPs
 ###############################################################################################
 
-function GENOTYPE(){
+GENOTYPE(){
 	echo ""; echo `date` "Genotyping initiated..."	
 	# CUTOFFS=$1
 	# NUMProc=$2
