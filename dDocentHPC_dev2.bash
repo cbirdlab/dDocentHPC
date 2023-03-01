@@ -1720,13 +1720,19 @@ runBWA(){
 				-O $optO \
 				-R "@RG\tID:$i\tSM:$i\tPL:Illumina" \
 			2> bwa.$i.$CUTOFFS.log \
-			| mbuffer -m ${memSortPerPARALLEL} \
 			| samtools sort \
-				-m ${memSortPerThreadPerPARALLEL} \
-				--output-fmt bam,level=1 \
-				-@ ${threadsSortPerPARALLEL} \
-			> $i.$CUTOFFS-RAW.bam \
-			2> samtools.sort.bam.$i.$CUTOFFS.log
+                                --output-fmt bam,level=1 \
+                                -@ ${threadsSortPerPARALLEL} \
+                        1> $i.$CUTOFFS-RAW.bam \
+                        2> samtools.sort.bam.$i.$CUTOFFS.log			
+			
+			#| mbuffer -m ${memSortPerPARALLEL} \
+			#| samtools sort \
+			#	-m ${memSortPerThreadPerPARALLEL} \
+			#	--output-fmt bam,level=1 \
+			#	-@ ${threadsSortPerPARALLEL} \
+			#> $i.$CUTOFFS-RAW.bam \
+			#2> samtools.sort.bam.$i.$CUTOFFS.log
 	else
 		echo "      $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | mbuffer -m ${memSortPerPARALLEL} | samtools sort -m ${memPerTHREAD} --output-fmt bam,level=1 -@ ${threadsPerPARALLEL} > $i.$CUTOFFS-RAW.bam 2>samtools.sort.bam.$i.$CUTOFFS.log"
 		# $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
