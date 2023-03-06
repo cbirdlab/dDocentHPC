@@ -1947,7 +1947,7 @@ FILTERBAM(){
 		echo "";echo "  "`date` " Filtering bam files by Samtools Flags, Alignment Scores relative to Read Length, and Orphans..."
 		ls *$CUTOFFS-RAW.bam | \
 			sed 's/\-RAW.bam//g' | \
-			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterORPHANS | samtools view -b -o {}-RG.bam "
+			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterORPHANS | samtools sort --output-fmt bam,level=1 -@ 1 1> {}-RG.bam 2> samtools.sort.fltrbam.{}.log "     #samtools view -b -o {}-RG.bam "
 	elif [[ "$SOFT_CLIP_CUT" != "no" && "$FILTER_ORPHANS" == "no" ]]; then
 		echo "";echo "  "`date` " Filtering bam files by Samtools Flags, Soft Clipped Bases, and Alignment Scores relative to Read Length..."
 		ls *$CUTOFFS-RAW.bam | \
