@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-
-VERSION=4.6
+VERSION=4.5
 #This script serves as an interactive bash wrapper to QC, assemble, map, and call SNPs from double digest RAD (SE or PE), ezRAD (SE or PE) data, or SE RAD data.
 #It requires that your raw data are split up by tagged individual and follow the naming convention of:
 
@@ -12,18 +11,12 @@ echo; echo -e "\n* dDocentHPC v$VERSION Forked by cbird@tamucc.edu * \n"
 
 #Determine which functions to run
 #demultiplexFQ trimFQ	mkREF	mkBAM		fltrBAM		mkVCF	fltrVCF
-if [ -n "$3" ]; then
+if [ -n "$1" ]; then
 	#getting functions from command line
-	FUNKTION=$1
-	OVERWRITE=FALSE
-	echo; echo "Running dDocentHPC $FUNKTION in PRESERVATION mode. \n          Sample names, file indexing, etc will be preserved to increase speed..."
-elif [ -n "$1" ]; then
-	#getting functions from command line
-	FUNKTION=$1
-	OVERWRITE=TRUE
-	echo; echo "Running dDocentHPC $FUNKTION in OVERWRITE mode. \n          Sample names, file indexing, etc will be overwritten to clear errors..."
+	FUNKTION=$(echo $1)
+	echo; echo "Running dDocentHPC $FUNKTION..."
 else
-	echo ""; echo `date` "ERROR:		dDocentHPC must be run with at least 2 arguments, "
+	echo ""; echo `date` "ERROR:		dDocentHPC must be run with 2 arguments, "
 	echo "			dDocentHPC.bash [function] [config file]"
 	echo "			functions: trimFQ, mkREF, mkBAM, fltrBAM, mkVCF, fltrVCF"
 	exit
@@ -44,10 +37,8 @@ if [ -n "$2" ]; then
 	
 	echo ""; echo `date` "Reading in variables from config file..."
 	CONFIG=$2
-	# NUMProc=$(grep 'Number of Processors (Auto, 1, 2, 3,' $CONFIG | awk '{print $1;}')
-	NUMProc=$(nproc)
-	# MAXMemory=$(grep 'Maximum Memory (1G,2G,' $CONFIG | awk '{print $1;}')
-	freeMEM=$(free | tr -s " " "\t" | cut -f4 | tail -n+2 | head -n1)
+	NUMProc=$(grep 'Number of Processors (Auto, 1, 2, 3,' $CONFIG | awk '{print $1;}')
+	MAXMemory=$(grep 'Maximum Memory (1G,2G,' $CONFIG | awk '{print $1;}')
 	#TRIM=$(grep -A1 Trim $CONFIG | tail -1)
 	TRIM="RemoveThisVar"
 	TRIM_LENGTH_ASSEMBLY=$(grep 'trimmomatic MINLEN (integer, mkREF only)' $CONFIG | awk '{print $1;}')
@@ -148,8 +139,8 @@ if [ -n "$2" ]; then
 	SAMTOOLS_VIEW_Fcustom=$(grep 'Custom_samtools_view_F_bit_value' $CONFIG | awk '{print $1;}')
 	SAMTOOLS_VIEW_fcustom=$(grep 'Custom_samtools_view_f_bit_value' $CONFIG | awk '{print $1;}')
 	SOFT_CLIP_CUT=$(grep 'Remove_reads_with_excessive_soft_clipping' $CONFIG | awk '{print $1;}')
-	FILTER_MIN_AS=$(grep 'Remove_reads_with_alignment_score_below_relative_threshold' $CONFIG | awk '{print $1;}')
-	FILTER_MIN_AS_LEN=$(grep 'Read_length_assumed_by_relative_alignment_score_threshold' $CONFIG | awk '{print $1;}')
+	SOFT_CLIP_CUTOFF=$((($SOFT_CLIP_CUT+9)/10))
+	FILTER_MIN_AS=$(grep 'Remove_reads_with_alignment_score_below' $CONFIG | awk '{print $1;}')
 	FILTER_ORPHANS=$(grep 'Remove_reads_orphaned_by_filters' $CONFIG | awk '{print $1;}')
 
 	SNP="RemoveThisVar"
@@ -559,7 +550,7 @@ main(){
 	if [ "$FUNKTION" == "fltrBAM" ]; then
 		NumInd=$(ls *.${CUTOFFS}-RAW.bam | wc -l)
 		#Create list of sample names
-		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ] || [ "$OVERWRITE" == "TRUE" ];then
+		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
 			ls *.${CUTOFFS}-RAW.bam > namelist.$CUTOFFS
 			sed -i -e "s/\.${CUTOFFS}-RAW.bam//g" namelist.$CUTOFFS
 		elif [ "$(grep -c '^' namelist.$CUTOFFS)" != "$NumInd" ]; then
@@ -573,7 +564,7 @@ main(){
 	elif [ "$FUNKTION" == "mkVCF" ]; then
 		NumInd=$(ls *.${CUTOFFS}-RG.bam | wc -l)
 		#Create list of sample names
-		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ] || [ "$OVERWRITE" == "TRUE" ];then
+		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
 			ls *.${CUTOFFS}-RG.bam > namelist.$CUTOFFS
 			sed -i -e "s/\.${CUTOFFS}-RG.bam//g" namelist.$CUTOFFS
 		elif [ "$(grep -c '^' namelist.$CUTOFFS)" != "$NumInd" ]; then
@@ -588,7 +579,7 @@ main(){
 		NumInd=$(ls $Fwild | wc -l)
 		NumInd=$(($NumInd - 0))
 		#Create list of sample names
-		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ] || [ "$OVERWRITE" == "TRUE" ];then
+		if [ ! -s "namelist.$CUTOFF.$CUTOFF2" ];then
 			ls $Fwild > namelist.$CUTOFFS
 			sed -i'' -e "s/$Fsed//g" namelist.$CUTOFFS
 		elif [ "$(grep -c '^' namelist.$CUTOFFS)" != "$NumInd" ]; then
@@ -692,8 +683,6 @@ main(){
 	echo $NUMProc >> dDocent.runs
 	echo "Maximum Memory" >> dDocent.runs
 	echo $MAXMemory >> dDocent.runs
-	echo "Free Memory" >> dDocent.runs
-	echo $freeMEM >> dDocent.runs
 	echo "Trimming" >> dDocent.runs
 	echo $TRIM >> dDocent.runs
 	echo "TRIM_LENGTH_ASSEMBLY" >> dDocent.runs
@@ -1362,8 +1351,7 @@ EOF
 			if [ "$R" -le "2000" ]; then 
 				NP=$NUMProc
 			elif [ "$R" -le "5000" ]; then 
-				#NP=$((${MAXMemory%G} / 20))
-				NP=$((${freeMEM} / 20000000))
+				NP=$(($(echo $MAXMemory | sed "s/.$//g") / 20))
 			else
 				NP=1
 			fi
@@ -1497,302 +1485,146 @@ EOF
 #Map Reads 2 Reference
 ###############################################################################################
 
-## Functions Used in Mapping Reads to the ref genome
-
-findREF(){
-	# check for presence of properly named ref or symlink to one, if can't find then exit
-	if [ ! -e reference.$CUTOFFS.fasta ]; then
+MAP2REF(){
+	echo " ";echo `date` " Using BWA to map reads."
+	if [ ! -f reference.$CUTOFFS.fasta ]; then
 		echo " ";echo `date` "  Reference genome not found in working directory..."
 		if [ ! -f ../mkREF/reference.$CUTOFFS.fasta ]; then
 			echo " ";echo `date` "  ERROR: Reference genome not found in mkREF directory. Please copy reference genome to working directory. ex: reference.10.10.fasta"
 			exit 1
 		else
-			echo " ";echo `date` "  Reference genome found in mkREF directory, creating a symbolic link here in the working directory..."
-			ln ../mkREF/reference.$CUTOFFS.fasta .
+			echo " ";echo `date` "  Reference genome found in mkREF directory, copying to working directory..."
+			cp ../mkREF/reference.$CUTOFFS.fasta .
 		fi
-	else
-		echo " ";echo `date` "  Reference genome found in working directory."
 	fi
-}
-
-indexREF(){
-	# index the ref genome with bwa-meme
-	if [ reference.$CUTOFFS.fasta -nt reference.$CUTOFFS.fasta.fai ] || [ "$OVERWRITE" == "TRUE" ]; then
-		echo " ";echo `date` "  Indexing ref genome..."
+	if [ reference.$CUTOFFS.fasta -nt reference.$CUTOFFS.fasta.fai ]; then
 		samtools faidx reference.$CUTOFFS.fasta
-		
-		if [[ ${freeMEM} -gt 39000000 ]]; then 
-			echo " ";echo `date` "  Indexing for bwa-meme because there are $freeMEM bytes of RAM avail..."
-			bwa-meme index -a meme reference.$CUTOFFS.fasta -t $NUMProc &> index.$CUTOFFS.log
-			echo " ";echo `date` "  BWA-MEME training P-RMI..."
-			build_rmis_dna.sh reference.$CUTOFFS.fasta
-		else
-			echo " ";echo `date` "  Indexing for bwa-mem2 because there are $freeMEM bytes of RAM avail..."
-			bwa-meme index -a mem2 reference.$CUTOFFS.fasta -t $NUMProc &> index.$CUTOFFS.log
-		fi
-	else
-		echo " ";echo `date` "  Reference genome is indexed and won't be overwritten for speed."
+		bwa index reference.$CUTOFFS.fasta &> index.$CUTOFFS.log
 	fi
-}
-
-
-findFQs(){
 	#dDocent now checks for trimmed read files before attempting mapping
-	if [ ! -e "${NAMES[@]:(-1)}"$Fsed ]; then
-		#if [ ! -L "${NAMES[@]:(-1)}"$Fsed ]; then
-			echo " ";echo `date` "  dDocent cannot locate all of the trimmed reads files"
-			echo "          FASTQ files to be mapped must end with the following suffix: ${Fsed}"
-			exit 1
-		#fi
-	fi
-	
-	if [ "$ATYPE" != "SE" ] && [ ! -e "${NAMES[@]:(-1)}"$Rsed ]; then
-		echo " ";echo `date` "  dDocent cannot locate all of the trimmed reads files"
-		echo "          FASTQ files to be mapped must end with the following suffix: ${Rsed}"
+	if [ ! -f "${NAMES[@]:(-1)}"$Rsed ]; then
+		echo "dDocent cannot locate trimmed reads files"
+		echo "Please rerun dDocent with quality trimming"
 		exit 1
 	fi
-}
-
-getInsertINFO(){
-	# modifies the expected insert length distribution for BWA's metric for proper pairing
-	# assumes dDocent processed RAD data
-	rm lengths.$CUTOFFS.txt &> /dev/null
-	
-	for i in "${NAMES[@]}"; do
-		if [ -e "$i.$R.fq.gz" ]; then
-			zcat $i.$R.fq.gz | \
-				head -2 | \
-				tail -1 >> lengths.$CUTOFFS.txt
-		fi
-	done
-	
-	if [ -e "lengths.$CUTOFFS.txt" ]; then
-		#MaxLen=$(mawk '{ print length() | "sort -rn" }' lengths.$CUTOFFS.txt| head -1)
-		#INSERT=$(($MaxLen * 2 ))
-		#calculate mean contig length in ref
-		INSERT=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | awk '{ sum += $1; n++ } END { print sum / n}')
-		#SD=$(($INSERT / 5))
-		#calculate SD of contig lengths in ref
-		SD=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | awk '{sum+=$1; sumsq+=$1*$1}END{print sqrt(sumsq/NR - (sum/NR)**2)}')
-		#INSERTH=$(($INSERT + 100 ))
-		#longest contig in ref
-		INSERTH=$(awk '{ print length($0); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | tail -1)
-		#INSERTL=$(($INSERT - 100 ))
-		#shortest contig in ref
-		INSERTL=$(awk '{ print length($0); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | head -1)
-	fi
-}
-
-checkRefORIGIN(){
 	#This next section of code checks to see if the reference was assembled by dDocent 
 	#and if so, modifies the expected insert length distribution for BWA's metric for proper pairing
-	echo "";echo -n `date` " was ref assembled by dDocent?"
+	echo ""
+	echo -n `date` " was ref assembled by dDocent?"
 	if head -1 reference.$CUTOFFS.fasta | grep -e 'dDocent' reference.$CUTOFFS.fasta 1>/dev/null; then
-		
-		echo " Yes. Modifying expected insert length for bwa - assumes RAD data"
-		getInsertINFO
-		
-	else
-		echo " No. BWA will estimate insert length stats"
+		echo " Yes. Modifying expected insert length for bwa"
+		rm lengths.$CUTOFFS.txt &> /dev/null
+		for i in "${NAMES[@]}";
+			do
+			if [ -f "$i.$R.fq.gz" ]; then
+				#echo ""
+				#echo troubleshooting
+				#echo $i
+				#echo $R
+				#echo $i.$R.fq.gz
+				zcat $i.$R.fq.gz | head -2 | tail -1 >> lengths.$CUTOFFS.txt
+			fi
+		done	
+		if [ -f "lengths.$CUTOFFS.txt" ]; then
+			#MaxLen=$(mawk '{ print length() | "sort -rn" }' lengths.$CUTOFFS.txt| head -1)
+			#INSERT=$(($MaxLen * 2 ))
+			#calculate mean contig length in ref
+			INSERT=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | awk '{ sum += $1; n++ } END { print sum / n}')
+			#SD=$(($INSERT / 5))
+			#calculate SD of contig lengths in ref
+			SD=$(awk '{ print length($1); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | awk '{sum+=$1; sumsq+=$1*$1}END{print sqrt(sumsq/NR - (sum/NR)**2)}')
+			#INSERTH=$(($INSERT + 100 ))
+			#longest contig in ref
+			INSERTH=$(awk '{ print length($0); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | tail -1)
+			#INSERTL=$(($INSERT - 100 ))
+			#shortest contig in ref
+			INSERTL=$(awk '{ print length($0); }' reference.$CUTOFFS.fasta | paste - - | cut -f2 | sort -n | head -1)
+		fi
+		#BWA for mapping for all samples.  As of version 2.0 can handle SE or PE reads by checking for PE read files
 		echo ""
-
-	fi
-}
-
-bwaALLOC(){
-	# calculate num parallel processes, RAM allocation, etc
-	freeMEM=$(free | tr -s " " "\t" | cut -f4 | tail -n+2 | head -n1)
-	numPARALLEL=$((${freeMEM}/189000000))
-	if [[ ${numPARALLEL} < 2 ]]; then
-		numPARALLEL=1
-	fi
-	memPerPARALLEL=$((${freeMEM}/${numPARALLEL}))
-	threadsPerPARALLEL=$((${NUMProc}/${numPARALLEL}))
-
-	memPerThreadPerPARALLEL=$((${memPerPARALLEL}/${threadsPerPARALLEL}))
-	if [[ ${memPerThreadPerPARALLEL} -lt 1000000 ]]; then
-		memSortPerThreadPerPARALLEL=1000000
-		threadsSortPerPARALLEL=$((${memPerPARALLEL}/${memSortPerThreadPerPARALLEL}))
-	else
-		memSortPerThreadPerPARALLEL=${memPerThreadPerPARALLEL}
-		threadsSortPerPARALLEL=${threadsPerPARALLEL}
-	fi 
-	memSortPerPARALLEL=$((${threadsSortPerPARALLEL}*${memSortPerThreadPerPARALLEL}))
-
-	#if [[ ${memPerPARALLEL} -gt 20000000 ]]; then
-	#	memSortPerPARALLEL=20000000
-	#else
-	#	memSortPerPARALLEL=${memPerPARALLEL}
-	#fi
-	
-	#memPerTHREAD=$((${memSortPerPARALLEL}/${threadsPerPARALLEL}))
-	#if [[ ${memPerTHREAD} -lt 2000000 ]]; then
-	#	memPerTHREAD=2000000
-	#	threadsSortPerPARALLEL=$((${freeMEM}/${memPerTHREAD}))
-	#else
-	#	threadsSortPerPARALLEL=${threadsPerPARALLEL}
-	#fi
-	echo numPARALLEL=$numPARALLEL
-	echo memPerPARALLEL=$memPerPARALLEL
-	echo freeMEM=$freeMEM
-        echo memSortPerPARALLEL=$memSortPerPARALLEL
-        echo threadsPerPARALLEL=$threadsPerPARALLEL
-        echo threadsSortPerPARALLEL=$threadsSortPerPARALLEL
-        echo memPerThreadPerPARALLEL=$memPerThreadPerPARALLEL
-	echo memSortPerThreadPerPARALLEL=$memSortPerThreadPerPARALLEL
-}
-
-runBWA(){
-	# map reads with bwa-meme
-	i=$1
-	CUTOFFS=$2
-	MAPPING_CLIPPING_PENALTY=$3
-	MAPPING_MIN_ALIGNMENT_SCORE=$4
-	optA=$5
-	optB=$6
-	optO=$7
-	freeMEM=$8
-	memSortPerPARALLEL=$9
-	threadsPerPARALLEL=${10}
-	threadsSortPerPARALLEL=${11}
-	memSortPerThreadPerPARALLEL=${12}
-	#memPerTHREAD=${12}
-	ATYPE=${13}
-	INSERT=${14}
-	SD=${15}
-	INSERTH=${16}
-	INSERTL=${17}
-	
-	echo FILE=$i
-	echo CUTOFFS=$CUTOFFS
-	echo MAPPING_CLIPPING_PENALTY=$MAPPING_CLIPPING_PENALTY 
-	echo MAPPING_MIN_ALIGNMENT_SCORE=$MAPPING_MIN_ALIGNMENT_SCORE
-	echo optA=$optA
-	echo optB=$optB
-	echo optO=$optO
-	echo freeMEM=$freeMEM
-	echo memSortPerPARALLEL=$memSortPerPARALLEL
-	echo threadsPerPARALLEL=$threadsPerPARALLEL
-	echo threadsSortPerPARALLEL=$threadsSortPerPARALLEL
-	echo memSortPerThreadPerPARALLEL=$memSortPerThreadPerPARALLEL
-	echo ATYPE=$ATYPE
-	echo INSERT_MEAN=$INSERT
-	echo INSERT_SD=$SD
-	echo INSERT_MAX=$INSERTH
-	echo INSERT_MIN=$INSERTL
-
-	# paired or single end
-	if [ -e "$i.R2.fq.gz" ] && [ "${ATYPE}" != "SE" ]; then
-		inputFILES="reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz"
-	else
-		inputFILES="reference.$CUTOFFS.fasta $i.R1.fq.gz"
-	fi
-	
-	# set bwa-meme mode https://github.com/kaist-ina/BWA-MEME#changing-memory-requirement-for-index-in-bwa-meme
-	if [[ ${freeMEM} -gt 189000000 ]]; then 
-		echo "";echo `date` " Running bwa-meme (RAM: 188G, Free Memory: $freeMEM)"
-		bwaCMD="bwa-meme mem -7"
-	elif [[ ${freeMEM} -gt 89000000 ]]; then 
-		echo "";echo `date` " Running bwa-meme_mode2 (RAM: 88G, Free Memory: $freeMEM)"
-		bwaCMD="bwa-meme_mode2 mem -7"
-	elif [[ ${freeMEM} -gt 39000000 ]]; then 
-		echo "";echo `date` " Running bwa-meme_mode1 (RAM: 38G, Free Memory: $freeMEM)"
-		bwaCMD="bwa-meme_mode1 mem -7"
-	else
-		echo "";echo `date` " Running bwa-mem2 (RAM: <38G, Free Memory: $freeMEM)"
-		bwaCMD="bwa-meme mem"
-	fi
-	
-	#run bwa-meme
-	if [ ! -z $INSERT ]; then
-		echo "      $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | mbuffer -m ${memSortPerPARALLEL} | samtools sort -m ${memPerTHREAD} --output-fmt bam,level=1 -@ ${threadsPerPARALLEL} > $i.$CUTOFFS-RAW.bam 2>samtools.sort.bam.$i.$CUTOFFS.log"
-		# $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
-		$bwaCMD \
-				$inputFILES \
-				-I $INSERT,$SD,$INSERTH,$INSERTL \
-				-L $MAPPING_CLIPPING_PENALTY \
-				-t $threadsPerPARALLEL \
-				-a \
-				-M \
-				-T $MAPPING_MIN_ALIGNMENT_SCORE \
-				-A $optA \
-				-B $optB \
-				-O $optO \
-				-R "@RG\tID:$i\tSM:$i\tPL:Illumina" \
-			2> bwa.$i.$CUTOFFS.log \
-			| samtools sort \
-                                --output-fmt bam,level=1 \
-                                -@ ${threadsSortPerPARALLEL} \
-                        1> $i.$CUTOFFS-RAW.bam \
-                        2> samtools.sort.bam.$i.$CUTOFFS.log			
-			
-			#| mbuffer -m ${memSortPerPARALLEL} \
-			#| samtools sort \
-			#	-m ${memSortPerThreadPerPARALLEL} \
-			#	--output-fmt bam,level=1 \
-			#	-@ ${threadsSortPerPARALLEL} \
-			#> $i.$CUTOFFS-RAW.bam \
-			#2> samtools.sort.bam.$i.$CUTOFFS.log
-	else
-		echo "      $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | mbuffer -m ${memSortPerPARALLEL} | samtools sort -m ${memPerTHREAD} --output-fmt bam,level=1 -@ ${threadsPerPARALLEL} > $i.$CUTOFFS-RAW.bam 2>samtools.sort.bam.$i.$CUTOFFS.log"
-		# $bwaCMD $inputFILES -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
-		$bwaCMD \
-				$inputFILES \
-				-L $MAPPING_CLIPPING_PENALTY \
-				-t $threadsPerPARALLEL \
-				-a \
-				-M \
-				-T $MAPPING_MIN_ALIGNMENT_SCORE \
-				-A $optA \
-				-B $optB \
-				-O $optO \
-				-R "@RG\tID:$i\tSM:$i\tPL:Illumina" \
-			2> bwa.$i.$CUTOFFS.log \
-			| samtools sort \
-                                --output-fmt bam,level=1 \
-                                -@ ${threadsSortPerPARALLEL} \
-                        1> $i.$CUTOFFS-RAW.bam \
-                        2> samtools.sort.bam.$i.$CUTOFFS.log
-
-			#| mbuffer -m ${memSortPerPARALLEL} \
-			#| samtools sort \
-			#	-m ${memSortPerThreadPerPARALLEL} \
-			#	--output-fmt bam,level=1 \
-			#	-@ ${threadsSortPerPARALLEL} \
-			#1> $i.$CUTOFFS-RAW.bam \
-			#2>samtools.sort.bam.$i.$CUTOFFS.log
-	fi
-	
-	# echo "";echo `date` " run samtools sort" $i
-	# samtools sort -@$threads $i.$CUTOFFS.bam -o $i.$CUTOFFS.bam 2> samtools.sort.bam.$i.$CUTOFFS.log
-	
-	# mv $i.$CUTOFFS.bam $i.$CUTOFFS-RAW.bam 
-	
-	echo "";echo `date` " run samtools index" $i
-	samtools index \
-		$i.$CUTOFFS-RAW.bam \
-		-@ ${threadsPerPARALLEL} \
-		2> samtools.index.bam.$i.$CUTOFFS.log
-}
-export -f runBWA
-
-MAP2REF(){
-
-	echo " ";echo `date` " Checking files for mapping..."
+		echo `date` " Run bwa mem on dDocent files"
 		
-	findREF
-	indexREF
-	findFQs
-	checkRefORIGIN
+		# for i in "${NAMES[@]}"
+		# do
+			# if [ -f "$i.R2.fq.gz" ]; then
+				# #bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $NUMProc -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | mawk '!/\t[2-9].[SH].*/' | mawk '!/[2-9].[SH]\t/' | samtools view -@$NUMProc -q $MAPPING_MIN_QUALITY -f 3 -F $SAMTOOLS_VIEW_F -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+				# #CEB: updated to output minimially-filtered bamfiles here
+				# bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $NUMProc -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$NUMProc -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+				
+			# else
+				# bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz -L $MAPPING_CLIPPING_PENALTY -t $NUMProc -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$NUMProc -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+			# fi
+			# echo ""
+			# echo `date` " run samtools sort" $i
+			# samtools sort -@$NUMProc $i.$CUTOFFS.bam -o $i.$CUTOFFS.bam 
+			# mv $i.$CUTOFFS.bam $i.$CUTOFFS-RAW.bam
+			# echo ""
+			# echo `date` " run samtools index" $i
+			# samtools index $i.$CUTOFFS-RAW.bam
+		# done
+		
+		runBWA() {
+			i=$1
+			CUTOFFS=$2
+			MAPPING_CLIPPING_PENALTY=$3
+			INSERT=$4
+			SD=$5
+			INSERTH=$6
+			INSERTL=$7
+			MAPPING_MIN_ALIGNMENT_SCORE=$8
+			optA=$9
+			optB=${10}
+			optO=${11}
+			
+			echo FILE=$i
+			echo CUTOFFS=$CUTOFFS
+			echo MAPPING_CLIPPING_PENALTY=$MAPPING_CLIPPING_PENALTY 
+			echo INSERT_MEAN=$INSERT
+			echo INSERT_SD=$SD
+			echo INSERT_MAX=$INSERTH
+			echo INSERT_MIN=$INSERTL
+			echo MAPPING_MIN_ALIGNMENT_SCORE=$MAPPING_MIN_ALIGNMENT_SCORE
+			echo optA=$optA
+			echo optB=$optB
+			echo optO=$optO
+			#threads=$NUMProc
+			threads=1
+			if [ -f "$i.R2.fq.gz" ]; then
+				#bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $NUMProc -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | mawk '!/\t[2-9].[SH].*/' | mawk '!/[2-9].[SH]\t/' | samtools view -@$NUMProc -q $MAPPING_MIN_QUALITY -f 3 -F $SAMTOOLS_VIEW_F -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+				#CEB: updated to output minimially-filtered bamfiles here
+				bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz -L $MAPPING_CLIPPING_PENALTY -I $INSERT,$SD,$INSERTH,$INSERTL -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+			else
+				bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz -L $MAPPING_CLIPPING_PENALTY -t $threads -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$threads -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+			fi
+			echo ""
+			echo `date` " run samtools sort" $i
+			samtools sort -@$threads $i.$CUTOFFS.bam -o $i.$CUTOFFS.bam 
+			mv $i.$CUTOFFS.bam $i.$CUTOFFS-RAW.bam
+			echo ""
+			echo `date` " run samtools index" $i
+			samtools index $i.$CUTOFFS-RAW.bam
+		}
+		export -f runBWA
+		parallel --record-env
+		parallel --no-notice --env _ -j $NUMProc "runBWA {} $CUTOFFS $MAPPING_CLIPPING_PENALTY $INSERT $SD $INSERTH $INSERTL $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO" ::: "${NAMES[@]}"
+		
+	else
+		echo " No. Expected insert length not modified for BWA"
+		echo ""
+		echo `date` " Run bwa mem on non-dDocent files"
+		for i in "${NAMES[@]}"
+		do
+			if [ -f "$i.R2.fq.gz" ]; then
+				bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz $i.R2.fq.gz -L $MAPPING_CLIPPING_PENALTY -t $NUMProc -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$NUMProc -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+			else
+				bwa mem reference.$CUTOFFS.fasta $i.R1.fq.gz -L $MAPPING_CLIPPING_PENALTY -t $NUMProc -a -M -T $MAPPING_MIN_ALIGNMENT_SCORE -A $optA -B $optB -O $optO -R "@RG\tID:$i\tSM:$i\tPL:Illumina" 2> bwa.$i.$CUTOFFS.log | samtools view -@$NUMProc -SbT reference.$CUTOFFS.fasta - > $i.$CUTOFFS.bam 2>$i.$CUTOFFS.bam.log
+			fi
+			samtools sort -@$NUMProc $i.$CUTOFFS.bam -o $i.$CUTOFFS.bam 
+			mv $i.$CUTOFFS.bam $i.$CUTOFFS-RAW.bam
+			samtools index $i.$CUTOFFS-RAW.bam
+		done
+	fi
 	
-	# BWA-MEME for mapping for all samples.  As of version 2.0 can handle SE or PE reads by checking for PE read files
-	bwaALLOC
-	echo "";echo `date` " Run bwa mem on dDocent files"
-	parallel --record-env
-	parallel --no-notice --env _ -j ${numPARALLEL} "runBWA {} $CUTOFFS $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO $freeMEM $memSortPerPARALLEL $threadsPerPARALLEL $threadsSortPerPARALLEL $memSortPerThreadPerPARALLEL $ATYPE $INSERT $SD $INSERTH $INSERTL " ::: "${NAMES[@]}"
-	# for i in "${NAMES[@]}"; do
-		# runBWA $i $CUTOFFS $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO $freeMEM $INSERT $SD $INSERTH $INSERTL
-	# done
 	echo ""; echo `date` mkBAM completed!
 }
 
@@ -1800,179 +1632,128 @@ MAP2REF(){
 #FILTER BAM FILES
 ###############################################################################################
 
+function FILTERBAM(){
+	# CUTOFFS=$1
+	# NUMProc=$2
+	# CONFIG=$3
+	# ATYPE=$4
 
-filterSamFLAGS(){
-	local INFILE=$1
-	local MAPPING_MIN_QUALITY=$2
-	local SAMTOOLS_VIEW_F=$3
-	local SAMTOOLS_VIEW_f=$4
-	local SAMTOOLS_VIEW_Fcustom=$5
-	local SAMTOOLS_VIEW_fcustom=$6
+	# MAPPING_MIN_QUALITY=$(grep -A1 '^Mapping_Min_Quality' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_F4=$(grep -A1 '^Remove_unmapped_reads' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_F8=$(grep -A1 '^Remove_read_pair_if_one_is_unmapped' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_F256=$(grep -A1 '^Remove_secondary_alignments' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_F512=$(grep -A1 '^Remove_reads_not_passing_platform_vendor_filters' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_F1024=$(grep -A1 '^Remove_PCR_or_optical_duplicates' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_F2048=$(grep -A1 '^Remove_supplementary_alignments' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_f2=$(grep -A1 '^Keep_only_properly_aligned_read_pairs' $CONFIG | tail -1)
+	# if [ "$SAMTOOLS_VIEW_F4" == "yes" ]; then
+		# F4=4
+	# else
+		# F4=0
+	# fi
 	
-	# echo  $INFILE $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom
+	# if [ "$SAMTOOLS_VIEW_F8" == "yes" ]; then
+		# F8=8
+	# else
+		# F8=0
+	# fi
 	
-	#Filter 1: remove reads based on samtools flags
-	#echo "";echo "  "`date` " Applying Filter 1: removing paired reads mapping to different contigs, secondary, and supplementary alignments..."
+	# if [ "$SAMTOOLS_VIEW_F256" == "yes" ]; then
+		# F256=256
+	# else
+		# F256=0
+	# fi
 	
-	# MAPPING_MIN_QUALITY=1
-	# SAMTOOLS_VIEW_F=0
-	# SAMTOOLS_VIEW_f=0
-	# SAMTOOLS_VIEW_Fcustom=0
-	# SAMTOOLS_VIEW_fcustom=1
-	filterMapQUAL="-q $MAPPING_MIN_QUALITY"
-	filterSamFLAGS="-F $SAMTOOLS_VIEW_F -f $SAMTOOLS_VIEW_f"
-	filterCustomSamFLAGS="-F $SAMTOOLS_VIEW_Fcustom -f $SAMTOOLS_VIEW_fcustom"
-	#echo " ";echo "          samtools view -h1 $filterMapQUAL $filterSamFLAGS $filterCustomSamFLAGS"
-	# samtools view -h $filterMapQUAL $filterSamFLAGS $filterCustomSamFLAGS reads3.test.basic-RAW.bam | less -S
-	# ls *$CUTOFFS-RAW.bam | sed 's/\-RAW.bam//g' | parallel --no-notice -j $NUMProc "samtools view -h1 $filterMapQUAL $filterSamFLAGS $filterCustomSamFLAGS {}-RAW.bam "
-	samtools view -h $filterMapQUAL $filterSamFLAGS $filterCustomSamFLAGS $INFILE 2>/dev/null
-}
-export -f filterSamFLAGS
-
-filterAS(){
-	local FILTER_MIN_AS=$1
-	local FILTER_MIN_AS_LEN=$2
+	# if [ "$SAMTOOLS_VIEW_F512" == "yes" ]; then
+		# F512=512
+	# else
+		# F512=0
+	# fi
 	
-	# Filter 2: remove reads based on alignment score relative to read length
-	# echo "";echo "  "`date` " Applying Filter 2: removing reads with low alignment score relative to read length..."
+	# if [ "$SAMTOOLS_VIEW_F1024" == "yes" ]; then
+		# F1024=1024
+	# else
+		# F1024=0
+	# fi
 
-    # filter bam files by alignment score with respect to read length
-	# should be run after other filters
-	awk -v as_threshold="$FILTER_MIN_AS" -v as_length="$FILTER_MIN_AS_LEN" '
-	  BEGIN { FS="\t"; OFS="\t" }  # Set the field separator and output field separator
-	  /^@/ { print }  # Print header lines
-	  {
-		# Extract the read name and read length
-		read_name = $1
-		#read_length = length($10)
+	# if [ "$SAMTOOLS_VIEW_F2048" == "yes" ]; then
+		# F2048=2048
+	# else
+		# F2048=0
+	# fi
+	
+	# SAMTOOLS_VIEW_F=$(($F4+$F8+$F256+$F512+$F1024+$F2048)) 
+	
+	# if [ "$SAMTOOLS_VIEW_f2" == "yes" ]; then
+		# SAMTOOLS_VIEW_f=2
+	# else
+		# SAMTOOLS_VIEW_f=0
+	# fi
+	
+	# SAMTOOLS_VIEW_Fcustom=$(grep -A1 '^Custom_samtools_view_F_bit_value' $CONFIG | tail -1)
+	# SAMTOOLS_VIEW_fcustom=$(grep -A1 '^Custom_samtools_view_f_bit_value' $CONFIG | tail -1)
+	# SOFT_CLIP_CUT=$(grep -A1 '^Remove_reads_with_excessive_soft_clipping' $CONFIG | tail -1)
+	# SOFT_CLIP_CUTOFF=$((($SOFT_CLIP_CUT+9)/10))
+	# FILTER_MIN_AS=$(grep -A1 '^Remove_reads_with_alignment_score_below' $CONFIG | tail -1)
+	# FILTER_ORPHANS=$(grep -A1 '^Remove_reads_orphaned_by_filters' $CONFIG | tail -1)
 
-		# Extract the read length from CIGAR so that hard clipping cant make a read appear shorter than it is to the filter
-		read_length = 0
-		n = split($6,a,"[MIDNSHP=X]");
-		for(i=1; i <= n; i++) {
-			if(a[i]~/[0-9]+/) {
-				read_length += a[i];
-			}
-		}
+	echo "";echo " "`date` "Filtering raw BAM Files"
+	# if [ "$ATYPE" == "PE" ]; then 	#paired end alignments
+		#Filter 1: remove reads based on samtools flags
+			echo "";echo "  "`date` " Applying Filter 1: removing paired reads mapping to different contigs, secondary, and supplementary alignments"
+			BITS=$(($SAMTOOLS_VIEW_F+$SAMTOOLS_VIEW_f2))
+			BITScustom=$(($SAMTOOLS_VIEW_Fcustom+$SAMTOOLS_VIEW_fcustom))
 
-		# Search for the AS field and extract the alignment score
-		alignment_score = 0
-		for (i = 2; i <= NF; i++) {
-		  if (match($i, "AS:i:")) {
-			n = split($i, a, ":")
-			alignment_score = a[n]
-			break
-		  }
-		}
+				if [[ "$BITS" != "0" && "$BITScustom" != "0" ]]; then
+					ls *$CUTOFFS-RAW.bam | sed 's/\-RAW.bam//g' | parallel --no-notice -j $NUMProc "samtools view -h -q $MAPPING_MIN_QUALITY -F $SAMTOOLS_VIEW_F -f $SAMTOOLS_VIEW_f2 {}-RAW.bam | samtools view -Sh1 -F $SAMTOOLS_VIEW_Fcustom -f SAMTOOLS_VIEW_fcustom - -o {}-RG.bam "
+				elif [[ "$BITS" != 0 && "$BITScustom" == 0 ]]; then
+					ls *$CUTOFFS-RAW.bam | sed 's/\-RAW.bam//g' | parallel --no-notice -j $NUMProc "samtools view -h1 -q $MAPPING_MIN_QUALITY -F $SAMTOOLS_VIEW_F -f SAMTOOLS_VIEW_f2 {}-RAW.bam -o {}-RG.bam "
+				elif [[ "$BITS" == 0 && "$BITScustom" != 0 ]]; then
+					ls *$CUTOFFS-RAW.bam | sed 's/\-RAW.bam//g' | parallel --no-notice -j $NUMProc "samtools view -h1 -q $MAPPING_MIN_QUALITY -F $SAMTOOLS_VIEW_Fcustom -f SAMTOOLS_VIEW_fcustom {}-RAW.bam -o {}-RG.bam "
+				elif [[ "$BITScustom" == 0 && "$BITS" == 0 ]]; then
+					ls *$CUTOFFS-RAW.bam | sed 's/\-RAW.bam//g' | parallel --no-notice -j $NUMProc "samtools view -h1 -q $MAPPING_MIN_QUALITY {}-RAW.bam -o {}-RG.bam "
+				fi
 
-		# Compute the threshold based on the read length
-		threshold = as_threshold * read_length / as_length
-
-		# Print the line if the alignment score is above the threshold
-		if (alignment_score >= threshold) {
-		  #print threshold, $0
-		  print
-		}
-	  }
-	' |
-	# remove duplicate header lines
-	awk '!seen[$0]++ == 1'
-}
-export -f filterAS
-
-filterSoftClipTOTAL(){
-	local SOFT_CLIP_CUT=$1
-	# Filter 3: remove reads with too many soft clipped bases...
-	# echo "";echo "  "`date` " Applying Filter 3: removing reads with too many soft clipped bases..."
-	awk -v soft_clip_cut="$SOFT_CLIP_CUT" '
-	  {
-		modified_cigar = $6;
-		gsub(/[0-9]+[MIDNP=X]/, "", modified_cigar);
-		n = split(modified_cigar, C, /[SH]/);
-		soft_clip_total = 0;
-		for (i = 1; i <= n; i++) {
-			soft_clip_total += C[i];
-		}
-		if (soft_clip_total <= soft_clip_cut) {
-		  # print soft_clip_total, modified_cigar, $1, $2, $3, $4, $5, $6
-		  print
-		}
-	  }
-	'
-}
-export -f filterSoftClipTOTAL
-
-filterORPHANS(){
-	awk '
-		BEGIN {FS="\t"; OFS="\t"} # Set the field separator and output field separator
-		{
-			if($1 ~ /^@/) {
-				print; next
-			} else {
-				c[$1]++;
-				l[$1,c[$1]]=$0
-			}
-		} END {
-			for (i in c) {
-				if (c[i] > 1) {
-					for (j = 1; j <= c[i]; j++) {
-						print l[i,j]
-					}
+		
+		#Filter 2: remove reads with excessive soft clipping and orphans
+			if [[ "$SOFT_CLIP_CUTOFF" != "no" || "$FILTER_ORPHANS" != "no" ]]; then
+				#Function for filtering BAM files
+				SoftClipOrphanFilter(){
+					FILTER_MIN_AS_=$5
+					if [[ "$2" != "no" && "$3" == "yes" ]]; then
+						samtools view $1 | mawk '!/(\t([$2-9].|[1-9][0-9][0-9])S|([$2-9].|[1-9][0-9][0-9])S\t)/' | awk 'BEGIN { FS="\t" } { c[$1]++; l[$1,c[$1]]=$0 } END { for (i in c) { if (c[i] > 1) for (j = 1; j <= c[i]; j++) print l[i,j] } }' | awk -v AS=$FILTER_MIN_AS_ 'BEGIN { FS="[\t:]"} {if ($23 >= AS) {print}} ' | cat <(samtools view -H $1) - | samtools view -S1T $4 - | samtools sort - -o $1 
+					elif [[ "$2" != "no" && "$3" == "no" ]]; then
+						samtools view $1 | mawk '!/(\t([$2-9].|[1-9][0-9][0-9])S|([$2-9].|[1-9][0-9][0-9])S\t)/' | awk -v AS=$FILTER_MIN_AS_ 'BEGIN { FS="[\t:]"} {if ($23 >= AS) {print}} ' | cat <(samtools view -H $1) - | samtools view -S1T $4 - | samtools sort - -o $1 
+					elif [[ "$2" == "no" && "$3" == "yes" ]]; then
+						samtools view $1 | awk 'BEGIN { FS="\t" } { c[$1]++; l[$1,c[$1]]=$0 } END { for (i in c) { if (c[i] > 1) for (j = 1; j <= c[i]; j++) print l[i,j] } }' | awk -v AS=$FILTER_MIN_AS_ 'BEGIN { FS="[\t:]"} {if ($23 >= AS) {print}} ' | cat <(samtools view -H $1) - | samtools view -S1T $4 - | samtools sort - -o $1 
+					fi
 				}
-			}
-		}
-	'
-}
-export -f filterORPHANS
-
-
-FILTERBAM(){
-	#Function for filtering BAM files
-	echo SOFT_CLIP_CUT=$SOFT_CLIP_CUT
-	echo FILTER_ORPHANS=$FILTER_ORPHANS
-	echo MAPPING_MIN_QUALITY=$MAPPING_MIN_QUALITY
-	echo SAMTOOLS_VIEW_F=$SAMTOOLS_VIEW_F
-	echo SAMTOOLS_VIEW_f=$SAMTOOLS_VIEW_f
-	echo SAMTOOLS_VIEW_Fcustom=$SAMTOOLS_VIEW_Fcustom
-	echo SAMTOOLS_VIEW_fcustom=$SAMTOOLS_VIEW_fcustom
-	echo FILTER_MIN_AS=$FILTER_MIN_AS
-	echo FILTER_MIN_AS_LEN=$FILTER_MIN_AS_LEN
-	parallel --record-env
-	if [[ "$SOFT_CLIP_CUT" != "no" && "$FILTER_ORPHANS" != "no" ]]; then
-		echo "";echo "  "`date` " Filtering bam files by Samtools Flags, Soft Clipped Bases, Alignment Scores relative to Read Length, and Orphans..."
-		ls *$CUTOFFS-RAW.bam | \
-			sed 's/\-RAW.bam//g' | \
-			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterSoftClipTOTAL $SOFT_CLIP_CUT | filterORPHANS | samtools sort --output-fmt bam,level=1 -@ 1 1> {}-RG.bam 2> samtools.sort.fltrbam.{}.log "     #samtools view -b -o {}-RG.bam "
-	elif [[ "$SOFT_CLIP_CUT" == "no" && "$FILTER_ORPHANS" != "no" ]]; then
-		echo "";echo "  "`date` " Filtering bam files by Samtools Flags, Alignment Scores relative to Read Length, and Orphans..."
-		ls *$CUTOFFS-RAW.bam | \
-			sed 's/\-RAW.bam//g' | \
-			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterORPHANS | samtools sort --output-fmt bam,level=1 -@ 1 1> {}-RG.bam 2> samtools.sort.fltrbam.{}.log "     #samtools view -b -o {}-RG.bam "
-	elif [[ "$SOFT_CLIP_CUT" != "no" && "$FILTER_ORPHANS" == "no" ]]; then
-		echo "";echo "  "`date` " Filtering bam files by Samtools Flags, Soft Clipped Bases, and Alignment Scores relative to Read Length..."
-		ls *$CUTOFFS-RAW.bam | \
-			sed 's/\-RAW.bam//g' | \
-			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | filterSoftClipTOTAL $SOFT_CLIP_CUT | samtools view -b -o {}-RG.bam "
-	elif [[ "$SOFT_CLIP_CUT" == "no" && "$FILTER_ORPHANS" == "no" ]]; then
-		echo "";echo "  "`date` " Filtering bam files by Samtools Flags and Alignment Scores relative to Read Length..."
-		ls *$CUTOFFS-RAW.bam | \
-			sed 's/\-RAW.bam//g' | \
-			parallel --no-notice --env _ -j $NUMProc "filterSamFLAGS {}-RAW.bam $MAPPING_MIN_QUALITY $SAMTOOLS_VIEW_F $SAMTOOLS_VIEW_f $SAMTOOLS_VIEW_Fcustom $SAMTOOLS_VIEW_fcustom | filterAS $FILTER_MIN_AS $FILTER_MIN_AS_LEN | samtools view -b -o {}-RG.bam "
-	fi
-
-	#Index the filtered bam files 
-	echo "";echo "  "`date` " Indexing the filtered BAM files..."
-	ls *$CUTOFFS-RG.bam | parallel --no-notice -j $NUMProc "samtools index {}" 
-
-	echo "";echo "  "`date` " Filtering complete!"
-
+				export -f SoftClipOrphanFilter
+				
+				echo "";echo "  "`date` " Applying Filter 2: removing excessively soft clipped reads (and their mates)"
+				echo "";echo "   "`date` " SOFT_CLIP_CUTOFF is $SOFT_CLIP_CUTOFF * 10"
+				parallel --record-env
+				ls *$CUTOFFS-RG.bam | parallel --no-notice --env _ -j $NUMProc "SoftClipOrphanFilter {} $SOFT_CLIP_CUTOFF $FILTER_ORPHANS reference.$CUTOFFS.fasta $FILTER_MIN_AS"
+			fi
+		
+		#Index the filtered bam files 
+			echo "";echo "  "`date` " Indexing the filtered BAM files"
+			ls *$CUTOFFS-RG.bam | parallel --no-notice -j $NUMProc "samtools index {}" 
+		
+	# elif [ "$ATYPE" == "OL" ]; then					#single end alignments, -f2 turned off
+		
+	# elif [ "$ATYPE" == "RPE" ]; then					#single end alignments
+		
+	# elif [ "$ATYPE" == "SE" ]; then					#single end alignments	
+		
+	# fi
 }
 
 ###############################################################################################
 #Call SNPs
 ###############################################################################################
 
-GENOTYPE(){
+function GENOTYPE(){
 	echo ""; echo `date` "Genotyping initiated..."	
 	# CUTOFFS=$1
 	# NUMProc=$2
