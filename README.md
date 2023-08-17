@@ -1,7 +1,7 @@
 ## dDocentHPC: A pipeline to trim, assemble, map, and genotype reduced representation genomic data
 
 ---
-### !!! _*new configuration file format `config.6.*` must be used with `dDocentHPC_dev.bash`*_ !!!
+### !!! _*new configuration file format `config.6.*` must be used with present version of `dDocentHPC.bash`*_ !!!
 	* all fltrBAM options work now
 		* remove mapped reads orphaned by fltrBAM after mapping
 		* remove mapped reads with excessive soft clipping
