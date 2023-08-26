@@ -1787,7 +1787,7 @@ MAP2REF(){
 	
 	# BWA-MEME for mapping for all samples.  As of version 2.0 can handle SE or PE reads by checking for PE read files
 	bwaALLOC
-	echo "";echo `date` " Run bwa mem on dDocent files"
+	echo "";echo `date` " Run bwa mem "
 	parallel --record-env
 	parallel --no-notice --env _ -j ${numPARALLEL} "runBWA {} $CUTOFFS $MAPPING_CLIPPING_PENALTY $MAPPING_MIN_ALIGNMENT_SCORE $optA $optB $optO $freeMEM $memSortPerPARALLEL $threadsPerPARALLEL $threadsSortPerPARALLEL $memSortPerThreadPerPARALLEL $ATYPE $INSERT $SD $INSERTH $INSERTL " ::: "${NAMES[@]}"
 	# for i in "${NAMES[@]}"; do
