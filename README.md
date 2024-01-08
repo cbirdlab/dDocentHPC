@@ -10,21 +10,11 @@
 	* mkBAM updated to use bwa-meme and automatically adjust to the amount of ram and number of threads on your system
 		* this should increase speed
 		* if you have <16GB of ram, you might get a memory error
-	
-### !!! _*new configuration file format `config.5.*` must be used with `dDocentHPC.bash`*_ !!!
-
-To make `config.4.all` compatible with newest version, then add the following line:
-
-```
-TruSeq3-PE-2.fa	trimmomatic ILLUMINACLIP:<fasta> (0, fasta file name)			Specifies the trimmomatic adapter file to use. entering a 0 (zero) will turn off adapter trimming. Options are: TruSeq3-PE-2.fa, TruSeq3-PE.fa, TruSeq3-SE.fa, TruSeq2-PE.fa, TruSeq2-SE.fa, any other files included with trimmomatic.  Entering a custom path here will break the script. If you want a customized file, you have to put it where the default trimmomatic files are located on your computer.  If you have trouble finding this location, run dDocentHPC trimREF and it will be included in the output.
-```
 
 ---
 
-dDocentHPC is a hard fork of [Dr. Jon Puritz's dDocent wrapper bash script](ddocent.com).  dDocentHPC is designed to be run
-without interaction and functions more like a typical unix/linux commandline program.  Settings are defined in a config file 
-and then dDocentHPC is run from the commandline.  dDocentHPC also includes updated algorithms to take advantage of parallel 
-processing. The resulting vcf files can be filtered with [fltrVCF](https://github.com/cbirdlab/fltrVCF), a separate script.
+dDocentHPC is a hard fork of [Dr. Jon Puritz's dDocent wrapper bash script] (ddocent.com).  dDocentHPC is designed to be run without interaction and functions more like a typical unix/linux commandline program.  Settings are defined in a config file 
+and then dDocentHPC is run from the commandline.  dDocentHPC also includes updated algorithms to take advantage of parallel processing. The resulting vcf files can be filtered with [fltrVCF](https://github.com/cbirdlab/fltrVCF), a separate script.
 
 ---
 
@@ -47,7 +37,14 @@ processing. The resulting vcf files can be filtered with [fltrVCF](https://githu
  
 ## Quick Start
 
-0. [Install all dependencies here](https://github.com/jpuritz/dDocent#installing) or try [here](https://www.ddocent.com/downloads/)
+0. [Install all dependencies here using version 2.7.8](https://anaconda.org/bioconda/ddocent)
+
+   ```bash
+   conda install -c bioconda ddocent=2.7.8
+   # there are unresolved issues if you use 2.9.4
+   ```
+   
+	* Alternatively, [Install all dependencies here](https://github.com/jpuritz/dDocent#installing) or try [here](https://www.ddocent.com/downloads/)
 	* you also need [bwa-meme](https://github.com/kaist-ina/BWA-MEME#install-option-1-bioconda)
 	* I suggest downloading [anaconda](https://www.anaconda.com/products/distribution) and loading all dependencies in an environment called ddocent.  See [here](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) for details on creating and managing environments.
 	
