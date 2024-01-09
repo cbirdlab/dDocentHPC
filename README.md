@@ -65,6 +65,7 @@ and then dDocentHPC is run from the commandline.  dDocentHPC also includes updat
 4. Run the functions (trimFQ, mkREF, mkBAM, fltrBAM, and mkVCF) in order, as they are listed above
 
 	a. _NOTE: [our fq_gz_processing pipeline](https://github.com/philippinespire/pire_fq_gz_processing) replaces trimFQ and we generally use a whole genome assembly rather than mkREF these days._
+
 		i. fq_gz_processing has additional dependencies: [fastp](https://github.com/OpenGene/fastp), [fastq_screen](https://github.com/StevenWingett/FastQ-Screen), [BBmap](https://github.com/BioInfoTools/BBMap), [multiqc](https://github.com/MultiQC/MultiQC), [fastq_utils](https://github.com/nunofonseca/fastq_utils)
 
 		ii. for the adventurous, [process_sequencing_metadata](https://github.com/philippinespire/process_sequencing_metadata/blob/main/README.md) summarizes the fq_gz_processing metadata using R
