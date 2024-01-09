@@ -64,7 +64,12 @@ and then dDocentHPC is run from the commandline.  dDocentHPC also includes updat
 	
 4. Run the functions (trimFQ, mkREF, mkBAM, fltrBAM, and mkVCF) in order, as they are listed above
 
-	a. An example SLURM file, dDocentHPC.sbatch, is provided as a guide for how to run on an HPC
+	a. _NOTE: [our fq_gz_processing pipeline](https://github.com/philippinespire/pire_fq_gz_processing) replaces trimFQ and we generally use a whole genome assembly rather than mkREF these days._
+		i. fq_gz_processing has additional dependencies: [fastp](https://github.com/OpenGene/fastp), [fastq_screen](https://github.com/StevenWingett/FastQ-Screen), [BBmap](https://github.com/BioInfoTools/BBMap), [multiqc](https://github.com/MultiQC/MultiQC), [fastq_utils](https://github.com/nunofonseca/fastq_utils)
+
+		ii. for the adventurous, [process_sequencing_metadata](https://github.com/philippinespire/process_sequencing_metadata/blob/main/README.md) summarizes the fq_gz_processing metadata using R
+
+	b. An example SLURM file, dDocentHPC.sbatch, is provided as a guide for how to run on an HPC
 		
 	b. dDocentHPC.bash trimFQ is run from the project directory and creates two additional directories names: mkREF and mkBAM
 	
@@ -74,7 +79,7 @@ and then dDocentHPC is run from the commandline.  dDocentHPC also includes updat
 		
 	d. mkBAM, fltrBAM, and mkVCF should be run from inside the mkBAM directory
 	
-5. I strongly recommend that you look at the resulting files and output to determine if things worked as you intended. I have spent countless hours doing this on my projects and have adjusted the default settings in the config file accordingly. However, new projects can throw you a curve ball and the settings may need to be changed from the default values.
+6. I strongly recommend that you look at the resulting files and output to determine if things worked as you intended. I have spent countless hours doing this on my projects and have adjusted the default settings in the config file accordingly. However, new projects can throw you a curve ball and the settings may need to be changed from the default values.
 		
 	a. After every run, read through the output of dDocentHPC to check for errors.  On an hpc, this will be the slurm*.out file. On a linux workstation, output will be printed to screen unless you add a redirect to a file when you run the dDocentHPC.bash script
 	
@@ -92,7 +97,7 @@ and then dDocentHPC is run from the commandline.  dDocentHPC also includes updat
 		
 		iii. Are there poorly mapped reads in the BAM that are causing erroneous variant calls in the VCF.
 			
-6. Consider using [fltrVCF](https://github.com/cbirdlab/fltrVCF) to continue processing the VCF file.
+7. Consider using [fltrVCF](https://github.com/cbirdlab/fltrVCF) to continue processing the VCF file.
 
 ---
 
