@@ -7,7 +7,8 @@
 #SBATCH --exclusive=user
 
 enable_lmod
-module load container_env ddocent/2.9.4
+module load container_env ddocent/2.7.8
+# module load container_env ddocent/2.9.4
 
 export SINGULARITY_BIND=/home/e1garcia
 export PARALLEL_SHELL=/bin/bash
