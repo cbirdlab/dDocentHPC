@@ -2243,7 +2243,7 @@ EOF
 
 	#sort the vcf
 	ls raw.*.$CUTOFFS.vcf | parallel --no-notice -j $NUMProc "cat <(grep -v '^dDocent' {}) <(grep '^dDocent' {} | sort -V -k1,1 -k2,2) > ./raw.$CUTOFFS.vcf/{} "
-	#rm raw.*.$CUTOFFS.vcf
+	rm raw.*.$CUTOFFS.vcf
 
 	echo ""; echo " "`date` "Assembling final VCF file..."
 	vcfcombine ./raw.$CUTOFFS.vcf/raw.*.$CUTOFFS.vcf | sed -e 's/	\.\:/	\.\/\.\:/g' > TotalRawSNPs.$CUTOFFS.vcf
